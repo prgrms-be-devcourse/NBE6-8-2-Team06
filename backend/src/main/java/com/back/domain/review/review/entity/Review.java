@@ -1,4 +1,4 @@
-package com.back.domain.reivew.review.entity;
+package com.back.domain.review.review.entity;
 
 import com.back.global.jpa.entity.BaseEntity;
 import jakarta.persistence.Entity;
