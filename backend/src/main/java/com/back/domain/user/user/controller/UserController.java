@@ -3,6 +3,7 @@ package com.back.domain.user.user.controller;
 import com.back.domain.user.user.dto.UserDto;
 import com.back.domain.user.user.entity.User;
 import com.back.domain.user.user.service.UserService;
+import com.back.global.exception.ServiceException;
 import com.back.global.rsData.RsData;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -41,7 +42,7 @@ public class UserController {
             @Valid @RequestBody UserJoinReqBody reqBody
     ){
         userService.findByEmail(reqBody.email).ifPresent(user -> {
-            throw new RuntimeException("같은 이메일이 존재합니다. 다른 이메일로 가입해주세요.");
+            throw new ServiceException("409","이미 존재하는 이메일 입니다. 다시 입력해주세요.");
         });
         User user = userService.join(
                 reqBody.email(),
