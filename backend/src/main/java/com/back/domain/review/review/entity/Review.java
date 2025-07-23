@@ -1,7 +1,9 @@
 package com.back.domain.review.review.entity;
 
+import com.back.domain.member.member.entity.Member;
 import com.back.global.jpa.entity.BaseEntity;
 import jakarta.persistence.Entity;
+import jakarta.persistence.ManyToOne;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -9,6 +11,7 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor
 public class Review extends BaseEntity {
-    private String content;
-    private int rate;
+    @ManyToOne
+    private Member member;
+
 }
