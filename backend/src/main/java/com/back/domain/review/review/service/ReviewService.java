@@ -12,7 +12,6 @@ import java.util.Optional;
 public class ReviewService {
     private final ReviewRepository reviewRepository;
 
-
     public Optional<Review> findLatest(){
         return reviewRepository.findFirstByOrderByIdDesc();
     }
