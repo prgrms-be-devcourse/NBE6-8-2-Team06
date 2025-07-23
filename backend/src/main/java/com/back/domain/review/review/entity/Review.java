@@ -19,5 +19,8 @@ public class Review extends BaseEntity {
     private String content;
     private int rate;
 
-
+    public Review(String content, int rate){
+        this.content = content;
+        this.rate = rate;
+    }
 }
