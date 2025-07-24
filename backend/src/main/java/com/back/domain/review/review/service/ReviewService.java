@@ -22,8 +22,7 @@ public class ReviewService {
 
     @Transactional
     public void addReview(Book book, Member member, ReviewRequestDto reviewRequestDto){
-        Review review = new Review(reviewRequestDto.content(), reviewRequestDto.rate());
-        book.getReviews().add(review);
-        member.getReviews().add(review);
+        Review review = new Review(reviewRequestDto.content(), reviewRequestDto.rate(), member, book);
+        reviewRepository.save(review);
     }
 }
