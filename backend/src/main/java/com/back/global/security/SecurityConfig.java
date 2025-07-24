@@ -19,6 +19,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
@@ -29,6 +30,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests( auth -> auth
                         .anyRequest().permitAll()
                 )
+
                 // jwt 인증필터 등록
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
 
