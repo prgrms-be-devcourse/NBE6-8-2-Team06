@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.domain.Page;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -129,7 +130,7 @@ public class BookmarkControllerTest {
     }
 
     @Test
-    @DisplayName("북마크 다건 조회")
+    @DisplayName("북마크 다건 조회 - 목록")
     void t4() throws Exception {
         ResultActions resultActions = mvc
                 .perform(
@@ -155,6 +156,41 @@ public class BookmarkControllerTest {
                     .andExpect(jsonPath("$[%d].read_page".formatted(i)).value(bookmarksDto.read_page()))
                     .andExpect(jsonPath("$[%d].reading_rate".formatted(i)).value(bookmarksDto.reading_rate()))
                     .andExpect(jsonPath("$[%d].date".formatted(i)).value(Matchers.startsWith(bookmarksDto.date().toString().substring(0,18))));
+        }
+    }
+
+    @Test
+    @DisplayName("북마크 다건 조회 - 페이지")
+    void t5() throws Exception {
+        ResultActions resultActions = mvc
+                .perform(
+                        get("/api/bookmarks")
+                )
+                .andDo(print());
+
+        Page<BookmarksDto> bookmarksDtoPage = bookmarkService.toPage(0,10, null, null, null);
+
+        resultActions
+                .andExpect(handler().handlerType(BookmarkController.class))
+                .andExpect(handler().methodName("getBookmarksToPage"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(bookmarksDtoPage.getNumberOfElements()))
+                .andExpect(jsonPath("$.page_number").value(bookmarksDtoPage.getNumber()))
+                .andExpect(jsonPath("$.page_size").value(bookmarksDtoPage.getSize()))
+                .andExpect(jsonPath("$.total_page").value(bookmarksDtoPage.getTotalPages()))
+                .andExpect(jsonPath("$.total_elements").value(bookmarksDtoPage.getTotalElements()))
+                .andExpect(jsonPath("$.is_last").value(bookmarksDtoPage.isLast()));
+
+        for(int i=0;i<bookmarksDtoPage.getSize(); i++) {
+            BookmarksDto bookmarksDto = bookmarksDtoPage.getContent().get(i);
+            resultActions
+                    .andExpect(jsonPath("$[%d].data.id".formatted(i)).value(bookmarksDto.id()))
+                    .andExpect(jsonPath("$[%d].data.user_id".formatted(i)).value(bookmarksDto.user_id()))
+                    .andExpect(jsonPath("$[%d].data.book_id".formatted(i)).value(bookmarksDto.book_id()))
+                    .andExpect(jsonPath("$[%d].data.read_state".formatted(i)).value(bookmarksDto.read_state()))
+                    .andExpect(jsonPath("$[%d].data.read_page".formatted(i)).value(bookmarksDto.read_page()))
+                    .andExpect(jsonPath("$[%d].data.reading_rate".formatted(i)).value(bookmarksDto.reading_rate()))
+                    .andExpect(jsonPath("$[%d].data.date".formatted(i)).value(Matchers.startsWith(bookmarksDto.date().toString().substring(0,18))));
         }
     }
 }

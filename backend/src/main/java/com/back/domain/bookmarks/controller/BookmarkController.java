@@ -58,8 +58,12 @@ public class BookmarkController {
 
     @GetMapping("")
     @Transactional(readOnly = true)
-    public RsData<PageResponseDto<BookmarksDto>> getBookmarksToPage(@RequestParam(value = "page", defaultValue = "0")int page, @RequestParam(value = "size", defaultValue = "10")int size) {
-        Page<BookmarksDto> bookmarksDtoPage = bookmarkService.toPage(page, size);
+    public RsData<PageResponseDto<BookmarksDto>> getBookmarksToPage(@RequestParam(value = "page", defaultValue = "0")int page,
+                                                                    @RequestParam(value = "size", defaultValue = "10")int size,
+                                                                    @RequestParam(value = "category", required = false) String category,
+                                                                    @RequestParam(value = "read_state", required = false) String read_state,
+                                                                    @RequestParam(value = "keyword", required = false) String keyword) {
+        Page<BookmarksDto> bookmarksDtoPage = bookmarkService.toPage(page, size, category, read_state, keyword);
         if(bookmarksDtoPage.isEmpty()){
             return new RsData<>("404-1", "데이터가 없습니다.", null);
         }
