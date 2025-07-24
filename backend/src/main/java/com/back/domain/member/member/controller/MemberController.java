@@ -1,8 +1,8 @@
-package com.back.domain.user.user.controller;
+package com.back.domain.member.member.controller;
 
-import com.back.domain.user.user.dto.UserDto;
-import com.back.domain.user.user.entity.User;
-import com.back.domain.user.user.service.UserService;
+import com.back.domain.member.member.dto.MemberDto;
+import com.back.domain.member.member.entity.Member;
+import com.back.domain.member.member.service.MemberService;
 import com.back.global.exception.ServiceException;
 import com.back.global.rsData.RsData;
 import jakarta.validation.Valid;
@@ -17,14 +17,14 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/user")
+@RequestMapping("/member")
 @RequiredArgsConstructor
-public class UserController {
+public class MemberController {
 
-    private final UserService userService;
+    private final MemberService memberService;
     private final PasswordEncoder passwordEncoder;
 
-    record UserJoinReqBody(
+    record MemberJoinReqBody(
         @NotBlank
         @Size(min = 2, max = 30)
         String email,
@@ -38,24 +38,21 @@ public class UserController {
 
     @PostMapping("/signup")
     @Transactional
-    public RsData<UserDto> join(
-            @Valid @RequestBody UserJoinReqBody reqBody
+    public RsData<MemberDto> join(
+            @Valid @RequestBody MemberJoinReqBody reqBody
     ){
-        userService.findByEmail(reqBody.email).ifPresent(user -> {
+        memberService.findByEmail(reqBody.email()).ifPresent(member -> {
             throw new ServiceException("409","이미 존재하는 이메일 입니다. 다시 입력해주세요.");
         });
-        User user = userService.join(
+        Member member = memberService.join(
+                reqBody.name(),
                 reqBody.email(),
-                reqBody.name,
                 passwordEncoder.encode(reqBody.password)
         );
         return new RsData<>(
                 "201-1",
-                "%s님 환영합니다. Bookers 회원가입이 완료되었습니다.".formatted(user.getName()),
-                new UserDto(user)
+                "%s님 환영합니다. Bookers 회원가입이 완료되었습니다.".formatted(member.getName()),
+                new MemberDto(member)
         );
     }
-
-
-
 }
