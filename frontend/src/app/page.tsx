@@ -1,103 +1,206 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import React from 'react';
+import Link from 'next/link';
+import Image from 'next/image';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { BookOpen, Plus, Star, TrendingUp } from 'lucide-react';
+
+export default function HomePage() {
+  const isLoggedIn = true; // For demonstration purposes
+
+  // 가상의 데이터
+  const recentBooks = [
+    {
+      id: 1,
+      title: "클린 코드",
+      author: "로버트 C. 마틴",
+      rating: 4.5,
+      status: "읽은 책"
+    },
+    {
+      id: 2,
+      title: "리팩터링",
+      author: "마틴 파울러",
+      rating: 4.8,
+      status: "읽고 있는 책"
+    },
+    {
+      id: 3,
+      title: "디자인 패턴",
+      author: "GoF",
+      rating: 0,
+      status: "읽고 싶은 책"
+    }
+  ];
+
+  const stats = {
+    totalBooks: 25,
+    readBooks: 18,
+    wantToReadBooks: 7,
+    averageRating: 4.2
+  };
+
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* 헤로 섹션 */}
+      <div className="text-center mb-12">
+        <h1 className="text-4xl mb-4">나만의 독서 기록</h1>
+        <p className="text-xl text-muted-foreground mb-8">
+          다양한 책을 탐색하고, 읽은 책들을 기록하며, 리뷰를 남겨보세요
+        </p>
+        
+        {isLoggedIn ? (
+          <div className="flex justify-center space-x-4">
+            <Link href="/my-books" passHref>
+              <Button size="lg">
+                <BookOpen className="mr-2 h-5 w-5" />
+                내 책 보기
+              </Button>
+            </Link>
+            <Link href="/books/add" passHref>
+              <Button size="lg" variant="outline">
+                <Plus className="mr-2 h-5 w-5" />
+                책 추가하기
+              </Button>
+            </Link>
+          </div>
+        ) : (
+          <Link href="/login" passHref>
+            <Button size="lg">
+              시작하기
+            </Button>
+          </Link>
+        )}
+      </div>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      {isLoggedIn && (
+        <>
+          {/* 통계 카드 */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm">총 책 수</CardTitle>
+                <BookOpen className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl">{stats.totalBooks}</div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm">읽은 책</CardTitle>
+                <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl">{stats.readBooks}</div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm">읽고 싶은 책</CardTitle>
+                <Plus className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl">{stats.wantToReadBooks}</div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm">평균 평점</CardTitle>
+                <Star className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl">{stats.averageRating}</div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* 최근 책들 */}
+          <div className="mb-12">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl">최근 활동</h2>
+              <Link href="/my-books" passHref>
+                <Button variant="outline">
+                  내 책 관리
+                </Button>
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {recentBooks.map((book) => (
+                <Card key={book.id}>
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <CardTitle className="text-lg">{book.title}</CardTitle>
+                        <CardDescription>{book.author}</CardDescription>
+                      </div>
+                      <Image
+                        src={`https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=60&h=90&fit=crop&crop=center`}
+                        alt={book.title}
+                        width={60}
+                        height={90}
+                        className="w-12 h-16 object-cover rounded"
+                      />
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm bg-secondary px-2 py-1 rounded">
+                        {book.status}
+                      </span>
+                      {book.rating > 0 && (
+                        <div className="flex items-center">
+                          <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mr-1" />
+                          <span className="text-sm">{book.rating}</span>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* 기능 소개 섹션 */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <Card>
+          <CardHeader>
+            <BookOpen className="h-8 w-8 text-primary mb-2" />
+            <CardTitle>책 관리</CardTitle>
+            <CardDescription>
+              읽은 책, 읽고 있는 책, 읽고 싶은 책을 체계적으로 관리하세요
+            </CardDescription>
+          </CardHeader>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <Star className="h-8 w-8 text-primary mb-2" />
+            <CardTitle>리뷰 작성</CardTitle>
+            <CardDescription>
+              읽은 책에 대한 생각과 평점을 기록하고 공유하세요
+            </CardDescription>
+          </CardHeader>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <TrendingUp className="h-8 w-8 text-primary mb-2" />
+            <CardTitle>독서 통계</CardTitle>
+            <CardDescription>
+              독서 패턴을 분석하고 목표를 설정해보세요
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
     </div>
   );
 }
