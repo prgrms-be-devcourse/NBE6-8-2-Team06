@@ -25,10 +25,20 @@ public class Book extends BaseEntity {
     LocalDateTime publishedDate;
     float avgRate;
 
+    @Column(unique = true)
+    String isbn13;
+
     @OneToMany(mappedBy = "book", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Wrote> authors = new ArrayList<>();
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id", nullable = false)
     private Category category;
+
+    public Book(String title, String publisher, Category category){
+        this.title = title;
+        this.publisher = publisher;
+        this.category = category;
+    }
+
 }
