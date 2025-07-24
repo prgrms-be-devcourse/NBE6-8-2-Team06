@@ -10,6 +10,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -22,8 +23,8 @@ public class Bookmark extends BaseEntity {
     @Enumerated(EnumType.STRING)
     private ReadState readState;
     private int readPage;
-    private LocalDateTime startReadTime;
-    private LocalDateTime endReadTime;
+    private LocalDateTime startReadDate;
+    private LocalDateTime endReadDate;
 
     public Bookmark(Book book) {
         this.book = book;
@@ -36,11 +37,11 @@ public class Bookmark extends BaseEntity {
     public void updateReadPage(int readPage) {
         this.readPage = readPage;
     }
-    public void updateStartReadTime(LocalDateTime startReadTime) {
-        this.startReadTime = startReadTime;
+    public void updateStartReadDate(LocalDateTime startReadDate) {
+        this.startReadDate = startReadDate;
     }
-    public void updateEndReadTime(LocalDateTime endReadTime) {
-        this.endReadTime = endReadTime;
+    public void updateEndReadDate(LocalDateTime endReadDate) {
+        this.endReadDate = endReadDate;
     }
 
     @OneToMany(cascade = {CascadeType.PERSIST, CascadeType.REMOVE}, orphanRemoval = true) //임시 맵핑 - note
@@ -53,4 +54,22 @@ public class Bookmark extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "member_id")
     private Member member;
+
+    public int calculateReadingRate(){
+        int totalPage = book.getTotalPage();
+        if(totalPage == 0) return 0;
+        if(readPage >= totalPage) return 100;
+        if(readPage <= 0) return 0;
+        double rate = ((double) readPage/totalPage) * 100;
+        return (int) Math.round(rate);
+    }
+
+    public long calculateReadingDuration(){
+        LocalDateTime effectiveEnd = (endReadDate == null) ? LocalDateTime.now() : endReadDate;
+        return ChronoUnit.DAYS.between(startReadDate, effectiveEnd);
+    }
+
+    public LocalDateTime getDisplayDate(){
+        return readState==ReadState.BEFORE_READING ? getCreateDate():readState==ReadState.READING ? startReadDate:endReadDate;
+    }
 }
