@@ -96,8 +96,8 @@ class BookServiceTest {
 
         when(bookRepository.findByTitleOrAuthorContaining(query))
                 .thenReturn(List.of());
-        when(categoryRepository.findByName("국내도서"))
-                .thenReturn(Optional.of(defaultCategory));
+        when(categoryRepository.findByName("소설"))  // 2번째 깊이 "소설"로 변경
+                .thenReturn(Optional.of(new Category("소설")));
         when(authorRepository.findByName("J.K. 롤링"))
                 .thenReturn(Optional.empty());
         when(authorRepository.save(any(Author.class)))
@@ -153,8 +153,8 @@ class BookServiceTest {
 
         when(bookRepository.findByIsbn13(isbn))
                 .thenReturn(Optional.empty());
-        when(categoryRepository.findByName("국내도서"))
-                .thenReturn(Optional.of(defaultCategory));
+        when(categoryRepository.findByName("소설"))  // 2번째 깊이 "소설"로 변경
+                .thenReturn(Optional.of(new Category("소설")));
         when(authorRepository.findByName("J.K. 롤링"))
                 .thenReturn(Optional.empty());
         when(authorRepository.save(any(Author.class)))
@@ -186,7 +186,7 @@ class BookServiceTest {
 
         when(bookRepository.findByTitleOrAuthorContaining("book"))
                 .thenReturn(List.of());
-        when(categoryRepository.findByName("국내도서"))
+        when(categoryRepository.findByName("국내도서"))  // mallType 기반 fallback 카테고리
                 .thenReturn(Optional.of(new Category("국내도서")));
         when(restTemplate.getForObject(anyString(), eq(String.class)))
                 .thenReturn(apiResponse);
@@ -231,8 +231,8 @@ class BookServiceTest {
 
         when(bookRepository.findByTitleOrAuthorContaining(query))
                 .thenReturn(List.of());
-        when(categoryRepository.findByName("국내도서"))
-                .thenReturn(Optional.of(defaultCategory));
+        when(categoryRepository.findByName("소설"))  // 2번째 깊이 "소설"로 변경
+                .thenReturn(Optional.of(new Category("소설")));
         when(authorRepository.findByName("J.K. 롤링"))
                 .thenReturn(Optional.of(testAuthor)); // 이미 존재하는 작가
         when(wroteRepository.existsByAuthorAndBook(any(Author.class), any(Book.class)))
@@ -273,7 +273,167 @@ class BookServiceTest {
         verify(wroteRepository, never()).save(any(Wrote.class));
     }
 
-    // Helper methods
+    // ===== 🎉 NEW! 카테고리 추출 테스트 (2번째 깊이 방식) =====
+
+    @Test
+    @DisplayName("카테고리 경로에서 2번째 깊이 추출 - 소설")
+    void categoryExtraction_ShouldExtractSecondLevel_Novel() {
+        // Given
+        String apiResponse = createMockApiResponseWithCategory("국내도서>소설>한국소설>현대소설");
+        setupCategoryExtractionTest("소설", apiResponse);
+
+        // When
+        bookService.searchBooks("소설책", 1, 10);
+
+        // Then
+        verify(categoryRepository, atLeastOnce()).findByName("소설");
+        verify(bookRepository, atLeastOnce()).save(any(Book.class));
+    }
+
+    @Test
+    @DisplayName("카테고리 경로에서 2번째 깊이 추출 - 경제경영")
+    void categoryExtraction_ShouldExtractSecondLevel_Business() {
+        // Given
+        String apiResponse = createMockApiResponseWithCategory("국내도서>경제경영>마케팅>브랜딩");
+        setupCategoryExtractionTest("경제경영", apiResponse);
+
+        // When
+        bookService.searchBooks("경제책", 1, 10);
+
+        // Then
+        verify(categoryRepository, atLeastOnce()).findByName("경제경영");
+        verify(bookRepository, atLeastOnce()).save(any(Book.class));
+    }
+
+    @Test
+    @DisplayName("카테고리 경로에서 2번째 깊이 추출 - 요리")
+    void categoryExtraction_ShouldExtractSecondLevel_Cooking() {
+        // Given
+        String apiResponse = createMockApiResponseWithCategory("국내도서>가정/요리/뷰티>나라별 요리>한식");
+        setupCategoryExtractionTest("가정/요리/뷰티", apiResponse);
+
+        // When
+        bookService.searchBooks("요리책", 1, 10);
+
+        // Then
+        verify(categoryRepository, atLeastOnce()).findByName("가정/요리/뷰티");
+        verify(bookRepository, atLeastOnce()).save(any(Book.class));
+    }
+
+
+
+    @Test
+    @DisplayName("복잡한 카테고리 경로에서 2번째 깊이 추출 - 과학기술")
+    void categoryExtraction_ShouldExtractSecondLevel_Science() {
+        // Given
+        String apiResponse = createMockApiResponseWithCategory("국내도서>과학>컴퓨터/IT>프로그래밍>자바");
+        setupCategoryExtractionTest("과학", apiResponse);
+
+        // When
+        bookService.searchBooks("과학책", 1, 10);
+
+        // Then
+        verify(categoryRepository, atLeastOnce()).findByName("과학");
+        verify(bookRepository, atLeastOnce()).save(any(Book.class));
+    }
+
+    @Test
+    @DisplayName("외국도서 카테고리 경로에서 2번째 깊이 추출")
+    void categoryExtraction_ShouldExtractSecondLevel_ForeignBook() {
+        // Given
+        String apiResponse = createMockApiResponseWithCategory("외국도서>문학>영미문학>현대문학");
+        setupCategoryExtractionTest("문학", apiResponse);
+
+        // When
+        bookService.searchBooks("외국문학", 1, 10);
+
+        // Then
+        verify(categoryRepository, atLeastOnce()).findByName("문학");
+        verify(bookRepository, atLeastOnce()).save(any(Book.class));
+    }
+    void categoryExtraction_WhenNoCategoryName_ShouldUseMallTypeFallback() {
+        // Given - categoryName이 없는 응답
+        String apiResponse = createMockApiResponseWithoutCategory("BOOK");
+        setupCategoryExtractionTest("국내도서", apiResponse);
+
+        // When
+        bookService.searchBooks("기본책", 1, 10);
+
+        // Then
+        verify(categoryRepository, atLeastOnce()).findByName("국내도서");
+        verify(bookRepository, atLeastOnce()).save(any(Book.class));
+    }
+
+    @Test
+    @DisplayName("외국도서 mallType - 외국도서 카테고리")
+    void categoryExtraction_ForeignBook_ShouldUseForeignCategory() {
+        // Given
+        String apiResponse = createMockApiResponseWithoutCategory("FOREIGN");
+        setupCategoryExtractionTest("외국도서", apiResponse);
+
+        // When
+        bookService.searchBooks("외국책", 1, 10);
+
+        // Then
+        verify(categoryRepository, atLeastOnce()).findByName("외국도서");
+        verify(bookRepository, atLeastOnce()).save(any(Book.class));
+    }
+
+    @Test
+    @DisplayName("전자책 mallType - 전자책 카테고리")
+    void categoryExtraction_EBook_ShouldUseEBookCategory() {
+        // Given
+        String apiResponse = createMockApiResponseWithoutCategory("EBOOK");
+        setupCategoryExtractionTest("전자책", apiResponse);
+
+        // When
+        bookService.searchBooks("전자책", 1, 10);
+
+        // Then
+        verify(categoryRepository, atLeastOnce()).findByName("전자책");
+        verify(bookRepository, atLeastOnce()).save(any(Book.class));
+    }
+
+    @Test
+    @DisplayName("새로운 카테고리 자동 생성")
+    void categoryExtraction_ShouldCreateNewCategory() {
+        // Given
+        String apiResponse = createMockApiResponseWithCategory("국내도서>새로운분야>세부분야");
+        when(bookRepository.findByTitleOrAuthorContaining(anyString())).thenReturn(List.of());
+        when(categoryRepository.findByName("새로운분야")).thenReturn(Optional.empty());
+        when(categoryRepository.save(any(Category.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+        when(restTemplate.getForObject(anyString(), eq(String.class))).thenReturn(apiResponse);
+        when(bookRepository.findByIsbn13(anyString())).thenReturn(Optional.empty());
+        when(bookRepository.save(any(Book.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        // When
+        bookService.searchBooks("새분야책", 1, 10);
+
+        // Then
+        verify(categoryRepository, atLeastOnce()).findByName("새로운분야");
+        verify(categoryRepository, atLeastOnce()).save(argThat(category ->
+                "새로운분야".equals(category.getName())
+        ));
+        verify(bookRepository, atLeastOnce()).save(any(Book.class));
+    }
+
+    // ===== Helper Methods =====
+
+    private void setupCategoryExtractionTest(String expectedCategory, String apiResponse) {
+        when(bookRepository.findByTitleOrAuthorContaining(anyString()))
+                .thenReturn(List.of());
+        when(categoryRepository.findByName(expectedCategory))
+                .thenReturn(Optional.of(new Category(expectedCategory)));
+        when(restTemplate.getForObject(anyString(), eq(String.class)))
+                .thenReturn(apiResponse);
+        when(bookRepository.findByIsbn13(anyString()))
+                .thenReturn(Optional.empty());
+        when(bookRepository.save(any(Book.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+    }
+
     private Book createTestBookWithAuthor() {
         Book book = new Book();
         book.setTitle("테스트 책");
@@ -307,6 +467,7 @@ class BookServiceTest {
                         "pubDate": "2024-01-15",
                         "customerReviewRank": 8,
                         "mallType": "BOOK",
+                        "categoryName": "국내도서>소설>판타지소설",
                         "subInfo": {
                             "authors": [
                                 {
@@ -343,5 +504,50 @@ class BookServiceTest {
                 ]
             }
             """, mallTypeJson);
+    }
+
+    private String createMockApiResponseWithCategory(String categoryName) {
+        return String.format("""
+            {
+                "version": "20131101",
+                "title": "알라딘 상품 검색",
+                "item": [
+                    {
+                        "title": "Test Book",
+                        "author": "Test Author",
+                        "cover": "http://image.aladin.co.kr/test.jpg",
+                        "publisher": "Test Publisher",
+                        "isbn13": "9788966261024",
+                        "itemPage": 250,
+                        "pubDate": "2024-01-15",
+                        "mallType": "BOOK",
+                        "categoryName": "%s",
+                        "customerReviewRank": 8
+                    }
+                ]
+            }
+            """, categoryName);
+    }
+
+    private String createMockApiResponseWithoutCategory(String mallType) {
+        return String.format("""
+            {
+                "version": "20131101",
+                "title": "알라딘 상품 검색",
+                "item": [
+                    {
+                        "title": "Test Book",
+                        "author": "Test Author",
+                        "cover": "http://image.aladin.co.kr/test.jpg",
+                        "publisher": "Test Publisher",
+                        "isbn13": "9788966261024",
+                        "itemPage": 250,
+                        "pubDate": "2024-01-15",
+                        "mallType": "%s",
+                        "customerReviewRank": 8
+                    }
+                ]
+            }
+            """, mallType);
     }
 }
