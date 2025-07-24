@@ -20,4 +20,29 @@ public class NoteService {
     public Optional<Note> findByid(int id) {
         return noteRepository.findById(id);
     }
+
+    public Note write(String title, String content) {
+        Note note = new Note(title, content);
+
+        noteRepository.save(note);
+
+        return note;
+    }
+
+    public void flush() {
+        noteRepository.flush();
+    }
+
+    public void modify(Note note, String title, String content) {
+        note.setTitle(title);
+        note.setContent(content);
+    }
+
+    public long count() {
+        return noteRepository.count();
+    }
+
+    public void delete(int id) {
+        noteRepository.deleteById(id);
+    }
 }

@@ -3,25 +3,29 @@ package com.back.domain.note.controller;
 import com.back.domain.note.dto.NoteDto;
 import com.back.domain.note.entity.Note;
 import com.back.domain.note.service.NoteService;
+import com.back.global.rsData.RsData;
+import io.swagger.v3.oas.annotations.Operation;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/notes")
+@RequestMapping("bookmarks/{bookmarkId}/notes")
 public class NoteController {
     private final NoteService noteService;
 
     @GetMapping
     @Transactional(readOnly = true)
-    public List<NoteDto> getItems() {
+    @Operation(summary = "노트 다건 조회")
+    public List<NoteDto> getItems(@PathVariable int bookmarkId) {
         List<Note> noteList = noteService.findAll();
 
         return noteList
@@ -30,11 +34,92 @@ public class NoteController {
                 .collect(Collectors.toList());
     }
 
-    @GetMapping
+    @GetMapping("/{id}")
     @Transactional(readOnly = true)
-    public NoteDto getItem(@PathVariable int id) {
+    @Operation(summary = "노트 단건 조회")
+    public NoteDto getItem(
+            @PathVariable int bookmarkId,
+            @PathVariable int id) {
         Note note = noteService.findByid(id).get();
 
         return new NoteDto(note);
+    }
+
+
+    record NoteWriteReqBody(
+            @NotBlank
+            @Size(min = 2, max = 100)
+            String title,
+            @NotBlank
+            @Size(min = 2, max = 1000)
+            String content
+    ) {
+    }
+
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    @Transactional
+    @Operation(summary = "노트 작성")
+    public RsData<NoteDto> write(
+            @PathVariable int bookmarkId,
+            @Valid @RequestBody NoteWriteReqBody reqBody
+    ) {
+//        Bookmark bookmark = bookmarkService.findById(bookmarkId).get();
+        Note note = noteService.write(reqBody.title, reqBody.content);
+
+        // 미리 db에 반영
+        noteService.flush();
+
+        return new RsData<>(
+                "201-1",
+                "%d번 노트가 작성되었습니다.".formatted(note.getId()),
+                new NoteDto(note)
+        );
+    }
+
+
+    record NoteModifyReqBody(
+            @NotBlank
+            @Size(min = 2, max = 100)
+            String title,
+            @NotBlank
+            @Size(min = 2, max = 1000)
+            String content
+    ) {
+    }
+
+    @PutMapping("/{id}")
+    @ResponseStatus(HttpStatus.OK)
+    @Transactional
+    @Operation(summary = "노트 수정")
+    public RsData<Void> modify(
+            @PathVariable int bookmarkId,
+            @PathVariable int id,
+            @Valid @RequestBody NoteModifyReqBody reqBody
+    ) {
+        Note note = noteService.findByid(id).get();
+
+        noteService.modify(note, reqBody.title, reqBody.content);
+
+        return new RsData<>(
+                "200-1",
+                "%d번 노트가 수정되었습니다.".formatted(id)
+        );
+    }
+
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.OK)
+    @Transactional
+    @Operation(summary = "노트 삭제")
+    public RsData<Void> delete(
+            @PathVariable int bookmarkId,
+            @PathVariable int id
+    ) {
+        noteService.delete(id);
+
+        return new RsData<>(
+                "200-1",
+                "%d번 노트가 삭제되었습니다.".formatted(id)
+        );
     }
 }
