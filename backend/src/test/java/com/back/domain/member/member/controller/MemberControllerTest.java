@@ -2,6 +2,7 @@ package com.back.domain.member.member.controller;
 
 import com.back.domain.member.member.entity.Member;
 import com.back.domain.member.member.service.MemberService;
+import com.back.global.rq.Rq;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -17,7 +18,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.Optional;
 
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -35,6 +36,9 @@ class MemberControllerTest {
     @Mock
     private PasswordEncoder passwordEncoder;
 
+    @Mock
+    private Rq rq;
+
     private MockMvc mockMvc;
     private ObjectMapper objectMapper;
 
@@ -46,7 +50,7 @@ class MemberControllerTest {
 
     @Test
     @DisplayName("회원가입 성공")
-    void join_success() throws Exception {
+    void t1() throws Exception {
         // Given
         String email = "test@example.com";
         String name = "TestUser";
@@ -73,5 +77,42 @@ class MemberControllerTest {
         verify(memberService, times(1)).findByEmail(email);
         verify(passwordEncoder, times(1)).encode(password);
         verify(memberService, times(1)).join(name, email, encodedPassword);
+    }
+
+    @Test
+    @DisplayName("로그인 성공")
+    void t2() throws Exception {
+        // Given
+        String email = "test@example.com";
+        String password = "password123";
+        String encodedPassword = "encodedPassword123";
+        String accessToken = "mockAccessToken";
+
+        MemberController.MemberLoginReqBody reqBody = new MemberController.MemberLoginReqBody(email, password);
+        Member existingMember = new Member("TestUser", email, encodedPassword);
+
+        when(memberService.findByEmail(email)).thenReturn(Optional.of(existingMember));
+        doNothing().when(memberService).checkPassword(existingMember, password);
+        when(memberService.geneAccessToken(existingMember)).thenReturn(accessToken);
+
+        // Mock the setCookie method of Rq
+        doNothing().when(rq).setCookie(anyString(), anyString());
+
+        // When & Then
+        mockMvc.perform(post("/member/login")
+                        .contentType(APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(reqBody)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resultCode").value("200-1"))
+                .andExpect(jsonPath("$.msg").value("%s님 환영합니다.".formatted(email)))
+                .andExpect(jsonPath("$.data.memDto.email").value(email))
+                .andExpect(jsonPath("$.data.accessToken").value(accessToken));
+
+
+        verify(memberService, times(1)).findByEmail(email);
+        verify(memberService, times(1)).checkPassword(existingMember, password);
+        verify(memberService, times(1)).geneAccessToken(existingMember);
+
+        verify(rq, times(1)).setCookie("accessToken", accessToken);
     }
 }
