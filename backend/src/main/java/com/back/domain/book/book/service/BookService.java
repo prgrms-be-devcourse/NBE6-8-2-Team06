@@ -22,6 +22,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -41,19 +42,24 @@ public class BookService {
     private String aladinBaseUrl;
 
     /**
-     * 책 검색 - DB에 없으면 API에서 가져와서 저장
+     * 방안 3: 하이브리드 접근방식 - OptResult 사용 + 필요시 보완
      */
     @Transactional
     public List<BookSearchDto> searchBooks(String query, int page, int size) {
+        // 1. DB에서 먼저 확인
         List<Book> booksFromDb = bookRepository.findByTitleOrAuthorContaining(query);
-
         if (!booksFromDb.isEmpty()) {
             log.info("DB에서 찾은 책: {} 권", booksFromDb.size());
             return convertToDto(booksFromDb);
         }
 
         log.info("DB에 없어서 알라딘 API에서 검색: {}", query);
-        List<Book> booksFromApi = searchBooksFromAladinApi(query, page, size);
+
+        // 2. OptResult=authors로 검색 (1차 개선)
+        List<Book> booksFromApi = searchBooksFromAladinApiWithOptResult(query, page, size);
+
+        // 3. 여전히 부족한 정보가 있으면 개별 보완 (2차 개선)
+        booksFromApi = enrichMissingDetails(booksFromApi);
 
         return convertToDto(booksFromApi);
     }
@@ -99,31 +105,31 @@ public class BookService {
     }
 
     /**
-     * 알라딘 API에서 책 검색 (도서 타입만)
+     * OptResult=authors를 포함한 알라딘 API 검색
      */
-    private List<Book> searchBooksFromAladinApi(String query, int page, int size) {
+    private List<Book> searchBooksFromAladinApiWithOptResult(String query, int page, int size) {
         List<Book> allBooks = new ArrayList<>();
 
         try {
-            // 국내도서 검색
+            // 국내도서 검색 - OptResult=authors 추가
             String bookUrl = String.format(
-                    "%s/ItemSearch.aspx?ttbkey=%s&Query=%s&QueryType=Title&MaxResults=%d&start=%d&SearchTarget=Book&output=js&Version=20131101",
+                    "%s/ItemSearch.aspx?ttbkey=%s&Query=%s&QueryType=Title&MaxResults=%d&start=%d&SearchTarget=Book&output=js&Version=20131101&OptResult=authors",
                     aladinBaseUrl, aladinApiKey, query, size, page
             );
             List<Book> books = callApiAndParseBooks(bookUrl, "국내도서");
             allBooks.addAll(books);
 
-            // 외국도서 검색
+            // 외국도서 검색 - OptResult=authors 추가
             String foreignUrl = String.format(
-                    "%s/ItemSearch.aspx?ttbkey=%s&Query=%s&QueryType=Title&MaxResults=%d&start=%d&SearchTarget=Foreign&output=js&Version=20131101",
+                    "%s/ItemSearch.aspx?ttbkey=%s&Query=%s&QueryType=Title&MaxResults=%d&start=%d&SearchTarget=Foreign&output=js&Version=20131101&OptResult=authors",
                     aladinBaseUrl, aladinApiKey, query, size, page
             );
             List<Book> foreignBooks = callApiAndParseBooks(foreignUrl, "외국도서");
             allBooks.addAll(foreignBooks);
 
-            // 전자책 검색
+            // 전자책 검색 - OptResult=authors 추가
             String ebookUrl = String.format(
-                    "%s/ItemSearch.aspx?ttbkey=%s&Query=%s&QueryType=Title&MaxResults=%d&start=%d&SearchTarget=eBook&output=js&Version=20131101",
+                    "%s/ItemSearch.aspx?ttbkey=%s&Query=%s&QueryType=Title&MaxResults=%d&start=%d&SearchTarget=eBook&output=js&Version=20131101&OptResult=authors",
                     aladinBaseUrl, aladinApiKey, query, size, page
             );
             List<Book> ebooks = callApiAndParseBooks(ebookUrl, "전자책");
@@ -134,6 +140,81 @@ public class BookService {
         }
 
         return allBooks;
+    }
+
+    /**
+     * 부족한 상세 정보 보완 (페이지 수, 추가 저자 정보 등)
+     */
+    private List<Book> enrichMissingDetails(List<Book> books) {
+        return books.stream()
+                .peek(book -> {
+                    // 페이지 수가 없고 ISBN이 있으면 개별 조회로 보완
+                    if (needsDetailEnrichment(book)) {
+                        log.info("상세 정보 보완 시도: {} (ISBN: {})", book.getTitle(), book.getIsbn13());
+                        enrichBookWithDetailInfo(book);
+                    }
+                })
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 상세 정보 보완이 필요한지 판단
+     */
+    private boolean needsDetailEnrichment(Book book) {
+        return book.getIsbn13() != null &&
+                (book.getTotalPage() == 0 ||
+                        book.getAuthors().isEmpty());
+    }
+
+    /**
+     * 개별 ISBN 조회로 상세 정보 보완
+     */
+    private void enrichBookWithDetailInfo(Book book) {
+        try {
+            String url = String.format(
+                    "%s/ItemLookUp.aspx?ttbkey=%s&itemIdType=ISBN13&ItemId=%s&output=js&Version=20131101&OptResult=authors",
+                    aladinBaseUrl, aladinApiKey, book.getIsbn13()
+            );
+
+            String response = restTemplate.getForObject(url, String.class);
+            JsonNode rootNode = objectMapper.readTree(response);
+            JsonNode itemsNode = rootNode.get("item");
+
+            if (itemsNode != null && itemsNode.isArray() && itemsNode.size() > 0) {
+                JsonNode itemNode = itemsNode.get(0);
+
+                // 페이지 수 보완
+                if (book.getTotalPage() == 0) {
+                    updatePageInfo(book, itemNode);
+                }
+
+                // 상세 저자 정보 보완 (기존 저자가 없는 경우만)
+                if (book.getAuthors().isEmpty()) {
+                    parseAndSaveAuthors(itemNode, book);
+                }
+
+                log.info("상세 정보 보완 완료: {} (페이지: {}, 저자: {})",
+                        book.getTitle(), book.getTotalPage(), book.getAuthors().size());
+            }
+
+        } catch (Exception e) {
+            log.warn("상세 정보 조회 실패: ISBN {}, Error: {}", book.getIsbn13(), e.getMessage());
+        }
+    }
+
+    /**
+     * 페이지 정보 업데이트
+     */
+    private void updatePageInfo(Book book, JsonNode itemNode) {
+        JsonNode subInfoNode = itemNode.get("subInfo");
+        if (subInfoNode != null) {
+            JsonNode itemPageNode = subInfoNode.get("itemPage");
+            if (itemPageNode != null && !itemPageNode.isNull()) {
+                book.setTotalPage(itemPageNode.asInt());
+                bookRepository.save(book);
+                log.debug("페이지 수 업데이트: {} -> {}", book.getTitle(), book.getTotalPage());
+            }
+        }
     }
 
     /**
@@ -238,18 +319,8 @@ public class BookService {
                 }
             }
 
-            JsonNode totalPageNode = itemNode.get("itemPage");
-            if (totalPageNode != null && !totalPageNode.isNull()) {
-                book.setTotalPage(totalPageNode.asInt());
-            } else {
-                JsonNode subInfoNode = itemNode.get("subInfo");
-                if (subInfoNode != null) {
-                    JsonNode subPageNode = subInfoNode.get("itemPage");
-                    if (subPageNode != null && !subPageNode.isNull()) {
-                        book.setTotalPage(subPageNode.asInt());
-                    }
-                }
-            }
+            // 페이지 수 설정 (OptResult로 subInfo가 있을 수도 있음)
+            setPageInfo(book, itemNode);
 
             String pubDateStr = getJsonValue(itemNode, "pubDate");
             if (pubDateStr != null && !pubDateStr.isEmpty()) {
@@ -283,6 +354,31 @@ public class BookService {
             log.error("Book 엔티티 생성 중 오류: {}", e.getMessage());
             return null;
         }
+    }
+
+    /**
+     * 페이지 정보 설정 (검색 API에서도 subInfo가 있을 수 있음)
+     */
+    private void setPageInfo(Book book, JsonNode itemNode) {
+        // 기본 itemPage 먼저 확인
+        JsonNode totalPageNode = itemNode.get("itemPage");
+        if (totalPageNode != null && !totalPageNode.isNull()) {
+            book.setTotalPage(totalPageNode.asInt());
+            return;
+        }
+
+        // subInfo의 itemPage 확인 (OptResult=authors로 인해 있을 수 있음)
+        JsonNode subInfoNode = itemNode.get("subInfo");
+        if (subInfoNode != null) {
+            JsonNode subPageNode = subInfoNode.get("itemPage");
+            if (subPageNode != null && !subPageNode.isNull()) {
+                book.setTotalPage(subPageNode.asInt());
+                return;
+            }
+        }
+
+        // 정보가 없으면 0으로 설정 (나중에 개별 조회로 보완)
+        book.setTotalPage(0);
     }
 
     /**
@@ -337,7 +433,7 @@ public class BookService {
             }
         }
 
-        // subInfo의 authors 배열에서 상세 작가 정보 추출
+        // subInfo의 authors 배열에서 상세 작가 정보 추출 (OptResult=authors로 인해 있을 수 있음)
         JsonNode subInfoNode = itemNode.get("subInfo");
         if (subInfoNode != null) {
             JsonNode authorsNode = subInfoNode.get("authors");
