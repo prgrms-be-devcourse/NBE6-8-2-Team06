@@ -1,7 +1,7 @@
 package com.back.global.security;
 
-import com.back.domain.user.user.Repository.UserRepository;
-import com.back.domain.user.user.entity.User;
+import com.back.domain.member.member.repository.MemberRepository;
+import com.back.domain.member.member.entity.Member;
 import com.back.global.standard.util.Ut;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -22,7 +22,7 @@ import java.util.Map;
 @Component
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
-    private final UserRepository userRepository;
+    private final MemberRepository memberRepository;
 
     @Value("${custom.jwt.secretKey}")
     private String secretKey;
@@ -45,11 +45,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             Map<String,Object> payload = Ut.jwt.payload(secretKey,token);
             String email = (String) payload.get("email");
 
-            User user = userRepository.findByEmail(email)
+            Member member = memberRepository.findByEmail(email)
                     .orElseThrow(() -> new RuntimeException("사용자 정보를 찾을 수 없습니다."));
 
             UserDetails userDetails = org.springframework.security.core.userdetails.User.builder()
-                    .username(user.getEmail())
+                    .username(member.getEmail())
                     .password("")
                     .build();
             UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());

@@ -2,7 +2,7 @@ package com.back.domain.bookmarks.entity;
 
 import com.back.domain.bookmarks.constant.ReadState;
 import com.back.domain.note.entity.Note;
-import com.back.domain.user.user.entity.User;
+import com.back.domain.member.member.entity.Member;
 import com.back.global.jpa.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -51,6 +51,6 @@ public class Bookmark extends BaseEntity {
     private Book book;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
-    private User user;
+    @JoinColumn(name = "member_id")
+    private Member member;
 }

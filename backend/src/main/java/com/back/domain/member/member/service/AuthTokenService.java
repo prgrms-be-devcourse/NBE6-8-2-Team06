@@ -1,6 +1,6 @@
-package com.back.domain.user.user.service;
+package com.back.domain.member.member.service;
 
-import com.back.domain.user.user.entity.User;
+import com.back.domain.member.member.entity.Member;
 import com.back.global.standard.util.Ut;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -13,12 +13,12 @@ public class AuthTokenService {
     @Value("${custom.jwt.secretKey}")
     private String jwtSecretKey;
 
-    @Value("${custom.jwt.expirationSeconds}")
+    @Value("${custom.accessToken.expirationSeconds}")
     private int accessTokenExpSec;
 
-    String genAccessToken(User user) {
-        int id = user.getId();
-        String email = user.getEmail();
+    String genAccessToken(Member member) {
+        int id = member.getId();
+        String email = member.getEmail();
 
         return Ut.jwt.toString(
                 jwtSecretKey,
@@ -29,6 +29,7 @@ public class AuthTokenService {
                 )
         );
     }
+    
     public Map<String, Object> payload(String accessToken) {
         Map<String, Object> parsedPayload = Ut.jwt.payload(jwtSecretKey, accessToken);
 
@@ -38,5 +39,8 @@ public class AuthTokenService {
 
         return Map.of("id", id, "email", email);
     }
-    public boolean isValid(String accessToken) { return Ut.jwt.isValid(jwtSecretKey, accessToken); }
+    
+    public boolean isValid(String accessToken) { 
+        return Ut.jwt.isValid(jwtSecretKey, accessToken); 
+    }
 }

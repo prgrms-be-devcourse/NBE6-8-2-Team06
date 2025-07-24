@@ -19,7 +19,7 @@ public record BookmarksDto(
     public BookmarksDto(Bookmark bookmark){
         this(
                 bookmark.getId(),
-                bookmark.getUser().getId(),
+                bookmark.getMember().getId(),
                 bookmark.getBook().getId(),
                 bookmark.getReadState().toString(),
                 bookmark.getReadPage(),
