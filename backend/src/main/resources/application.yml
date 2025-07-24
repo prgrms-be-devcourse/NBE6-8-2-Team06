@@ -37,7 +37,7 @@ custom:
 aladin:
   api:
     base-url: http://www.aladin.co.kr/ttb/api
-    key: ${ttbsnake10101245001}
+    key: ttbsnake10101245001
     timeout:
       connection: 5000
       read: 15000
