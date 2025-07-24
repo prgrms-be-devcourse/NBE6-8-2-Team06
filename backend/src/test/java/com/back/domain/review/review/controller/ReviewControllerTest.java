@@ -1,25 +1,33 @@
 package com.back.domain.review.review.controller;
 
+import com.back.domain.member.member.entity.Member;
+import com.back.domain.member.member.service.MemberService;
 import com.back.domain.review.review.entity.Review;
 import com.back.domain.review.review.service.ReviewService;
+import com.back.global.rq.Rq;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Profile;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
 
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.handler;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@Profile("test")
+@ActiveProfiles("test")
 @SpringBootTest
-@AutoConfigureMockMvc
 @Transactional
+@AutoConfigureMockMvc
 public class ReviewControllerTest {
     @Autowired
     private MockMvc mvc;
@@ -36,14 +44,20 @@ public class ReviewControllerTest {
                         .content("""
 {
     "content": "이 책 정말 좋았어요!",
-    "rating": 5
+    "rate": 5
 }
 """)
                 ).andDo(print());
-        Review review = reviewService.findLatest().get();
+        Review review = reviewService.findLatest().orElseThrow(()-> new RuntimeException("리뷰가 없습니다."));
         resultActions
-                .andExpect(handler().handlerType(ReviewController.class));
+                .andExpect(handler().handlerType(ReviewController.class))
+                .andExpect(handler().methodName("create"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.resultCode").value("201-1"))
+                .andExpect(jsonPath("$.msg").value("Reviews fetched successfully"))
+                ;
 
+        assertThat(review.getId()).isEqualTo(1);
     }
 
 
