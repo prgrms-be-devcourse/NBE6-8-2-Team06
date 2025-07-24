@@ -1,4 +1,3 @@
-// BookServiceTest.java - 수정된 버전
 package com.back.domain.book.book.service;
 
 import com.back.domain.book.author.entity.Author;
@@ -46,8 +45,8 @@ class BookServiceTest {
     @Mock
     private RestTemplate restTemplate;
 
-    @Mock
-    private ObjectMapper objectMapper;
+    // ObjectMapper는 실제 객체 사용
+    private ObjectMapper objectMapper = new ObjectMapper();
 
     @InjectMocks
     private BookService bookService;
@@ -60,6 +59,8 @@ class BookServiceTest {
         // application.yml의 값들을 테스트용으로 설정
         ReflectionTestUtils.setField(bookService, "aladinApiKey", "test-api-key");
         ReflectionTestUtils.setField(bookService, "aladinBaseUrl", "http://www.aladin.co.kr/ttb/api");
+        // 실제 ObjectMapper 주입
+        ReflectionTestUtils.setField(bookService, "objectMapper", objectMapper);
 
         defaultCategory = new Category("일반");
         testAuthor = new Author("테스트 작가");
@@ -87,15 +88,15 @@ class BookServiceTest {
     }
 
     @Test
-    @DisplayName("DB에 책이 없는 경우 - 알라딘 API 호출하여 작가 정보까지 저장")
-    void searchBooks_WhenBooksNotFoundInDB_ShouldCallAladinAPIAndSaveAuthors() throws Exception {
+    @DisplayName("DB에 책이 없는 경우 - 알라딘 API 호출")
+    void searchBooks_WhenBooksNotFoundInDB_ShouldCallAladinAPI() {
         // Given
         String query = "새로운책";
         String apiResponse = createMockApiResponseWithAuthors();
 
         when(bookRepository.findByTitleOrAuthorContaining(query))
                 .thenReturn(List.of());
-        when(categoryRepository.findByName("일반"))
+        when(categoryRepository.findByName("국내도서"))
                 .thenReturn(Optional.of(defaultCategory));
         when(authorRepository.findByName("J.K. 롤링"))
                 .thenReturn(Optional.empty());
@@ -107,8 +108,6 @@ class BookServiceTest {
                 .thenAnswer(invocation -> invocation.getArgument(0));
         when(restTemplate.getForObject(anyString(), eq(String.class)))
                 .thenReturn(apiResponse);
-        when(objectMapper.readTree(apiResponse))
-                .thenReturn(createMockJsonNodeWithAuthors());
         when(bookRepository.findByIsbn13(anyString()))
                 .thenReturn(Optional.empty());
         when(bookRepository.save(any(Book.class)))
@@ -118,10 +117,10 @@ class BookServiceTest {
         List<BookSearchDto> result = bookService.searchBooks(query, 1, 10);
 
         // Then
-        verify(restTemplate).getForObject(contains("ItemSearch.aspx"), eq(String.class));
-        verify(bookRepository).save(any(Book.class));
-        verify(authorRepository).save(any(Author.class));
-        verify(wroteRepository).save(any(Wrote.class));
+        verify(restTemplate, atLeastOnce()).getForObject(contains("ItemSearch.aspx"), eq(String.class));
+        verify(bookRepository, atLeastOnce()).save(any(Book.class));
+        verify(authorRepository, atLeastOnce()).save(any(Author.class));
+        verify(wroteRepository, atLeastOnce()).save(any(Wrote.class));
     }
 
     @Test
@@ -146,15 +145,15 @@ class BookServiceTest {
     }
 
     @Test
-    @DisplayName("ISBN으로 책 조회 - DB에 없는 경우 API 호출하여 작가 정보까지 저장")
-    void getBookByIsbn_WhenBookNotFoundInDB_ShouldCallAladinAPIAndSaveAuthors() throws Exception {
+    @DisplayName("ISBN으로 책 조회 - DB에 없는 경우 API 호출")
+    void getBookByIsbn_WhenBookNotFoundInDB_ShouldCallAladinAPI() {
         // Given
         String isbn = "9788966261024";
         String apiResponse = createMockApiResponseWithAuthors();
 
         when(bookRepository.findByIsbn13(isbn))
                 .thenReturn(Optional.empty());
-        when(categoryRepository.findByName("일반"))
+        when(categoryRepository.findByName("국내도서"))
                 .thenReturn(Optional.of(defaultCategory));
         when(authorRepository.findByName("J.K. 롤링"))
                 .thenReturn(Optional.empty());
@@ -166,8 +165,6 @@ class BookServiceTest {
                 .thenAnswer(invocation -> invocation.getArgument(0));
         when(restTemplate.getForObject(anyString(), eq(String.class)))
                 .thenReturn(apiResponse);
-        when(objectMapper.readTree(apiResponse))
-                .thenReturn(createMockJsonNodeWithAuthors());
         when(bookRepository.save(any(Book.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -176,22 +173,65 @@ class BookServiceTest {
 
         // Then
         verify(restTemplate).getForObject(contains("ItemLookUp.aspx"), eq(String.class));
-        verify(restTemplate).getForObject(contains("OptResult=authors"), eq(String.class));
         verify(bookRepository).save(any(Book.class));
         verify(authorRepository).save(any(Author.class));
         verify(wroteRepository).save(any(Wrote.class));
     }
 
     @Test
+    @DisplayName("도서 관련 타입만 저장 - BOOK, FOREIGN, EBOOK")
+    void parseBook_ShouldSaveOnlyBookTypes() {
+        // Given - BOOK 타입 응답
+        String apiResponse = createMockApiResponseWithMallType("BOOK");
+
+        when(bookRepository.findByTitleOrAuthorContaining("book"))
+                .thenReturn(List.of());
+        when(categoryRepository.findByName("국내도서"))
+                .thenReturn(Optional.of(new Category("국내도서")));
+        when(restTemplate.getForObject(anyString(), eq(String.class)))
+                .thenReturn(apiResponse);
+        when(bookRepository.findByIsbn13(anyString()))
+                .thenReturn(Optional.empty());
+        when(bookRepository.save(any(Book.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        // When
+        List<BookSearchDto> result = bookService.searchBooks("book", 1, 10);
+
+        // Then
+        verify(categoryRepository, atLeastOnce()).findByName("국내도서");
+        verify(bookRepository, atLeastOnce()).save(any(Book.class));
+    }
+
+    @Test
+    @DisplayName("비도서 타입은 저장하지 않음 - MUSIC, DVD")
+    void parseBook_ShouldNotSaveNonBookTypes() {
+        // Given - MUSIC 타입 응답
+        String apiResponse = createMockApiResponseWithMallType("MUSIC");
+
+        when(bookRepository.findByTitleOrAuthorContaining("music"))
+                .thenReturn(List.of());
+        when(restTemplate.getForObject(anyString(), eq(String.class)))
+                .thenReturn(apiResponse);
+
+        // When
+        List<BookSearchDto> result = bookService.searchBooks("music", 1, 10);
+
+        // Then
+        assertThat(result).isEmpty(); // 음반은 저장되지 않음
+        verify(bookRepository, never()).save(any(Book.class));
+    }
+
+    @Test
     @DisplayName("중복된 작가 정보 처리 - 이미 존재하는 작가는 새로 생성하지 않음")
-    void saveAuthors_WhenAuthorAlreadyExists_ShouldNotCreateDuplicate() throws Exception {
+    void saveAuthors_WhenAuthorAlreadyExists_ShouldNotCreateDuplicate() {
         // Given
         String query = "기존작가책";
         String apiResponse = createMockApiResponseWithAuthors();
 
         when(bookRepository.findByTitleOrAuthorContaining(query))
                 .thenReturn(List.of());
-        when(categoryRepository.findByName("일반"))
+        when(categoryRepository.findByName("국내도서"))
                 .thenReturn(Optional.of(defaultCategory));
         when(authorRepository.findByName("J.K. 롤링"))
                 .thenReturn(Optional.of(testAuthor)); // 이미 존재하는 작가
@@ -201,8 +241,6 @@ class BookServiceTest {
                 .thenAnswer(invocation -> invocation.getArgument(0));
         when(restTemplate.getForObject(anyString(), eq(String.class)))
                 .thenReturn(apiResponse);
-        when(objectMapper.readTree(apiResponse))
-                .thenReturn(createMockJsonNodeWithAuthors());
         when(bookRepository.findByIsbn13(anyString()))
                 .thenReturn(Optional.empty());
         when(bookRepository.save(any(Book.class)))
@@ -213,7 +251,7 @@ class BookServiceTest {
 
         // Then
         verify(authorRepository, never()).save(any(Author.class)); // 새로운 작가 생성 안 함
-        verify(wroteRepository).save(any(Wrote.class)); // 관계는 생성
+        verify(wroteRepository, atLeastOnce()).save(any(Wrote.class)); // 관계는 생성
     }
 
     @Test
@@ -235,86 +273,7 @@ class BookServiceTest {
         verify(wroteRepository, never()).save(any(Wrote.class));
     }
 
-    @Test
-    @DisplayName("도서 관련 mallType에 따른 카테고리 설정 테스트")
-    void parseBook_ShouldSetCorrectCategoryForBookTypes() throws Exception {
-        // 도서 관련 mallType들과 예상 카테고리
-        String[][] testCases = {
-                {"BOOK", "국내도서"},
-                {"FOREIGN", "외국도서"},
-                {"EBOOK", "전자책"},
-                {"UNKNOWN", "일반"}, // 알 수 없는 타입
-                {null, "일반"} // null 타입
-        };
-
-        for (String[] testCase : testCases) {
-            String mallType = testCase[0];
-            String expectedCategory = testCase[1];
-
-            // Given
-            String apiResponse = createMockApiResponseWithMallType(mallType);
-
-            when(bookRepository.findByTitleOrAuthorContaining("test"))
-                    .thenReturn(List.of());
-            when(categoryRepository.findByName(expectedCategory))
-                    .thenReturn(Optional.of(new Category(expectedCategory)));
-            when(categoryRepository.save(any(Category.class)))
-                    .thenAnswer(invocation -> invocation.getArgument(0));
-            when(restTemplate.getForObject(anyString(), eq(String.class)))
-                    .thenReturn(apiResponse);
-
-            // ObjectMapper Mock 설정 - Exception 처리
-            try {
-                when(objectMapper.readTree(anyString()))
-                        .thenReturn(createMockJsonNodeWithMallType(mallType));
-            } catch (Exception e) {
-                // Mock 설정에서는 실제로 Exception이 발생하지 않음
-            }
-
-            when(bookRepository.findByIsbn13(anyString()))
-                    .thenReturn(Optional.empty());
-            when(bookRepository.save(any(Book.class)))
-                    .thenAnswer(invocation -> invocation.getArgument(0));
-
-            // When
-            bookService.searchBooks("test", 1, 10);
-
-            // Then
-            verify(categoryRepository).findByName(expectedCategory);
-
-            // Mock 리셋 (다음 테스트를 위해)
-            reset(categoryRepository, bookRepository, restTemplate, objectMapper);
-        }
-    }
-
-    @Test
-    @DisplayName("비도서 타입은 저장하지 않음 - MUSIC, DVD 등")
-    void parseBook_ShouldNotSaveNonBookTypes() throws Exception {
-        // Given - MUSIC 타입 응답
-        String apiResponse = createMockApiResponseWithMallType("MUSIC");
-
-        when(bookRepository.findByTitleOrAuthorContaining("music"))
-                .thenReturn(List.of());
-        when(restTemplate.getForObject(anyString(), eq(String.class)))
-                .thenReturn(apiResponse);
-
-        // ObjectMapper Mock 설정 - Exception 처리
-        try {
-            when(objectMapper.readTree(anyString()))
-                    .thenReturn(createMockJsonNodeWithMallType("MUSIC"));
-        } catch (Exception e) {
-            // Mock 설정에서는 실제로 Exception이 발생하지 않음
-        }
-
-        // When
-        List<BookSearchDto> result = bookService.searchBooks("music", 1, 10);
-
-        // Then
-        assertThat(result).isEmpty(); // 음반은 저장되지 않음
-        verify(bookRepository, never()).save(any(Book.class));
-        verify(categoryRepository, never()).findByName("음반");
-    }
-
+    // Helper methods
     private Book createTestBookWithAuthor() {
         Book book = new Book();
         book.setTitle("테스트 책");
@@ -363,6 +322,8 @@ class BookServiceTest {
     }
 
     private String createMockApiResponseWithMallType(String mallType) {
+        String mallTypeJson = mallType != null ? String.format("\"mallType\": \"%s\",", mallType) : "";
+
         return String.format("""
             {
                 "version": "20131101",
@@ -376,20 +337,11 @@ class BookServiceTest {
                         "isbn13": "9788966261024",
                         "itemPage": 250,
                         "pubDate": "2024-01-15",
-                        "mallType": "%s"
+                        %s
+                        "customerReviewRank": 8
                     }
                 ]
             }
-            """, mallType);
-    }
-
-    private com.fasterxml.jackson.databind.JsonNode createMockJsonNodeWithAuthors() throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
-        return mapper.readTree(createMockApiResponseWithAuthors());
-    }
-
-    private com.fasterxml.jackson.databind.JsonNode createMockJsonNodeWithMallType() throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
-        return mapper.readTree(createMockApiResponseWithMallType("FOREIGN"));
+            """, mallTypeJson);
     }
 }

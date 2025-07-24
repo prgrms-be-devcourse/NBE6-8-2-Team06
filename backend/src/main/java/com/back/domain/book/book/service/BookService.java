@@ -55,9 +55,7 @@ public class BookService {
         log.info("DB에 없어서 알라딘 API에서 검색: {}", query);
         List<Book> booksFromApi = searchBooksFromAladinApi(query, page, size);
 
-        List<Book> savedBooks = saveBooksToDatabase(booksFromApi);
-
-        return convertToDto(savedBooks);
+        return convertToDto(booksFromApi);
     }
 
     /**
@@ -73,15 +71,31 @@ public class BookService {
         }
 
         log.info("DB에 없어서 알라딘 API에서 조회: {}", isbn);
-        Book bookFromApi = getBookFromAladinApi(isbn);
 
-        if (bookFromApi == null) {
-            return null;
+        try {
+            String url = String.format(
+                    "%s/ItemLookUp.aspx?ttbkey=%s&itemIdType=ISBN13&ItemId=%s&output=js&Version=20131101&OptResult=authors",
+                    aladinBaseUrl, aladinApiKey, isbn
+            );
+
+            String response = restTemplate.getForObject(url, String.class);
+            JsonNode rootNode = objectMapper.readTree(response);
+            JsonNode itemsNode = rootNode.get("item");
+
+            if (itemsNode != null && itemsNode.isArray() && itemsNode.size() > 0) {
+                JsonNode itemNode = itemsNode.get(0);
+                Book savedBook = parseAndSaveBookFromJson(itemNode);
+
+                if (savedBook != null) {
+                    return convertToDto(savedBook);
+                }
+            }
+
+        } catch (Exception e) {
+            log.error("알라딘 API ISBN 조회 중 오류: {}", e.getMessage());
         }
 
-        Book savedBook = saveBookToDatabase(bookFromApi);
-
-        return convertToDto(savedBook);
+        return null;
     }
 
     /**
@@ -137,31 +151,6 @@ public class BookService {
     }
 
     /**
-     * 알라딘 API에서 ISBN으로 책 조회 (도서 타입만)
-     */
-    private Book getBookFromAladinApi(String isbn) {
-        try {
-            String url = String.format(
-                    "%s/ItemLookUp.aspx?ttbkey=%s&itemIdType=ISBN13&ItemId=%s&output=js&Version=20131101&OptResult=authors",
-                    aladinBaseUrl, aladinApiKey, isbn
-            );
-
-            String response = restTemplate.getForObject(url, String.class);
-            List<Book> books = parseApiResponse(response);
-
-            // 도서 관련 타입만 반환
-            return books.stream()
-                    .filter(book -> book != null)
-                    .findFirst()
-                    .orElse(null);
-
-        } catch (Exception e) {
-            log.error("알라딘 API ISBN 조회 중 오류: {}", e.getMessage());
-            return null;
-        }
-    }
-
-    /**
      * API 응답 파싱
      */
     private List<Book> parseApiResponse(String response) {
@@ -173,7 +162,7 @@ public class BookService {
 
             if (itemsNode != null && itemsNode.isArray()) {
                 for (JsonNode itemNode : itemsNode) {
-                    Book book = parseBookFromJsonWithAuthors(itemNode);
+                    Book book = parseAndSaveBookFromJson(itemNode);
                     if (book != null) {
                         books.add(book);
                     }
@@ -185,6 +174,40 @@ public class BookService {
         }
 
         return books;
+    }
+
+    /**
+     * JSON에서 Book 생성 및 저장 (작가 정보 포함)
+     */
+    private Book parseAndSaveBookFromJson(JsonNode itemNode) {
+        try {
+            Book book = parseBookFromJson(itemNode);
+            if (book == null) {
+                return null;
+            }
+
+            // 이미 존재하는 책인지 확인
+            if (book.getIsbn13() != null) {
+                Optional<Book> existingBook = bookRepository.findByIsbn13(book.getIsbn13());
+                if (existingBook.isPresent()) {
+                    log.info("이미 존재하는 ISBN: {}", book.getIsbn13());
+                    return existingBook.get();
+                }
+            }
+
+            // 책 저장
+            Book savedBook = bookRepository.save(book);
+            log.info("책 저장 완료: {}", savedBook.getTitle());
+
+            // 작가 정보 저장
+            parseAndSaveAuthors(itemNode, savedBook);
+
+            return savedBook;
+
+        } catch (Exception e) {
+            log.error("책 저장 중 오류: {}", e.getMessage());
+            return null;
+        }
     }
 
     /**
@@ -349,66 +372,6 @@ public class BookService {
                 log.error("작가 정보 저장 중 오류: {} - {}", authorName, e.getMessage());
             }
         }
-    }
-
-    /**
-     * 책 목록을 DB에 저장
-     */
-    private List<Book> saveBooksToDatabase(List<Book> books) {
-        List<Book> savedBooks = new ArrayList<>();
-
-        for (Book book : books) {
-            try {
-                Book savedBook = saveBookToDatabase(book);
-                if (savedBook != null) {
-                    savedBooks.add(savedBook);
-                }
-            } catch (Exception e) {
-                log.error("책 저장 중 오류: {}", e.getMessage());
-            }
-        }
-
-        return savedBooks;
-    }
-
-    /**
-     * 단일 책을 DB에 저장
-     */
-    private Book saveBookToDatabase(Book book) {
-        try {
-            if (book.getIsbn13() != null &&
-                    bookRepository.findByIsbn13(book.getIsbn13()).isPresent()) {
-                log.info("이미 존재하는 ISBN: {}", book.getIsbn13());
-                Book existingBook = bookRepository.findByIsbn13(book.getIsbn13()).get();
-                return existingBook;
-            }
-
-            Book savedBook = bookRepository.save(book);
-            log.info("책 저장 완료: {}", savedBook.getTitle());
-
-            return savedBook;
-
-        } catch (Exception e) {
-            log.error("책 저장 중 오류: {}", e.getMessage());
-            return null;
-        }
-    }
-
-    /**
-     * API 응답에서 작가 정보를 파싱하고 저장하는 메서드 (수정된 버전)
-     */
-    private Book parseBookFromJsonWithAuthors(JsonNode itemNode) {
-        Book book = parseBookFromJson(itemNode);
-        if (book != null) {
-            // 먼저 책을 저장
-            Book savedBook = bookRepository.save(book);
-
-            // 그 다음 작가 정보 저장
-            parseAndSaveAuthors(itemNode, savedBook);
-
-            return savedBook;
-        }
-        return null;
     }
 
     /**
