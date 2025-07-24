@@ -1,4 +1,4 @@
-package com.back.domain.book.book.service;
+package com.back.domain.book.book.api;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
