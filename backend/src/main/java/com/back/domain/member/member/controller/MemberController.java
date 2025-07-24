@@ -2,8 +2,10 @@ package com.back.domain.member.member.controller;
 
 import com.back.domain.member.member.dto.MemberDto;
 import com.back.domain.member.member.entity.Member;
+import com.back.domain.member.member.repository.MemberRepository;
 import com.back.domain.member.member.service.MemberService;
 import com.back.global.exception.ServiceException;
+import com.back.global.rq.Rq;
 import com.back.global.rsData.RsData;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -23,6 +25,7 @@ public class MemberController {
 
     private final MemberService memberService;
     private final PasswordEncoder passwordEncoder;
+    private final Rq rq;
 
     record MemberJoinReqBody(
         @NotBlank
@@ -55,4 +58,43 @@ public class MemberController {
                 new MemberDto(member)
         );
     }
+
+    record MemberLoginReqBody(
+            @NotBlank
+            @Size(min = 2, max = 30)
+            String email,
+            @NotBlank
+            @Size(min = 2, max = 50)
+            String password
+    ){}
+
+    record MemberLoginResBody(
+            MemberDto memDto,
+            String accessToken
+    ) {
+    }
+
+    @PostMapping("/login")
+    @Transactional
+    public RsData<MemberLoginResBody> login(
+            @Valid @RequestBody MemberLoginReqBody reqBody
+    ){
+        Member member =memberService.findByEmail(reqBody.email())
+                .orElseThrow(()->new ServiceException("401-1", "존재하지 않는 아이디입니다."));
+
+        memberService.checkPassword(member,reqBody.password);
+
+        String accessToken =memberService.geneAccessToken(member);
+
+        rq.setCookie("accessToken",accessToken);
+        return new RsData<>(
+                "200-1",
+                "%s님 환영합니다.".formatted(member.getEmail()),
+                new MemberLoginResBody(
+                        new MemberDto(member),
+                        accessToken
+                )
+        );
+    }
+
 }

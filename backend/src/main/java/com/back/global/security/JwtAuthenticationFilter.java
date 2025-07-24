@@ -48,10 +48,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             Member member = memberRepository.findByEmail(email)
                     .orElseThrow(() -> new RuntimeException("사용자 정보를 찾을 수 없습니다."));
 
-            UserDetails userDetails = org.springframework.security.core.userdetails.User.builder()
-                    .username(member.getEmail())
-                    .password("")
-                    .build();
+            UserDetails userDetails = new SecurityUser(member);
             UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
 
             SecurityContextHolder.getContext().setAuthentication(authentication);
