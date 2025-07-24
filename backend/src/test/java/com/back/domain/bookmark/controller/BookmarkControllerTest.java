@@ -5,7 +5,9 @@ import com.back.domain.book.book.repository.BookRepository;
 import com.back.domain.book.category.entity.Category;
 import com.back.domain.bookmarks.controller.BookmarkController;
 import com.back.domain.bookmarks.dto.BookmarkDto;
-import com.back.domain.bookmarks.dto.BookmarksDto;
+import com.back.domain.bookmarks.dto.BookmarkDetailDto;
+import com.back.domain.bookmarks.dto.BookmarkModifyResponseDto;
+import com.back.domain.bookmarks.entity.Bookmark;
 import com.back.domain.bookmarks.service.BookmarkService;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -42,11 +44,7 @@ public class BookmarkControllerTest {
 
     @BeforeEach
     void setup() {
-        // Book 엔티티 생성 시, @Column(nullable = false) 제약 조건이 있는 필드는 반드시 초기화해야 합니다.
-        // Book 엔티티의 생성자에 맞게 필드 값을 채워주세요.
-        // 예시: new Book(String title, String imageUrl, float avgRate, int totalPage, LocalDateTime publishedDate, String publisher, Category category)
         Category category = new Category("테스트");
-
         Book book = new Book();
         book.setTitle("테스트 도서 제목");
         book.setImageUrl("http://example.com/image.jpg");     // imageUrl
@@ -92,23 +90,23 @@ public class BookmarkControllerTest {
                 )
                 .andDo(print());
 
-        BookmarkDto bookmarkDto = new BookmarkDto(bookmarkService.getBookmarkById(id));
+        BookmarkDetailDto bookmarkDto = bookmarkService.getBookmarkById(id);
 
         resultActions
                 .andExpect(handler().handlerType(BookmarkController.class))
                 .andExpect(handler().methodName("getBookmark"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.resultCode").value("200-1"))
-                .andExpect(jsonPath("$.msg").value("%d번 조회 성공".formatted(bookmarkDto.id())))
+                .andExpect(jsonPath("$.msg").value("%d번 조회 성공".formatted(bookmarkDto.bookmarkDto().id())))
                 .andExpect(jsonPath("$.data.id").value(id))
-                .andExpect(jsonPath("$.data.user_id").value(bookmarkDto.user_id()))
-                .andExpect(jsonPath("$.data.book_id").value(bookmarkDto.book_id()))
-                .andExpect(jsonPath("$.date.read_state").value(bookmarkDto.read_state()))
-                .andExpect(jsonPath("$.data.read_page").value(bookmarkDto.read_page()))
-                .andExpect(jsonPath("$.data.created_at").value(Matchers.startsWith(bookmarkDto.created_at().toString().substring(0,18))))
-                .andExpect(jsonPath("$.data.read_start_at").value(Matchers.startsWith(bookmarkDto.read_start_at().toString().substring(0,18))))
-                .andExpect(jsonPath("$.data.read_end_at").value(Matchers.startsWith(bookmarkDto.read_end_at().toString().substring(0,18))))
-                .andExpect(jsonPath("$.data.reading_duration").value(bookmarkDto.reading_duration()));
+                .andExpect(jsonPath("$.data.user_id").value(bookmarkDto.bookmarkDto().memberId()))
+                .andExpect(jsonPath("$.data.book_id").value(bookmarkDto.bookmarkDto().bookId()))
+                .andExpect(jsonPath("$.date.read_state").value(bookmarkDto.bookmarkDto().readState()))
+                .andExpect(jsonPath("$.data.read_page").value(bookmarkDto.bookmarkDto().readPage()))
+                .andExpect(jsonPath("$.data.created_at").value(Matchers.startsWith(bookmarkDto.createAt().toString().substring(0,18))))
+                .andExpect(jsonPath("$.data.read_start_at").value(Matchers.startsWith(bookmarkDto.startReadDate().toString().substring(0,18))))
+                .andExpect(jsonPath("$.data.read_end_at").value(Matchers.startsWith(bookmarkDto.endReadDate().toString().substring(0,18))))
+                .andExpect(jsonPath("$.data.reading_duration").value(bookmarkDto.readingDuration()));
     }
 
     @Test
@@ -138,7 +136,7 @@ public class BookmarkControllerTest {
                 )
                 .andDo(print());
 
-        List<BookmarksDto> bookmarksDtoList = bookmarkService.toList().stream().map(BookmarksDto::new).toList();
+        List<BookmarkDto> bookmarksDtoList = bookmarkService.toList();
 
         resultActions
                 .andExpect(handler().handlerType(BookmarkController.class))
@@ -147,14 +145,14 @@ public class BookmarkControllerTest {
                 .andExpect(jsonPath("$.length()").value(bookmarksDtoList.size()));
 
         for(int i=0;i<bookmarksDtoList.size();i++) {
-             BookmarksDto bookmarksDto = bookmarksDtoList.get(i);
+             BookmarkDto bookmarksDto = bookmarksDtoList.get(i);
             resultActions
                     .andExpect(jsonPath("$[%d].id".formatted(i)).value(bookmarksDto.id()))
-                    .andExpect(jsonPath("$[%d].user_id".formatted(i)).value(bookmarksDto.user_id()))
-                    .andExpect(jsonPath("$[%d].book_id".formatted(i)).value(bookmarksDto.book_id()))
-                    .andExpect(jsonPath("$[%d].read_state".formatted(i)).value(bookmarksDto.read_state()))
-                    .andExpect(jsonPath("$[%d].read_page".formatted(i)).value(bookmarksDto.read_page()))
-                    .andExpect(jsonPath("$[%d].reading_rate".formatted(i)).value(bookmarksDto.reading_rate()))
+                    .andExpect(jsonPath("$[%d].member_id".formatted(i)).value(bookmarksDto.memberId()))
+                    .andExpect(jsonPath("$[%d].book_id".formatted(i)).value(bookmarksDto.bookId()))
+                    .andExpect(jsonPath("$[%d].read_state".formatted(i)).value(bookmarksDto.readState()))
+                    .andExpect(jsonPath("$[%d].read_page".formatted(i)).value(bookmarksDto.readPage()))
+                    .andExpect(jsonPath("$[%d].reading_rate".formatted(i)).value(bookmarksDto.readingRate()))
                     .andExpect(jsonPath("$[%d].date".formatted(i)).value(Matchers.startsWith(bookmarksDto.date().toString().substring(0,18))));
         }
     }
@@ -168,7 +166,7 @@ public class BookmarkControllerTest {
                 )
                 .andDo(print());
 
-        Page<BookmarksDto> bookmarksDtoPage = bookmarkService.toPage(0,10, null, null, null);
+        Page<BookmarkDto> bookmarksDtoPage = bookmarkService.toPage(0,10, null, null, null);
 
         resultActions
                 .andExpect(handler().handlerType(BookmarkController.class))
@@ -182,15 +180,65 @@ public class BookmarkControllerTest {
                 .andExpect(jsonPath("$.is_last").value(bookmarksDtoPage.isLast()));
 
         for(int i=0;i<bookmarksDtoPage.getSize(); i++) {
-            BookmarksDto bookmarksDto = bookmarksDtoPage.getContent().get(i);
+            BookmarkDto bookmarksDto = bookmarksDtoPage.getContent().get(i);
             resultActions
                     .andExpect(jsonPath("$[%d].data.id".formatted(i)).value(bookmarksDto.id()))
-                    .andExpect(jsonPath("$[%d].data.user_id".formatted(i)).value(bookmarksDto.user_id()))
-                    .andExpect(jsonPath("$[%d].data.book_id".formatted(i)).value(bookmarksDto.book_id()))
-                    .andExpect(jsonPath("$[%d].data.read_state".formatted(i)).value(bookmarksDto.read_state()))
-                    .andExpect(jsonPath("$[%d].data.read_page".formatted(i)).value(bookmarksDto.read_page()))
-                    .andExpect(jsonPath("$[%d].data.reading_rate".formatted(i)).value(bookmarksDto.reading_rate()))
+                    .andExpect(jsonPath("$[%d].data.member_id".formatted(i)).value(bookmarksDto.memberId()))
+                    .andExpect(jsonPath("$[%d].data.book_id".formatted(i)).value(bookmarksDto.bookId()))
+                    .andExpect(jsonPath("$[%d].data.read_state".formatted(i)).value(bookmarksDto.readState()))
+                    .andExpect(jsonPath("$[%d].data.read_page".formatted(i)).value(bookmarksDto.readPage()))
+                    .andExpect(jsonPath("$[%d].data.reading_rate".formatted(i)).value(bookmarksDto.readingRate()))
                     .andExpect(jsonPath("$[%d].data.date".formatted(i)).value(Matchers.startsWith(bookmarksDto.date().toString().substring(0,18))));
         }
+    }
+
+    @Test
+    @DisplayName("북마크 수정")
+    void t6() throws Exception {
+        int id=1;
+        ResultActions resultActions = mvc.perform(
+                post("/api/bookmarks/"+id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                        {
+                          "readState" : "READING",
+                          "startReadDate" : "2025-07-22",
+                          "readPage" : 100
+                        }
+                        """)
+        ).andDo(print());
+
+        Bookmark bookmark = bookmarkService.findById(id);
+        resultActions
+                .andExpect(handler().handlerType(BookmarkController.class))
+                .andExpect(handler().methodName("modifyBookmark"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resultCode").value("200-1"))
+                .andExpect(jsonPath("$.msg").value("%d번 북마크가 수정되었습니다.".formatted(id)))
+                .andExpect(jsonPath("$.data.bookId").value(bookmark.getId()))
+                .andExpect(jsonPath("$.data.member_id").value(bookmark.getMember().getId()))
+                .andExpect(jsonPath("$.data.book_id").value(bookmark.getBook().getId()))
+                .andExpect(jsonPath("$.data.read_state").value(bookmark.getReadState()))
+                .andExpect(jsonPath("$.data.read_page").value(bookmark.getReadPage()))
+                .andExpect(jsonPath("$.data.reading_rate").value(bookmark.calculateReadingRate()))
+                .andExpect(jsonPath("$.data.date").value(Matchers.startsWith(bookmark.getDisplayDate().toString().substring(0,18))));
+    }
+
+    @Test
+    @DisplayName("북마크 삭제")
+    void t7() throws Exception {
+        int id = 1;
+        ResultActions resultActions = mvc
+                .perform(
+                        delete("/api/bookmarks/"+id)
+                )
+                .andDo(print());
+
+        resultActions
+                .andExpect(handler().handlerType(BookmarkController.class))
+                .andExpect(handler().methodName("deleteBookmark"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.resultCode").value("200-1"))
+                .andExpect(jsonPath("$.msg").value("%d 북마크가 삭제되었습니다.".formatted(id)));
     }
 }
