@@ -2,6 +2,7 @@ package com.back.domain.bookmarks.entity;
 
 import com.back.domain.bookmarks.constant.ReadState;
 import com.back.domain.note.entity.Note;
+import com.back.domain.user.user.entity.User;
 import com.back.global.jpa.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -42,11 +43,14 @@ public class Bookmark extends BaseEntity {
         this.endReadTime = endReadTime;
     }
 
-    @OneToMany(mappedBy = "bookmark", cascade = {CascadeType.PERSIST, CascadeType.REMOVE}, orphanRemoval = true) //임시 맵핑 - note
+    @OneToMany(cascade = {CascadeType.PERSIST, CascadeType.REMOVE}, orphanRemoval = true) //임시 맵핑 - note
     private List<Note> notes = new ArrayList<>();
 
     @OneToOne
     @JoinColumn(name = "book_id")
     private Book book;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private User user;
 }
