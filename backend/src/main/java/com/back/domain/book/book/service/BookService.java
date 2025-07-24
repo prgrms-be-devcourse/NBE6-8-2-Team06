@@ -41,6 +41,8 @@ public class BookService {
     @Value("${aladin.api.base-url}")
     private String aladinBaseUrl;
 
+    // 기존의 하드코딩된 CATEGORY_MAPPING 완전 제거!
+
     /**
      * 방안 3: 하이브리드 접근방식 - OptResult 사용 + 필요시 보완
      */
@@ -342,10 +344,16 @@ public class BookService {
                 book.setAvgRate(0.0f);
             }
 
-            // 카테고리 설정 - 도서 관련 카테고리만
-            String categoryName = extractCategoryFromItem(itemNode);
+            // 🎉 NEW! 간단한 카테고리 추출 - 2번째 깊이 사용
+            String categoryName = extractCategoryFromPath(itemNode);
+
+            // 카테고리 찾기 또는 생성
             Category category = categoryRepository.findByName(categoryName)
-                    .orElseGet(() -> categoryRepository.save(new Category(categoryName)));
+                    .orElseGet(() -> {
+                        log.info("새 카테고리 생성: {}", categoryName);
+                        return categoryRepository.save(new Category(categoryName));
+                    });
+
             book.setCategory(category);
 
             return book;
@@ -353,6 +361,60 @@ public class BookService {
         } catch (Exception e) {
             log.error("Book 엔티티 생성 중 오류: {}", e.getMessage());
             return null;
+        }
+    }
+
+    /**
+     * 카테고리 경로에서 2번째 깊이 추출하는 간단한 방법
+     */
+    private String extractCategoryFromPath(JsonNode itemNode) {
+        String categoryName = getJsonValue(itemNode, "categoryName");
+
+        if (categoryName != null && !categoryName.isEmpty()) {
+            log.debug("원본 카테고리 경로: {}", categoryName);
+
+            // '>' 기준으로 분리
+            String[] categoryParts = categoryName.split(">");
+
+            // 2번째 깊이 사용 (인덱스 1)
+            if (categoryParts.length > 1) {
+                String secondLevelCategory = categoryParts[1].trim();
+                log.debug("추출된 카테고리: {}", secondLevelCategory);
+                return secondLevelCategory;
+            }
+
+            // 2번째가 없으면 첫 번째 사용
+            if (categoryParts.length > 0) {
+                String firstLevelCategory = categoryParts[0].trim();
+                log.debug("첫 번째 레벨 카테고리 사용: {}", firstLevelCategory);
+                return firstLevelCategory;
+            }
+        }
+
+        // categoryName이 없으면 mallType 기반 기본값
+        String mallType = getJsonValue(itemNode, "mallType");
+        String fallbackCategory = getFallbackCategory(mallType);
+        log.debug("기본 카테고리 사용: {}", fallbackCategory);
+        return fallbackCategory;
+    }
+
+    /**
+     * mallType 기반 기본 카테고리
+     */
+    private String getFallbackCategory(String mallType) {
+        if (mallType == null) {
+            return "기타";
+        }
+
+        switch (mallType) {
+            case "BOOK":
+                return "국내도서";
+            case "FOREIGN":
+                return "외국도서";
+            case "EBOOK":
+                return "전자책";
+            default:
+                return "기타";
         }
     }
 
@@ -388,30 +450,6 @@ public class BookService {
         return "BOOK".equals(mallType) ||
                 "FOREIGN".equals(mallType) ||
                 "EBOOK".equals(mallType);
-    }
-
-    /**
-     * 카테고리 정보 추출 (도서 관련 타입만 처리)
-     */
-    private String extractCategoryFromItem(JsonNode itemNode) {
-        // categoryName 필드가 있는지 확인
-        String categoryName = getJsonValue(itemNode, "categoryName");
-        if (categoryName != null && !categoryName.isEmpty()) {
-            return categoryName;
-        }
-
-        // mallType을 기반으로 도서 관련 카테고리만 설정
-        String mallType = getJsonValue(itemNode, "mallType");
-        switch (mallType != null ? mallType : "") {
-            case "BOOK":
-                return "국내도서";
-            case "FOREIGN":
-                return "외국도서";
-            case "EBOOK":
-                return "전자책";
-            default:
-                return "일반"; // 기본값
-        }
     }
 
     /**
