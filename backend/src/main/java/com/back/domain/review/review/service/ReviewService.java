@@ -24,6 +24,9 @@ public class ReviewService {
     @Transactional
     public void addReview(Book book, Member member, ReviewRequestDto reviewRequestDto){
         Review review = new Review(reviewRequestDto.content(), reviewRequestDto.rate(), member, book);
+        if (reviewRepository.findByBookAndMember(book, member).isPresent()) {
+            throw new ServiceException("400-1", "Review already exists");
+        }
         reviewRepository.save(review);
     }
 
