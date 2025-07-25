@@ -2,13 +2,14 @@ package com.back.domain.review.review.entity;
 
 import com.back.domain.book.book.entity.Book;
 import com.back.domain.member.member.entity.Member;
+import com.back.domain.review.reviewRecommend.entity.ReviewRecommend;
 import com.back.global.jpa.entity.BaseEntity;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.ManyToOne;
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
+import java.util.List;
 
 @Entity
 @Getter
@@ -22,6 +23,10 @@ public class Review extends BaseEntity {
     private String content;
     @Setter
     private int rate;
+    @OneToMany(mappedBy = "review", fetch = FetchType.LAZY, orphanRemoval = true, cascade = CascadeType.ALL)
+    private List<ReviewRecommend> reviewRecommends;
+    @Setter
+    private int recommendCount;
 
     public Review(String content, int rate, Member member, Book book) {
         this.content = content;
