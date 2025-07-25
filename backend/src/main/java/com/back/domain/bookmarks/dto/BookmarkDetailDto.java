@@ -13,17 +13,15 @@ public record BookmarkDetailDto(
         LocalDateTime startReadDate,
         LocalDateTime endReadDate,
         long readingDuration,
-        BookmarkReviewDetailDto review,
         List<NoteDto> notes
 ) {
-    public BookmarkDetailDto(Bookmark bookmark, Review  review) {
+    public BookmarkDetailDto(Bookmark bookmark, Review review) {
         this(
-                new BookmarkDto(bookmark),
+                new BookmarkDto(bookmark, review),
                 bookmark.getCreateDate(),
                 bookmark.getStartReadDate(),
                 bookmark.getEndReadDate(),
                 bookmark.calculateReadingDuration(),
-                new BookmarkReviewDetailDto(review),
                 bookmark.getNotes().stream().map(NoteDto::new).toList()
         );
     }

@@ -38,7 +38,11 @@ public class BookmarkService {
     }
 
     public List<BookmarkDto> toList(){
-        return bookmarkRepository.findAll().stream().map(BookmarkDto::new).toList();
+        return bookmarkRepository.findAll().stream().map(bookmark -> {
+            if(bookmark.getReadState()==ReadState.WISH) return new BookmarkDto(bookmark, null);
+            Review review = getReview(bookmark);
+            return new BookmarkDto(bookmark, review);
+        }).toList();
     }
 
     public Page<BookmarkDto> toPage(int pageNumber, int pageSize, String category, String state, String keyword){
@@ -64,12 +68,16 @@ public class BookmarkService {
             });
         }
         Page<Bookmark> bookmarks = bookmarkRepository.findAll(spec, pageable);
-        return bookmarks.map(BookmarkDto::new);
+        return bookmarks.map(bookmark -> {
+            if(bookmark.getReadState()==ReadState.WISH) return new BookmarkDto(bookmark, null);
+            Review review = getReview(bookmark);
+            return new BookmarkDto(bookmark, review);
+        });
     }
 
     public BookmarkDetailDto getBookmarkById(int bookmarkId) {
         Bookmark bookmark = findById(bookmarkId);
-        Review review = new Review();
+        Review review = getReview(bookmark);
         return new BookmarkDetailDto(bookmark, review);
     }
 
@@ -100,5 +108,9 @@ public class BookmarkService {
         Bookmark bookmark = findById(bookmarkId);
         bookmark.checkActor(member);
         bookmarkRepository.delete(bookmark);
+    }
+
+    private Review getReview(Bookmark bookmark) {
+        return reviewRepository.findByBookAndMember(bookmark.getBook(), bookmark.getMember()).get();
     }
 }
