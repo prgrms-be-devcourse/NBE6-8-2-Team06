@@ -1,7 +1,11 @@
 package com.back.domain.note.entity;
 
+import com.back.domain.bookmarks.entity.Bookmark;
 import com.back.global.jpa.entity.BaseEntity;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -14,14 +18,13 @@ public class Note extends BaseEntity {
     private String title;
     private String content;
 
-//     bookmark 병합해야함
-//    @ManyToOne
-//    @JoinColumn(name = "bookmark_id")
-//    private Bookmark bookmark;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "bookmark_id")
+    private Bookmark bookmark;
 
-    public Note(String title, String content) {
+    public Note(String title, String content, Bookmark bookmark) {
         this.title = title;
         this.content = content;
-//        this.bookmark = bookmark;
+        this.bookmark = bookmark;
     }
 }

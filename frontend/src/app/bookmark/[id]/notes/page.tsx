@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, Edit, FileText, Plus, Save, Search, Trash2, X } from "lucide-react";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { use, useState } from "react";
 
 
 interface BookNotesPageProps {
@@ -34,18 +35,24 @@ interface BookNotesPageProps {
     updatedDate?: string;
   }
 
-export default function page(){
-    const [searchTerm, setSearchTerm] = useState('');
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingNote, setEditingNote] = useState<Note | null>(null);
-  const [noteForm, setNoteForm] = useState({
-    title: '',
-    content: '',
-    page: ''
-  });
-  const bookId = 1;
-  const onNavigate = (e:string) => {
+  export default function page({params}:{params:Promise<{bookId:string}>}){
 
+    const {bookId:bookIdStr} = use(params);
+    const bookId = parseInt(bookIdStr);
+      
+    const [searchTerm, setSearchTerm] = useState('');
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
+    const [editingNote, setEditingNote] = useState<Note | null>(null);
+    const [noteForm, setNoteForm] = useState({
+      title: '',
+      content: '',
+      page: ''
+    });
+
+
+  const router = useRouter();
+  const onNavigate = (e:string) => {
+    router.push(e);
   }
 
   // 내 책 데이터
@@ -118,7 +125,7 @@ export default function page(){
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="text-center">
           <p>책을 찾을 수 없습니다.</p>
-          <Button onClick={() => onNavigate('mybooks')} className="mt-4">
+          <Button onClick={() => onNavigate('/my-books')} className="mt-4">
             내 책 목록으로 돌아가기
           </Button>
         </div>
@@ -190,7 +197,7 @@ export default function page(){
       {/* 뒤로가기 버튼 */}
       <Button 
         variant="ghost" 
-        onClick={() => onNavigate('my-book-detail')}
+        onClick={() => onNavigate(`/my-books/${bookId}`)}
         className="mb-6"
       >
         <ArrowLeft className="h-4 w-4 mr-2" />

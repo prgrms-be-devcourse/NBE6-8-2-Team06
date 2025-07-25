@@ -41,6 +41,8 @@ public class Rq {
         } else {
             if(name.equals("accessToken")){
                 cookie.setMaxAge(60*20); //20분
+            } else if (name.equals("refreshToken")) {
+                cookie.setMaxAge(60 * 60 * 24); // 1일
             } else {
                 cookie.setMaxAge(60 * 60 * 24 * 365); // 1년
             }

@@ -20,6 +20,9 @@ public class Member extends BaseEntity {
     private String email;
     private String password;
 
+    @Column(length = 1000)
+    private String refreshToken;
+
     @OneToMany(mappedBy = "member", cascade = CascadeType.ALL, orphanRemoval = true)
     List<Review> reviews;
 
@@ -27,5 +30,11 @@ public class Member extends BaseEntity {
         this.name = name;
         this.email = email;
         this.password = password;
+    }
+    public void updateRefreshToken(String refreshToken) {
+        this.refreshToken = refreshToken;
+    }
+    public void clearRefreshToken() {
+        this.refreshToken = null;
     }
 }

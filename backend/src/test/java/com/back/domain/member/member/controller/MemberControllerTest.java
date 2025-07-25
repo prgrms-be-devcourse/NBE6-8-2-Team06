@@ -1,6 +1,7 @@
 package com.back.domain.member.member.controller;
 
 import com.back.domain.member.member.entity.Member;
+import com.back.domain.member.member.repository.MemberRepository;
 import com.back.domain.member.member.service.MemberService;
 import com.back.global.rq.Rq;
 
@@ -12,10 +13,13 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import jakarta.servlet.http.Cookie;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.anyString;
@@ -23,6 +27,7 @@ import static org.mockito.Mockito.*;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 
 @ExtendWith(MockitoExtension.class)
 class MemberControllerTest {
@@ -32,6 +37,9 @@ class MemberControllerTest {
 
     @Mock
     private MemberService memberService;
+
+    @Mock
+    private MemberRepository memberRepository;
 
     @Mock
     private PasswordEncoder passwordEncoder;
@@ -114,5 +122,46 @@ class MemberControllerTest {
         verify(memberService, times(1)).geneAccessToken(existingMember);
 
         verify(rq, times(1)).setCookie("accessToken", accessToken);
+    }
+
+    @Test
+    @DisplayName("Access Token 재발급 성공") // 테스트 이름 변경
+    void t3() throws Exception {
+        // Given
+        String email = "test@example.com";
+        String existingRefreshToken = "existingMockRefreshToken"; // 기존 리프레시 토큰
+        String newAccessToken = "newMockAccessToken"; // 새로 발급될 Access Token
+
+        Member existingMember = new Member("TestUser", email, "encodedPassword123");
+        ReflectionTestUtils.setField(existingMember, "id", 1);
+        ReflectionTestUtils.setField(existingMember, "refreshToken", existingRefreshToken); // 기존 리프레시 토큰 설정
+
+
+        when(memberService.isValidRefreshToken(existingRefreshToken)).thenReturn(true);
+        when(memberService.getRefreshTokenPayload(existingRefreshToken)).thenReturn(Map.of("id", 1, "email", email));
+        when(memberService.findByEmail(email)).thenReturn(Optional.of(existingMember));
+        when(memberService.geneAccessToken(existingMember)).thenReturn(newAccessToken);
+
+        doNothing().when(rq).setCookie(anyString(), anyString());
+
+        // When & Then
+        mockMvc.perform(post("/member/reissue")
+                        .cookie(new Cookie("refreshToken", existingRefreshToken))) // Refresh Token 쿠키 추가
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resultCode").value("200"))
+                .andExpect(jsonPath("$.msg").value("AccessToken이 재발급되었습니다."));
+
+
+        // Verifications
+        verify(memberService, times(1)).isValidRefreshToken(existingRefreshToken);
+        verify(memberService, times(1)).getRefreshTokenPayload(existingRefreshToken);
+        verify(memberService, times(1)).findByEmail(email);
+        verify(memberService, times(1)).geneAccessToken(existingMember);
+        verify(memberService, never()).geneRefreshToken(any(Member.class));
+        verify(memberRepository, never()).save(any(Member.class));
+
+        verify(rq, times(1)).setCookie(eq("accessToken"), eq(newAccessToken));
+        verify(rq, never()).setCookie(eq("refreshToken"), anyString());
     }
 }

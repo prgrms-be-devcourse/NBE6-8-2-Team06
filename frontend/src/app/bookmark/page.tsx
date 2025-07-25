@@ -49,7 +49,7 @@ export default function Page() {
   }
 
   const onBookClick = (e:number) =>{
-    router.push(`/books/${e}`)
+    router.push(`/my-books/${e}`)
   }
 
   // 내가 추가한 책들 데이터
@@ -135,7 +135,7 @@ export default function Page() {
             총 {stats.total}권의 책을 관리하고 있습니다
           </p>
         </div>
-        <Button onClick={() => onNavigate('books')}>
+        <Button onClick={() => onNavigate('/books')}>
           <Plus className="mr-2 h-4 w-4" />
           새 책 추가하기
         </Button>
@@ -233,7 +233,7 @@ export default function Page() {
                 <p className="text-muted-foreground mb-4">
                   {status === 'all' ? '아직 추가한 책이 없습니다.' : `${status}이 없습니다.`}
                 </p>
-                <Button onClick={() => onNavigate('books')}>
+                <Button onClick={() => onNavigate('/books')}>
                   새 책 추가하기
                 </Button>
               </div>

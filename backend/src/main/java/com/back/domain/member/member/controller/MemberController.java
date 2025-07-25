@@ -7,6 +7,7 @@ import com.back.global.exception.ServiceException;
 import com.back.global.rq.Rq;
 import com.back.global.rsData.RsData;
 import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -17,6 +18,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 @RestController
 @RequestMapping("/member")
 @RequiredArgsConstructor
@@ -24,6 +29,7 @@ public class MemberController {
 
     private final MemberService memberService;
     private final PasswordEncoder passwordEncoder;
+
     private final Rq rq;
 
     record MemberJoinReqBody(
@@ -83,9 +89,15 @@ public class MemberController {
 
         memberService.checkPassword(member,reqBody.password);
 
-        String accessToken =memberService.geneAccessToken(member);
+        String accessToken = memberService.geneAccessToken(member);
+        String refreshToken = memberService.geneRefreshToken(member);
+
+        member.updateRefreshToken(refreshToken);
+        memberService.save(member);
 
         rq.setCookie("accessToken",accessToken);
+        rq.setCookie("refreshToken",refreshToken);
+
         return new RsData<>(
                 "200-1",
                 "%s님 환영합니다.".formatted(member.getEmail()),
@@ -98,15 +110,22 @@ public class MemberController {
 
     @PostMapping("/logout")
     public ResponseEntity<?> logout(HttpServletResponse response){
+        Member actor = rq.getActor();
 
-        Cookie cookie = new Cookie("accessToken", null);
-        cookie.setPath("/");
-        cookie.setHttpOnly(true);
-        cookie.setSecure(true);
-        cookie.setMaxAge(0); //즉시 만료
-        cookie.setAttribute("SameSite","Strict");
-        response.addCookie(cookie);
+        if(actor != null){
+            // 서버에서 refresh 토큰 삭제
+            memberService.clearRefreshToken(actor);
+        }
 
+        for(String tokenName: List.of("accessToken","refreshToken")){
+            Cookie cookie = new Cookie(tokenName, "");
+            cookie.setPath("/");
+            cookie.setHttpOnly(true);
+            cookie.setSecure(true);
+            cookie.setMaxAge(0); //즉시 만료
+            cookie.setAttribute("SameSite","Strict");
+            response.addCookie(cookie);
+        }
         return ResponseEntity.noContent().build();
     }
 
@@ -120,5 +139,38 @@ public class MemberController {
 
         return ResponseEntity.ok(new MemberDto(actor));
     }
+
+    @PostMapping("/reissue")
+    @Transactional
+    public RsData<?> reissue(HttpServletRequest request) {
+        String refreshToken = null;
+
+        if (request.getCookies() != null) {
+            for(Cookie cookie: request.getCookies()){
+                if(cookie.getName().equals("refreshToken")){
+                    refreshToken = cookie.getValue();
+                    break;
+                }
+            }
+        }
+
+        if(refreshToken == null||!memberService.isValidRefreshToken(refreshToken)){
+            return new RsData<>("400","유효하지 않은 RefreshToken 입니다.",null);
+        }
+
+        Map<String,Object> payload = memberService.getRefreshTokenPayload(refreshToken);
+        String email = payload.get("email").toString();
+
+        Member member = memberService.findByEmail(email)
+                .orElseThrow(()->new ServiceException("401-1", "사용자를 찾을 수 없습니다."));
+        if(!refreshToken.equals(member.getRefreshToken())){
+            return new RsData<>("401","서버에 저장된 토큰과 일치하지 않습니다.",null);
+        }
+        String newAccessToken = memberService.geneAccessToken(member);
+        rq.setCookie("accessToken",newAccessToken);
+
+        return new RsData<>("200","AccessToken이 재발급되었습니다.",null);
+    }
+
 
 }

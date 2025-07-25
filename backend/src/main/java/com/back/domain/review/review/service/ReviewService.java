@@ -5,6 +5,7 @@ import com.back.domain.member.member.entity.Member;
 import com.back.domain.review.review.dto.ReviewRequestDto;
 import com.back.domain.review.review.entity.Review;
 import com.back.domain.review.review.repository.ReviewRepository;
+import com.back.global.exception.ServiceException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -23,13 +24,29 @@ public class ReviewService {
     @Transactional
     public void addReview(Book book, Member member, ReviewRequestDto reviewRequestDto){
         Review review = new Review(reviewRequestDto.content(), reviewRequestDto.rate(), member, book);
+        if (reviewRepository.findByBookAndMember(book, member).isPresent()) {
+            throw new ServiceException("400-1", "Review already exists");
+        }
         reviewRepository.save(review);
     }
 
     @Transactional
     public void deleteReview(Book book, Member member) {
         Review review = reviewRepository.findByBookAndMember(book, member)
-                .orElseThrow(() -> new IllegalArgumentException("Review not found for the given book and member"));
+                .orElseThrow(() -> new ServiceException("404-1","review not found"));
         reviewRepository.delete(review);
+    }
+
+    @Transactional
+    public void modifyReview(Book book, Member member, ReviewRequestDto reviewRequestDto) {
+        Review review = reviewRepository.findByBookAndMember(book, member)
+                .orElseThrow(() -> new ServiceException("404-1","review not found"));
+        review.setContent(reviewRequestDto.content());
+        review.setRate(reviewRequestDto.rate());
+        reviewRepository.save(review);
+    }
+
+    public long count() {
+        return reviewRepository.count();
     }
 }
