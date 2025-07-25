@@ -2,12 +2,12 @@ package com.back.domain.member.member.controller;
 
 import com.back.domain.member.member.dto.MemberDto;
 import com.back.domain.member.member.entity.Member;
-import com.back.domain.member.member.repository.MemberRepository;
 import com.back.domain.member.member.service.MemberService;
 import com.back.global.exception.ServiceException;
 import com.back.global.rq.Rq;
 import com.back.global.rsData.RsData;
 import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -18,7 +18,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/member")
@@ -27,6 +29,7 @@ public class MemberController {
 
     private final MemberService memberService;
     private final PasswordEncoder passwordEncoder;
+
     private final Rq rq;
 
     record MemberJoinReqBody(
@@ -90,7 +93,7 @@ public class MemberController {
         String refreshToken = memberService.geneRefreshToken(member);
 
         member.updateRefreshToken(refreshToken);
-        memberRepository.save(member);
+        memberService.save(member);
 
         rq.setCookie("accessToken",accessToken);
         rq.setCookie("refreshToken",refreshToken);
@@ -137,5 +140,37 @@ public class MemberController {
         return ResponseEntity.ok(new MemberDto(actor));
     }
 
-    private final MemberRepository memberRepository;
+    @PostMapping("/reissue")
+    @Transactional
+    public RsData<?> reissue(HttpServletRequest request) {
+        String refreshToken = null;
+
+        if (request.getCookies() != null) {
+            for(Cookie cookie: request.getCookies()){
+                if(cookie.getName().equals("refreshToken")){
+                    refreshToken = cookie.getValue();
+                    break;
+                }
+            }
+        }
+
+        if(refreshToken == null||!memberService.isValidRefreshToken(refreshToken)){
+            return new RsData<>("400","유효하지 않은 RefreshToken 입니다.",null);
+        }
+
+        Map<String,Object> payload = memberService.getRefreshTokenPayload(refreshToken);
+        String email = payload.get("email").toString();
+
+        Member member = memberService.findByEmail(email)
+                .orElseThrow(()->new ServiceException("401-1", "사용자를 찾을 수 없습니다."));
+        if(!refreshToken.equals(member.getRefreshToken())){
+            return new RsData<>("401","서버에 저장된 토큰과 일치하지 않습니다.",null);
+        }
+        String newAccessToken = memberService.geneAccessToken(member);
+        rq.setCookie("accessToken",newAccessToken);
+
+        return new RsData<>("200","AccessToken이 재발급되었습니다.",null);
+    }
+
+
 }
