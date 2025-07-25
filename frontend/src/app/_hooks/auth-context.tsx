@@ -55,7 +55,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = async () => {
     setIsLoading(true);
     try {
-      await apiFetch("/logout", { method: "POST" });
+      await apiFetch("/user/logout", { method: "POST" });
     } catch {}
     setIsLoading(false);
     setIsLoggedIn(false);

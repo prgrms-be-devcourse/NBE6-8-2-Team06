@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/member")
+@RequestMapping("/user")
 @RequiredArgsConstructor
 public class MemberController {
 
