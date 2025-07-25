@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Button } from "@/components/ui/button";
 import { usePathname, useRouter } from "next/navigation";
+import { AuthProvider, useAuth } from "./_hooks/auth-context";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -22,10 +23,10 @@ const metadata: Metadata = {
 
 import Link from "next/link";
 
-import React from 'react';
-import { BookOpen, Home, User, LogOut, Library } from 'lucide-react';
+import React from "react";
+import { BookOpen, Home, User, LogOut, Library } from "lucide-react";
 
-type Page = 'home' | 'login' | 'books' | 'mybooks' | 'profile';
+type Page = "home" | "login" | "books" | "mybooks" | "profile";
 
 interface NavigationProps {
   currentPage: Page;
@@ -34,93 +35,106 @@ interface NavigationProps {
   onLogout: () => void;
 }
 
+function NavigationContent({ children }: { children: React.ReactNode }) {
+  const currentPage: string = usePathname();
+  const router = useRouter();
+  const { isLoggedIn, logout } = useAuth(); // 변경: 실제 로그인 상태 사용
+  const onNavigate = (url: string) => {
+    router.push(url);
+  };
+
+  return (
+    <>
+      <nav className="border-b bg-card">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center space-x-8">
+              <h1 className="text-xl font-medium text-primary">
+                책 관리 시스템
+              </h1>
+
+              <div className="flex space-x-4">
+                <Button
+                  variant={currentPage === "/" ? "default" : "ghost"}
+                  onClick={() => onNavigate("/")}
+                  className="flex items-center space-x-2"
+                >
+                  <Home className="h-4 w-4" />
+                  <span>홈</span>
+                </Button>
+
+                <Button
+                  variant={currentPage === "/books" ? "default" : "ghost"}
+                  onClick={() => onNavigate("/books")}
+                  className="flex items-center space-x-2"
+                >
+                  <BookOpen className="h-4 w-4" />
+                  <span>책 탐색</span>
+                </Button>
+
+                {isLoggedIn && (
+                  <Button
+                    variant={currentPage === "/my-books" ? "default" : "ghost"}
+                    onClick={() => onNavigate("mybooks")}
+                    className="flex items-center space-x-2"
+                  >
+                    <Library className="h-4 w-4" />
+                    <span>내 책</span>
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-4">
+              {isLoggedIn ? (
+                <>
+                  <Button
+                    variant="ghost"
+                    onClick={() => onNavigate("profile")}
+                    className="flex items-center space-x-2"
+                  >
+                    <User className="h-4 w-4" />
+                    <span>내 프로필</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={logout} // 변경: 실제 로그아웃 함수 사용
+                    className="flex items-center space-x-2"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    <span>로그아웃</span>
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  variant={currentPage === "/login" ? "default" : "outline"}
+                  onClick={() => onNavigate("/login")}
+                >
+                  로그인
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      </nav>
+      <main>{children}</main>
+    </>
+  );
+}
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const currentPage:string = usePathname()
-  const router = useRouter()
-  const isLoggedIn = false;
-  const onNavigate = (url:string) => {router.push(url)};
-  const onLogout = () => {};
-
   return (
     <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <nav className="border-b bg-card">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center h-16">
-              <div className="flex items-center space-x-8">
-                <h1 className="text-xl font-medium text-primary">책 관리 시스템</h1>
-                
-                <div className="flex space-x-4">
-                  <Button
-                    variant={currentPage === "/" ? 'default' : 'ghost'}
-                    onClick={() => onNavigate('/')}
-                    className="flex items-center space-x-2"
-                  >
-                    <Home className="h-4 w-4" />
-                    <span>홈</span>
-                  </Button>
-                  
-                  <Button
-                    variant={currentPage === '/books' ? 'default' : 'ghost'}
-                    onClick={() => onNavigate('/books')}
-                    className="flex items-center space-x-2"
-                  >
-                    <BookOpen className="h-4 w-4" />
-                    <span>책 탐색</span>
-                  </Button>
-
-                  {isLoggedIn && (
-                    <Button
-                    variant={currentPage === '/my-books' ? 'default' : 'ghost'}
-                      onClick={() => onNavigate('mybooks')}
-                      className="flex items-center space-x-2"
-                    >
-                      <Library className="h-4 w-4" />
-                      <span>내 책</span>
-                    </Button>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-4">
-                {isLoggedIn ? (
-                  <>
-                    <Button
-                      variant="ghost"
-                      onClick={() => onNavigate('profile')}
-                      className="flex items-center space-x-2"
-                    >
-                      <User className="h-4 w-4" />
-                      <span>내 프로필</span>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={onLogout}
-                      className="flex items-center space-x-2"
-                    >
-                      <LogOut className="h-4 w-4" />
-                      <span>로그아웃</span>
-                    </Button>
-                  </>
-                ) : (
-                  <Button
-                    variant={currentPage === '/login' ? 'default' : 'outline'}
-                    onClick={() => onNavigate('/login')}
-                  >
-                    로그인
-                  </Button>
-                )}
-              </div>
-            </div>
-          </div>
-        </nav>
-        <main>{children}</main>
+        <AuthProvider>
+          <NavigationContent>{children}</NavigationContent>
+        </AuthProvider>
       </body>
     </html>
   );

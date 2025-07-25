@@ -28,6 +28,8 @@ public class SecurityConfig {
                 .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()))
 
                 .authorizeHttpRequests( auth -> auth
+                        .requestMatchers("/user/login", "/user/signup", "/user/reissue").permitAll()
+                        .requestMatchers("/user/my").authenticated()
                         .anyRequest().permitAll()
                 )
 
@@ -46,6 +48,7 @@ public class SecurityConfig {
         config.setAllowedOrigins(Arrays.asList("http://localhost:3000")); // 프론트 도메인
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH"));
         config.setAllowedHeaders(List.of("*"));
+        config.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config); // 모든 경로에 적용
