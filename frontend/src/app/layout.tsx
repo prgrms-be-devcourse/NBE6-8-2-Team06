@@ -68,7 +68,7 @@ export default function RootLayout({
                   
                   <Button
                     variant={currentPage === '/books' ? 'default' : 'ghost'}
-                    onClick={() => onNavigate('books')}
+                    onClick={() => onNavigate('/books')}
                     className="flex items-center space-x-2"
                   >
                     <BookOpen className="h-4 w-4" />
@@ -111,7 +111,7 @@ export default function RootLayout({
                 ) : (
                   <Button
                     variant={currentPage === '/login' ? 'default' : 'outline'}
-                    onClick={() => onNavigate('login')}
+                    onClick={() => onNavigate('/login')}
                   >
                     로그인
                   </Button>

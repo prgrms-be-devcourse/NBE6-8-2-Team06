@@ -8,6 +8,8 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@radix-ui/react-select";
 import { ArrowLeft, BookOpen, Calendar, Edit, FileText, PenTool, Star } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { use } from "react";
 
 interface MyBookDetailPageProps {
     bookId: number | null;
@@ -45,11 +47,21 @@ interface MyBookDetailPageProps {
     createdDate: string;
   }
 
-export default function page(){
-    const bookId = 1;
-    const onNavigate = (e:string)=>{}
-    const onWriteReview = (e:number)=>{}
-    const onManageNotes = (e:number) => {}
+export default function page({params}:{params:Promise<{bookId:string}>}){
+  const {bookId:bookIdStr} = use(params);
+  const bookId = parseInt(bookIdStr);
+    
+  const router = useRouter()
+  const onNavigate = (e:string)=>{
+    router.push(e)
+  }
+  const pathName = usePathname()
+  const onWriteReview = (e:number)=>{
+    router.push(`${pathName}/review`)
+  }
+  const onManageNotes = (e:number) => {
+    router.push(`${pathName}/notes`)
+  }
 
     // 내 책 데이터
   const myBooks: MyBook[] = [
@@ -126,7 +138,7 @@ export default function page(){
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="text-center">
           <p>책을 찾을 수 없습니다.</p>
-          <Button onClick={() => onNavigate('mybooks')} className="mt-4">
+          <Button onClick={() => onNavigate('/my-books')} className="mt-4">
             내 책 목록으로 돌아가기
           </Button>
         </div>
@@ -180,7 +192,7 @@ export default function page(){
       {/* 뒤로가기 버튼 */}
       <Button 
         variant="ghost" 
-        onClick={() => onNavigate('mybooks')}
+        onClick={() => onNavigate('/my-books')}
         className="mb-6"
       >
         <ArrowLeft className="h-4 w-4 mr-2" />
