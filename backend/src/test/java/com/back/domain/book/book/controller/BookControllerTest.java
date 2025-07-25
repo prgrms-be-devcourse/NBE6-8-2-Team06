@@ -15,7 +15,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
@@ -88,7 +87,6 @@ class BookControllerTest {
 
     @Test
     @DisplayName("전체 책 조회 - 기본 파라미터로 성공적으로 조회")
-    @WithMockUser // Spring Security 인증 우회
     void getAllBooks_Success() throws Exception {
         mockMvc.perform(get("/api/books")
                         .param("page", "0")
@@ -109,5 +107,44 @@ class BookControllerTest {
                 .andExpect(jsonPath("$.data.totalPages").value(1))
                 .andExpect(jsonPath("$.data.pageSize").value(10))
                 .andExpect(jsonPath("$.data.pageNumber").value(0));
+    }
+
+    @Test
+    @DisplayName("전체 책 조회 실패 - 잘못된 정렬 방향")
+    void getAllBooks_Fail_InvalidSortDirection() throws Exception {
+        mockMvc.perform(get("/api/books")
+                        .param("page", "0")
+                        .param("size", "10")
+                        .param("sortBy", "id")
+                        .param("sortDir", "invalid"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.resultCode").exists())
+                .andExpect(jsonPath("$.msg").exists());
+    }
+
+    @Test
+    @DisplayName("전체 책 조회 실패 - 음수 페이지 번호")
+    void getAllBooks_Fail_NegativePage() throws Exception {
+        mockMvc.perform(get("/api/books")
+                        .param("page", "-1")
+                        .param("size", "10")
+                        .param("sortBy", "id")
+                        .param("sortDir", "desc"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.resultCode").value("400-1"))
+                .andExpect(jsonPath("$.msg").value("페이지 번호는 0 이상이어야 합니다."));
+    }
+
+    @Test
+    @DisplayName("전체 책 조회 실패 - 0 이하의 페이지 크기")
+    void getAllBooks_Fail_ZeroOrNegativeSize() throws Exception {
+        mockMvc.perform(get("/api/books")
+                        .param("page", "0")
+                        .param("size", "0")
+                        .param("sortBy", "id")
+                        .param("sortDir", "desc"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.resultCode").value("400-2"))
+                .andExpect(jsonPath("$.msg").value("페이지 크기는 1 이상이어야 합니다."));
     }
 }
