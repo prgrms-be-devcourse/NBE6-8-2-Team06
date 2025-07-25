@@ -16,7 +16,7 @@ public class AuthTokenService {
     @Value("${custom.accessToken.expirationSeconds}")
     private int accessTokenExpSec;
 
-    String genAccessToken(Member member) {
+    public String genAccessToken(Member member) {
         int id = member.getId();
         String email = member.getEmail();
 
