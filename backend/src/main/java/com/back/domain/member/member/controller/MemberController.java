@@ -2,6 +2,7 @@ package com.back.domain.member.member.controller;
 
 import com.back.domain.member.member.dto.MemberDto;
 import com.back.domain.member.member.entity.Member;
+import com.back.domain.member.member.repository.MemberRepository;
 import com.back.domain.member.member.service.MemberService;
 import com.back.global.exception.ServiceException;
 import com.back.global.rq.Rq;
@@ -16,6 +17,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/member")
@@ -83,9 +86,15 @@ public class MemberController {
 
         memberService.checkPassword(member,reqBody.password);
 
-        String accessToken =memberService.geneAccessToken(member);
+        String accessToken = memberService.geneAccessToken(member);
+        String refreshToken = memberService.geneRefreshToken(member);
+
+        member.updateRefreshToken(refreshToken);
+        memberRepository.save(member);
 
         rq.setCookie("accessToken",accessToken);
+        rq.setCookie("refreshToken",refreshToken);
+
         return new RsData<>(
                 "200-1",
                 "%s님 환영합니다.".formatted(member.getEmail()),
@@ -98,15 +107,22 @@ public class MemberController {
 
     @PostMapping("/logout")
     public ResponseEntity<?> logout(HttpServletResponse response){
+        Member actor = rq.getActor();
 
-        Cookie cookie = new Cookie("accessToken", null);
-        cookie.setPath("/");
-        cookie.setHttpOnly(true);
-        cookie.setSecure(true);
-        cookie.setMaxAge(0); //즉시 만료
-        cookie.setAttribute("SameSite","Strict");
-        response.addCookie(cookie);
+        if(actor != null){
+            // 서버에서 refresh 토큰 삭제
+            memberService.clearRefreshToken(actor);
+        }
 
+        for(String tokenName: List.of("accessToken","refreshToken")){
+            Cookie cookie = new Cookie(tokenName, "");
+            cookie.setPath("/");
+            cookie.setHttpOnly(true);
+            cookie.setSecure(true);
+            cookie.setMaxAge(0); //즉시 만료
+            cookie.setAttribute("SameSite","Strict");
+            response.addCookie(cookie);
+        }
         return ResponseEntity.noContent().build();
     }
 
@@ -121,4 +137,5 @@ public class MemberController {
         return ResponseEntity.ok(new MemberDto(actor));
     }
 
+    private final MemberRepository memberRepository;
 }
