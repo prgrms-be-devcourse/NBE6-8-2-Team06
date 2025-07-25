@@ -16,6 +16,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/books")
 @RequiredArgsConstructor
@@ -55,6 +57,32 @@ public class BookController {
 
 
         return new RsData<>("200-1", "전체 책 조회 성공", pageResponse);
+    }
+
+    @GetMapping("/search")
+    public RsData<List<BookSearchDto>> searchBooks(
+            @RequestParam String query,
+            @RequestParam(defaultValue = "20") int limit) {
+
+        if (query == null || query.trim().isEmpty()) {
+            throw new ServiceException("400-6", "검색어를 입력해주세요.");
+        }
+
+        if (limit <= 0) {
+            throw new ServiceException("400-4", "limit은 1 이상이어야 합니다.");
+        }
+
+        if (limit > 100) {
+            throw new ServiceException("400-5", "limit은 100 이하여야 합니다.");
+        }
+
+        List<BookSearchDto> books = bookService.searchBooks(query.trim(), limit);
+
+        if (books.isEmpty()) {
+            return new RsData<>("200-2", "검색 결과가 없습니다.", books);
+        }
+
+        return new RsData<>("200-1", books.size() + "개의 책을 찾았습니다.", books);
     }
 
 
