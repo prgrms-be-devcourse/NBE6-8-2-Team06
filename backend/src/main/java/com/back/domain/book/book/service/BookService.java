@@ -74,36 +74,18 @@ public class BookService {
         Optional<Book> bookFromDb = bookRepository.findByIsbn13(isbn);
 
         if (bookFromDb.isPresent()) {
-            log.info("DB에서 찾은 ISBN: {}", isbn);
             return convertToDto(bookFromDb.get());
         }
 
-        log.info("DB에 없어서 알라딘 API에서 조회: {}", isbn);
+        // callApiAndParseBooks 활용
+        String url = String.format(
+                "%s/ItemLookUp.aspx?ttbkey=%s&itemIdType=ISBN13&ItemId=%s&output=js&Version=20131101&OptResult=authors",
+                aladinBaseUrl, aladinApiKey, isbn
+        );
 
-        try {
-            String url = String.format(
-                    "%s/ItemLookUp.aspx?ttbkey=%s&itemIdType=ISBN13&ItemId=%s&output=js&Version=20131101&OptResult=authors",
-                    aladinBaseUrl, aladinApiKey, isbn
-            );
+        List<Book> books = callApiAndParseBooks(url, "ISBN조회");
 
-            String response = restTemplate.getForObject(url, String.class);
-            JsonNode rootNode = objectMapper.readTree(response);
-            JsonNode itemsNode = rootNode.get("item");
-
-            if (itemsNode != null && itemsNode.isArray() && itemsNode.size() > 0) {
-                JsonNode itemNode = itemsNode.get(0);
-                Book savedBook = parseAndSaveBookFromJson(itemNode);
-
-                if (savedBook != null) {
-                    return convertToDto(savedBook);
-                }
-            }
-
-        } catch (Exception e) {
-            log.error("알라딘 API ISBN 조회 중 오류: {}", e.getMessage());
-        }
-
-        return null;
+        return books.isEmpty() ? null : convertToDto(books.get(0));
     }
 
     /**
@@ -344,7 +326,7 @@ public class BookService {
                 book.setAvgRate(0.0f);
             }
 
-            // 🎉 NEW! 간단한 카테고리 추출 - 2번째 깊이 사용
+            //간단한 카테고리 추출 - 2번째 깊이 사용
             String categoryName = extractCategoryFromPath(itemNode);
 
             // 카테고리 찾기 또는 생성
