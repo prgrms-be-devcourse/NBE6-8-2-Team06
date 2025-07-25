@@ -4,6 +4,7 @@ import com.back.domain.member.member.entity.Member;
 import com.back.domain.member.member.service.AuthTokenService;
 import com.back.domain.member.member.service.MemberService;
 import com.back.domain.review.review.entity.Review;
+import com.back.domain.review.review.repository.ReviewRepository;
 import com.back.domain.review.review.service.ReviewService;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.DisplayName;
@@ -66,6 +67,24 @@ public class ReviewControllerTest {
                 ;
 
         assertThat(review.getId()).isGreaterThan(0);
+        assertThat(review.getContent()).isEqualTo("이 책 정말 좋았어요!");
+        assertThat(review.getRate()).isEqualTo(5);
+    }
+
+    @Test
+    @DisplayName("리뷰 작성 여러번 - 실패")
+    void t1_2() throws Exception {
+        Member member = memberService.findByEmail("email").get();
+        String accessToken = authTokenService.genAccessToken(member);
+        addReview(accessToken);
+        ResultActions resultActions = addReview(accessToken);
+        resultActions
+                .andExpect(handler().handlerType(ReviewController.class))
+                .andExpect(handler().methodName("create"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.resultCode").value("400-1"))
+                .andExpect(jsonPath("$.msg").value("Review already exists"));
+        assertThat(reviewService.count()).isEqualTo(1);
     }
 
     @Test
@@ -122,8 +141,6 @@ public class ReviewControllerTest {
         assertThat(review.getId()).isGreaterThan(0);
         assertThat(review.getContent()).isEqualTo("다시 읽다보니 그렇게 좋지는 않네요.");
         assertThat(review.getRate()).isEqualTo(4);
-
-
     }
 
 }
