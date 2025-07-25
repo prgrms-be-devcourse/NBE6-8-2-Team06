@@ -1,5 +1,6 @@
 package com.back.domain.note.controller;
 
+import com.back.domain.bookmarks.entity.Bookmark;
 import com.back.domain.note.dto.NoteDto;
 import com.back.domain.note.entity.Note;
 import com.back.domain.note.service.NoteService;
@@ -26,11 +27,12 @@ public class NoteController {
     @Transactional(readOnly = true)
     @Operation(summary = "노트 다건 조회")
     public List<NoteDto> getItems(@PathVariable int bookmarkId) {
-        List<Note> noteList = noteService.findAll();
+        Bookmark bookmark = noteService.findBookmarkById(bookmarkId).get();
 
-        return noteList
+        return bookmark
+                .getNotes()
                 .stream()
-                .map(NoteDto::new)
+                .map(note -> new NoteDto(note))
                 .collect(Collectors.toList());
     }
 
@@ -40,7 +42,9 @@ public class NoteController {
     public NoteDto getItem(
             @PathVariable int bookmarkId,
             @PathVariable int id) {
-        Note note = noteService.findByid(id).get();
+        Bookmark bookmark = noteService.findBookmarkById(bookmarkId).get();
+
+        Note note = noteService.findNoteById(bookmark, id).get();
 
         return new NoteDto(note);
     }
@@ -64,8 +68,9 @@ public class NoteController {
             @PathVariable int bookmarkId,
             @Valid @RequestBody NoteWriteReqBody reqBody
     ) {
-//        Bookmark bookmark = bookmarkService.findById(bookmarkId).get();
-        Note note = noteService.write(reqBody.title, reqBody.content);
+        Bookmark bookmark = noteService.findBookmarkById(bookmarkId).get();
+
+        Note note = noteService.write(bookmark, reqBody.title, reqBody.content);
 
         // 미리 db에 반영
         noteService.flush();
@@ -97,7 +102,9 @@ public class NoteController {
             @PathVariable int id,
             @Valid @RequestBody NoteModifyReqBody reqBody
     ) {
-        Note note = noteService.findByid(id).get();
+        Bookmark bookmark = noteService.findBookmarkById(bookmarkId).get();
+
+        Note note = noteService.findNoteById(bookmark, id).get();
 
         noteService.modify(note, reqBody.title, reqBody.content);
 
@@ -115,7 +122,11 @@ public class NoteController {
             @PathVariable int bookmarkId,
             @PathVariable int id
     ) {
-        noteService.delete(id);
+        Bookmark bookmark = noteService.findBookmarkById(bookmarkId).get();
+
+        Note note = noteService.findNoteById(bookmark, id).get();
+
+        noteService.delete(bookmark, note);
 
         return new RsData<>(
                 "200-1",

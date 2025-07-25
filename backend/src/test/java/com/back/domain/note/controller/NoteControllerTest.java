@@ -1,7 +1,9 @@
-package com.back.domain.note;
+package com.back.domain.note.controller;
 
-import com.back.domain.note.controller.NoteController;
+import com.back.domain.bookmarks.entity.Bookmark;
+import com.back.domain.bookmarks.service.BookmarkService;
 import com.back.domain.note.entity.Note;
+import com.back.domain.note.repository.NoteRepository;
 import com.back.domain.note.service.NoteService;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeAll;
@@ -12,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.test.annotation.Rollback;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
@@ -24,11 +27,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@TestInstance(TestInstance.Lifecycle.PER_CLASS) // beforall을 위한 어노테이션(테스트 데이터 공유됨)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS) // beforall을 static으로 선언하지 않기 위한 어노테이션(테스트 데이터 공유됨)
 @SpringBootTest
 @ActiveProfiles("test")
 @AutoConfigureMockMvc(addFilters = false) // security 필터 비활성(나중에 제거해야함)
-@Transactional
 public class NoteControllerTest {
     @Autowired
     private MockMvc mvc;
@@ -36,15 +38,49 @@ public class NoteControllerTest {
     @Autowired
     private NoteService noteService;
 
+    @Autowired
+    private BookmarkService bookmarkService;
+
+    @Autowired
+    private NoteRepository noteRepository;
+
     @BeforeAll
-    void setUpOnce() {
-        noteService.write("제목1", "내용1");
-        noteService.write("제목2", "내용2");
-        noteService.write("제목3", "내용3");
+    void setUp() {
+        Bookmark b = bookmarkService.save(null);
+        Bookmark bookmark = noteService.findBookmarkById(1).get();
+
+        noteService.write(bookmark,"제목1", "내용1");
+        noteService.write(bookmark,"제목2", "내용2");
+        noteService.write(bookmark,"제목3", "내용3");
+
+        Note note = noteService.findNoteById(bookmark, 1).get();
+        System.out.println(note.getContent());
+//        noteRepository.findById(note.getId()).get();
+        List<Note> notes = noteRepository.findAll();
+
+        for (int i = 0; i < notes.size(); i++) {
+            System.out.println(notes.get(i).getId());
+            System.out.println(notes.get(i).getContent());
+        }
     }
+
+//    @BeforeAll
+//    void setUpOnce() {
+//        Bookmark b = bookmarkService.save(null);
+//        Bookmark bookmark = noteService.findBookmarkById(1).get();
+//
+//        noteService.write(bookmark,"제목1", "내용1");
+//        noteService.write(bookmark,"제목2", "내용2");
+//        noteService.write(bookmark,"제목3", "내용3");
+//
+//        Note note = noteService.findNoteById(bookmark, 1).get();
+//        System.out.println(note.getContent());
+//    }
 
     @Test
     @DisplayName("노트 단건 조회")
+    @Transactional
+    @Rollback
     void t1() throws Exception {
         int bookmarkId = 1;
         int id = 1;
@@ -55,7 +91,8 @@ public class NoteControllerTest {
                 )
                 .andDo(print());
 
-        Note note = noteService.findByid(id).get();
+        Bookmark bookmark = noteService.findBookmarkById(bookmarkId).get();
+        Note note = noteService.findNoteById(bookmark, id).get();
 
         resultActions
                 .andExpect(handler().handlerType(NoteController.class))
@@ -70,6 +107,8 @@ public class NoteControllerTest {
 
     @Test
     @DisplayName("노트 다건 조회")
+    @Transactional
+    @Rollback
     void t2() throws Exception {
         int bookmarkId = 1;
 
@@ -79,7 +118,8 @@ public class NoteControllerTest {
                 )
                 .andDo(print());
 
-        List<Note> notes = noteService.findAll();
+        Bookmark bookmark = noteService.findBookmarkById(bookmarkId).get();
+        List<Note> notes = bookmark.getNotes();
 
         resultActions
                 .andExpect(handler().handlerType(NoteController.class))
@@ -101,6 +141,8 @@ public class NoteControllerTest {
 
     @Test
     @DisplayName("노트 작성")
+    @Transactional
+    @Rollback
     void t3() throws Exception {
         int bookmarkId = 1;
 
@@ -118,9 +160,8 @@ public class NoteControllerTest {
                 )
                 .andDo(print());
 
-//        Bookmark bookmark = bookmarkService.findById(bookmarkId).get();
-
-        Note note = noteService.findAll().getLast();
+        Bookmark bookmark = noteService.findBookmarkById(bookmarkId).get();
+        Note note = bookmark.getNotes().getLast();
 
         resultActions
                 .andExpect(handler().handlerType(NoteController.class))
@@ -131,15 +172,14 @@ public class NoteControllerTest {
                 .andExpect(jsonPath("$.data.id").value(note.getId()))
                 .andExpect(jsonPath("$.data.createDate").value(Matchers.startsWith(note.getCreateDate().toString().substring(0, 20))))
                 .andExpect(jsonPath("$.data.modifyDate").value(Matchers.startsWith(note.getModifyDate().toString().substring(0, 20))))
-//                .andExpect(jsonPath("$.data.authorId").value(postComment.getAuthor().getId()))
-//                .andExpect(jsonPath("$.data.authorName").value(postComment.getAuthor().getName()))
-//                .andExpect(jsonPath("$.data.postId").value(postComment.getPost().getId()))
                 .andExpect(jsonPath("$.data.title").value("테스트 제목"))
                 .andExpect(jsonPath("$.data.content").value("테스트 내용"));
     }
 
     @Test
     @DisplayName("노트 수정")
+    @Transactional
+    @Rollback
     void t4() throws Exception {
         int bookmarkId = 1;
         int id = 1;
@@ -168,6 +208,8 @@ public class NoteControllerTest {
 
     @Test
     @DisplayName("노트 삭제")
+    @Transactional
+    @Rollback
     void t5() throws Exception {
         int bookmarkId = 1;
         int id = 3;
