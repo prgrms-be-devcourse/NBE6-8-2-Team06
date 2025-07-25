@@ -52,11 +52,11 @@ public class ReviewRecommendController {
 }
 """).cookie(new Cookie("accessToken", accessToken))
         ).andDo(print());
-        reviewService.findLatest().orElseThrow(()-> new RuntimeException("리뷰가 없습니다."));
+        Review review = reviewService.findLatest().orElseThrow(()-> new RuntimeException("리뷰가 없습니다."));
 
 
         ResultActions resultActions = mvc.perform(
-                post("/reviews/{review_id}/recommend/{isRecommend}", 1, true)
+                post("/reviews/{review_id}/recommend/{isRecommend}", review.getId(), true)
                         .cookie(new Cookie("accessToken", accessToken))
         ).andDo(print());
         resultActions
