@@ -7,6 +7,7 @@ import com.back.domain.bookmarks.dto.BookmarkDto;
 import com.back.domain.bookmarks.dto.BookmarkModifyResponseDto;
 import com.back.domain.bookmarks.entity.Bookmark;
 import com.back.domain.bookmarks.repository.BookmarkRepository;
+import com.back.domain.member.member.entity.Member;
 import com.back.domain.review.review.entity.Review;
 import com.back.domain.review.review.repository.ReviewRepository;
 import jakarta.persistence.criteria.Join;
@@ -30,9 +31,9 @@ public class BookmarkService {
     private final BookRepository bookRepository;
     private final ReviewRepository reviewRepository;
 
-    public Bookmark save(int bookId) {
+    public Bookmark save(int bookId, Member member) {
         Book book = bookRepository.findById(bookId).orElseThrow(() -> new NoSuchElementException("%d번 등록된 책이 없습니다.".formatted(bookId)));
-        Bookmark bookmark = new Bookmark(book);
+        Bookmark bookmark = new Bookmark(book, member);
         return bookmarkRepository.save(bookmark);
     }
 
@@ -76,8 +77,9 @@ public class BookmarkService {
         return bookmarkRepository.findById(bookmarkId).orElseThrow(() -> new NoSuchElementException("%d번 데이터가 없습니다.".formatted(bookmarkId)));
     }
 
-    public BookmarkModifyResponseDto modifyBookmarkById(int id, String state, LocalDateTime startReadDate, LocalDateTime endReadDate, int readPage) {
+    public BookmarkModifyResponseDto modifyBookmark(Member member, int id, String state, LocalDateTime startReadDate, LocalDateTime endReadDate, int readPage) {
         Bookmark bookmark = findById(id);
+        bookmark.checkActor(member);
         if(state != null){
             ReadState readState = ReadState.valueOf(state.toUpperCase());
             bookmark.updateReadState(readState);
@@ -94,7 +96,9 @@ public class BookmarkService {
         return new BookmarkModifyResponseDto(bookmarkRepository.save(bookmark));
     }
 
-    public void deleteBookmarkById(int bookmarkId) {
-        bookmarkRepository.deleteById(bookmarkId);
+    public void deleteBookmark(Member member, int bookmarkId) {
+        Bookmark bookmark = findById(bookmarkId);
+        bookmark.checkActor(member);
+        bookmarkRepository.delete(bookmark);
     }
 }

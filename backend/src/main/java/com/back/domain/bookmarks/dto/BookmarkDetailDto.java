@@ -1,6 +1,5 @@
 package com.back.domain.bookmarks.dto;
 
-import com.back.domain.bookmarks.constant.ReadState;
 import com.back.domain.bookmarks.entity.Bookmark;
 import com.back.domain.note.dto.NoteDto;
 import com.back.domain.review.review.entity.Review;

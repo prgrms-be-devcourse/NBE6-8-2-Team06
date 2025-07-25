@@ -3,6 +3,7 @@ package com.back.domain.bookmark.controller;
 import com.back.domain.book.book.entity.Book;
 import com.back.domain.book.book.repository.BookRepository;
 import com.back.domain.book.category.entity.Category;
+import com.back.domain.book.category.repository.CategoryRepository;
 import com.back.domain.bookmarks.controller.BookmarkController;
 import com.back.domain.bookmarks.dto.BookmarkDto;
 import com.back.domain.bookmarks.dto.BookmarkDetailDto;
@@ -41,10 +42,14 @@ public class BookmarkControllerTest {
     private BookRepository bookRepository;
     @Autowired
     private BookmarkService bookmarkService;
+    @Autowired
+    private CategoryRepository categoryRepository;
 
     @BeforeEach
     void setup() {
         Category category = new Category("테스트");
+        categoryRepository.save(category);
+
         Book book = new Book();
         book.setTitle("테스트 도서 제목");
         book.setImageUrl("http://example.com/image.jpg");     // imageUrl

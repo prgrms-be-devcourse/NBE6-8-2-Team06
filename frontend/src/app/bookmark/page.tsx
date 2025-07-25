@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import React, { useState } from 'react';
 import Link from 'next/link';
@@ -36,7 +36,7 @@ interface MyBook {
   totalPages: number;
 }
 
-export default function MyBooksPage() {
+export default function Page() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
@@ -53,67 +53,7 @@ export default function MyBooksPage() {
   }
 
   // 내가 추가한 책들 데이터
-  const [myBooks, setMyBooks] = useState<MyBook[]>([
-    {
-      id: 1,
-      title: "클린 코드",
-      author: "로버트 C. 마틴",
-      category: "프로그래밍",
-      status: "읽은 책",
-      rating: 4.5,
-      review: "코드 품질에 대한 훌륭한 인사이트를 제공합니다. 특히 변수명과 함수명의 중요성에 대해 깊이 깨달았습니다.",
-      notes: "챕터 2의 의미 있는 이름 부분이 가장 인상적이었음",
-      dateAdded: "2024-01-15",
-      dateStarted: "2024-01-15",
-      dateFinished: "2024-02-20",
-      totalPages: 464
-    },
-    {
-      id: 2,
-      title: "리팩터링",
-      author: "마틴 파울러",
-      category: "프로그래밍",
-      status: "읽고 있는 책",
-      rating: 4.0,
-      notes: "현재 3장까지 읽었음. 매우 실용적인 내용들이 많음",
-      dateAdded: "2024-02-01",
-      dateStarted: "2024-02-10",
-      currentPage: 150,
-      totalPages: 550
-    },
-    {
-      id: 3,
-      title: "디자인 패턴",
-      author: "GoF",
-      category: "프로그래밍",
-      status: "읽고 싶은 책",
-      dateAdded: "2024-02-10",
-      totalPages: 395
-    },
-    {
-      id: 4,
-      title: "사피엔스",
-      author: "유발 하라리",
-      category: "역사",
-      status: "읽은 책",
-      rating: 4.8,
-      review: "인류 역사에 대한 새로운 관점을 제시합니다. 특히 농업혁명에 대한 해석이 인상적이었습니다.",
-      notes: "인지혁명, 농업혁명, 과학혁명의 3단계 구분이 흥미로움",
-      dateAdded: "2023-12-01",
-      dateStarted: "2023-12-05",
-      dateFinished: "2024-01-05",
-      totalPages: 512
-    },
-    {
-      id: 5,
-      title: "코스모스",
-      author: "칼 세이건",
-      category: "과학",
-      status: "읽고 싶은 책",
-      dateAdded: "2024-02-15",
-      totalPages: 396
-    }
-  ]);
+  const [myBooks, setMyBooks] = useState<MyBook[]>([]);
 
   const categories = ['all', '프로그래밍', '역사', '과학', '소설', '자기계발'];
   const statuses = ['all', '읽은 책', '읽고 있는 책', '읽고 싶은 책'];

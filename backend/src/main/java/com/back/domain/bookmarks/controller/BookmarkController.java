@@ -2,7 +2,9 @@ package com.back.domain.bookmarks.controller;
 
 import com.back.domain.bookmarks.dto.*;
 import com.back.domain.bookmarks.service.BookmarkService;
+import com.back.domain.member.member.entity.Member;
 import com.back.global.dto.PageResponseDto;
+import com.back.global.rq.Rq;
 import com.back.global.rsData.RsData;
 import org.springframework.data.domain.Page;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,11 +19,13 @@ import java.util.List;
 public class BookmarkController {
 
     private final BookmarkService bookmarkService;
+    private final Rq rq;
 
     @PostMapping
     @Transactional
     public RsData<Void> addBookmark(@RequestBody BookmarkCreateRequestDto bookmarkCreateRequestDto) {
-        bookmarkService.save(bookmarkCreateRequestDto.bookId());
+        Member member = rq.getActor();
+        bookmarkService.save(bookmarkCreateRequestDto.bookId(), member);
         return new RsData<>(
                     "201-1",
                     "%d 번 책이 내 책 목록에 추가되었습니다.",
@@ -63,7 +67,8 @@ public class BookmarkController {
     @PutMapping("/{id}")
     @Transactional
     public RsData<BookmarkModifyResponseDto> modifyBookmark(@PathVariable int id, @RequestBody BookmarkModifyRequestDto bookmarkModifyRequestDto) {
-        BookmarkModifyResponseDto bookmark = bookmarkService.modifyBookmarkById(id, bookmarkModifyRequestDto.readState(), bookmarkModifyRequestDto.startReadDate(), bookmarkModifyRequestDto.endReadDate(), bookmarkModifyRequestDto.readPage());
+        Member member = rq.getActor();
+        BookmarkModifyResponseDto bookmark = bookmarkService.modifyBookmark(member, id, bookmarkModifyRequestDto.readState(), bookmarkModifyRequestDto.startReadDate(), bookmarkModifyRequestDto.endReadDate(), bookmarkModifyRequestDto.readPage());
         return new RsData<>(
                 "200-1",
                 "%d번 북마크가 수정되었습니다.",
@@ -74,7 +79,9 @@ public class BookmarkController {
     @DeleteMapping("/{id}")
     @Transactional
     public RsData<Void> deleteBookmark(@PathVariable int id) {
-        bookmarkService.deleteBookmarkById(id);
+        Member member = rq.getActor();
+        bookmarkService.deleteBookmark(member, id);
         return new RsData<>("200-1", "%d 북마크가 삭제되었습니다.".formatted(id), null);
     }
+
 }

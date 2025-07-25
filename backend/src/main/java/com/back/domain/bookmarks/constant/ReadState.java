@@ -1,12 +1,12 @@
 package com.back.domain.bookmarks.constant;
 
 public enum ReadState {
-    BEFORE_READING, READING, FINISHED;
+    WISH, READING, READ;
 
     public ReadState getState(String state) {
-        if(state.equals("BEFORE_READING")){ return BEFORE_READING; }
+        if(state.equals("WISH")){ return WISH; }
         if(state.equals("READING")){ return READING; }
-        if(state.equals("FINISHED")){ return FINISHED; }
+        if(state.equals("READ")){ return READ; }
         return null;
     }
 }
