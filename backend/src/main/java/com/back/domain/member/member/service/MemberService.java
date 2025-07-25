@@ -20,6 +20,8 @@ public class MemberService {
     private final MemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuthTokenService authTokenService;
+
+    public Member save (Member member) { return memberRepository.save(member); }
     
     public Member join(String name, String email, String password){
         Member member = new Member(name, email, password);
@@ -43,6 +45,13 @@ public class MemberService {
     }
     public void clearRefreshToken(Member member) {
         member.clearRefreshToken();
+    }
+
+    public boolean isValidRefreshToken(String refreshToken) {
+        return authTokenService.isValid(refreshToken);
+    }
+    public Map<String,Object> getRefreshTokenPayload(String refreshToken) {
+        return authTokenService.payload(refreshToken);
     }
 
 }

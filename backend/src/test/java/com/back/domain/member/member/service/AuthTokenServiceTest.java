@@ -23,13 +23,15 @@ class AuthTokenServiceTest {
 
     private Member testMember;
     private String jwtSecretKey = "testSecretKey545348354897892318523489523445964345";
-    private int accessTokenExpSec = 3600; // 1시간
+    private int accessTokenExpSec = 3600;
+    private int refreshTokenExpSec = 60 * 60 * 24;
 
     @BeforeEach
     void setUp() {
         // private 필드에 값 주입
         ReflectionTestUtils.setField(authTokenService, "jwtSecretKey", jwtSecretKey);
         ReflectionTestUtils.setField(authTokenService, "accessTokenExpSec", accessTokenExpSec);
+        ReflectionTestUtils.setField(authTokenService, "refreshTokenExpSec", refreshTokenExpSec);
 
         // 테스트용 User 객체 생성
         testMember = new Member("testuser", "test@example.com", "password");
@@ -148,6 +150,43 @@ class AuthTokenServiceTest {
 
 
         assertThat(isValid).isFalse();
+    }
+
+    @Test
+    @DisplayName("Refresh Token 생성 성공 테스트")
+    void t8() {
+        // RefreshToken 생성
+        String refreshToken = authTokenService.genRefreshToken(testMember);
+
+        assertThat(refreshToken).isNotNull();
+        assertThat(refreshToken).isNotEmpty();
+
+        // 생성된 Refresh Token이 유효한지 확인
+        assertThat(authTokenService.isValid(refreshToken)).isTrue();
+
+        // payload 확인
+        Map<String, Object> payload = authTokenService.payload(refreshToken);
+        assertThat(payload).isNotNull();
+        assertThat(payload.get("id")).isEqualTo(testMember.getId());
+        assertThat(payload.get("email")).isEqualTo(testMember.getEmail());
+    }
+
+    @Test
+    @DisplayName("Refresh Token 유효성 검증 및 payload 추출 성공 테스트")
+    void t9() {
+        // RefreshToken 생성
+        String refreshToken = authTokenService.genRefreshToken(testMember);
+
+        // 유효성 검증
+        boolean isValid = authTokenService.isValid(refreshToken);
+        assertThat(isValid).isTrue();
+
+        // payload 추출
+        Map<String, Object> payload = authTokenService.payload(refreshToken);
+        assertThat(payload).isNotNull();
+        assertThat(payload).hasSize(2);
+        assertThat(payload.get("id")).isEqualTo(testMember.getId());
+        assertThat(payload.get("email")).isEqualTo(testMember.getEmail());
     }
 
 }
