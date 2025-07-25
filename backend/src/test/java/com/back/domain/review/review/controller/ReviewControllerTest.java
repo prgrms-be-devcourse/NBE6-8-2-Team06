@@ -37,12 +37,8 @@ public class ReviewControllerTest {
     @Autowired
     private AuthTokenService authTokenService;
 
-    @Test
-    @DisplayName("리뷰 작성")
-    void t1() throws Exception {
-        Member member = memberService.findByEmail("email").get();
-        String accessToken = authTokenService.genAccessToken(member);
-        ResultActions resultActions = mvc.perform(
+    ResultActions addReview(String accessToken) throws Exception {
+        return mvc.perform(
                 post("/reviews/{book_id}", 1)
                         .contentType("application/json")
                         .content("""
@@ -51,7 +47,15 @@ public class ReviewControllerTest {
     "rate": 5
 }
 """).cookie(new Cookie("accessToken", accessToken))
-                ).andDo(print());
+        ).andDo(print());
+    }
+
+    @Test
+    @DisplayName("리뷰 작성")
+    void t1() throws Exception {
+        Member member = memberService.findByEmail("email").get();
+        String accessToken = authTokenService.genAccessToken(member);
+        ResultActions resultActions = addReview(accessToken);
         Review review = reviewService.findLatest().orElseThrow(()-> new RuntimeException("리뷰가 없습니다."));
         resultActions
                 .andExpect(handler().handlerType(ReviewController.class))
@@ -69,16 +73,7 @@ public class ReviewControllerTest {
     void t2() throws Exception {
         Member member = memberService.findByEmail("email").get();
         String accessToken = authTokenService.genAccessToken(member);
-        mvc.perform(
-                post("/reviews/{book_id}", 1)
-                        .contentType("application/json")
-                        .content("""
-{
-    "content": "이 책 정말 좋았어요!",
-    "rate": 5
-}
-""").cookie(new Cookie("accessToken", accessToken))
-        ).andDo(print());
+        addReview(accessToken);
         Review review = reviewService.findLatest().orElseThrow(()-> new RuntimeException("리뷰가 없습니다."));
         assertThat(review.getId()).isGreaterThan(0);
 
@@ -103,16 +98,7 @@ public class ReviewControllerTest {
     void t3() throws Exception {
         Member member = memberService.findByEmail("email").get();
         String accessToken = authTokenService.genAccessToken(member);
-        mvc.perform(
-                post("/reviews/{book_id}", 1)
-                        .contentType("application/json")
-                        .content("""
-{
-    "content": "이 책 정말 좋았어요!",
-    "rate": 5
-}
-""").cookie(new Cookie("accessToken", accessToken))
-        ).andDo(print());
+        addReview(accessToken);
         Review review = reviewService.findLatest().orElseThrow(()-> new RuntimeException("리뷰가 없습니다."));
         assertThat(review.getId()).isGreaterThan(0);
         ResultActions resultActions = mvc.perform(
