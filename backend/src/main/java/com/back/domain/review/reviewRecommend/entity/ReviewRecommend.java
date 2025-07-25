@@ -6,12 +6,14 @@ import com.back.global.jpa.entity.BaseEntity;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.ManyToOne;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
 @NoArgsConstructor
+@Getter
 public class ReviewRecommend extends BaseEntity {
-    boolean isRecommended;
+    private boolean isRecommended;
     @ManyToOne(fetch = FetchType.LAZY)
     private Member member;
     @ManyToOne(fetch = FetchType.LAZY)

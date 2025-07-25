@@ -27,7 +27,9 @@ public class Review extends BaseEntity {
     @OneToMany(mappedBy = "review", fetch = FetchType.LAZY, orphanRemoval = true, cascade = CascadeType.ALL)
     private List<ReviewRecommend> reviewRecommends = new ArrayList<>();
     @Setter
-    private int recommendCount;
+    private int likeCount;
+    @Setter
+    private int dislikeCount;
 
     public Review(String content, int rate, Member member, Book book) {
         this.content = content;

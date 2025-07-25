@@ -23,7 +23,8 @@ public class ReviewRecommendService {
             throw new ServiceException("400-1", "Review recommendation already exists");
         }
         review.getReviewRecommends().add(reviewRecommend);
-        review.setRecommendCount(review.getReviewRecommends().size());
+        review.setLikeCount((int)review.getReviewRecommends().stream().filter(ReviewRecommend::isRecommended).count());
+        review.setDislikeCount((int)review.getReviewRecommends().stream().filter(reviewRecommend1 -> !reviewRecommend1.isRecommended()).count());
         reviewRecommendRepository.save(reviewRecommend);
     }
 }
