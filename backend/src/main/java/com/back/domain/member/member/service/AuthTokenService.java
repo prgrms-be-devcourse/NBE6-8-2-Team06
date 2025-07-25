@@ -16,7 +16,10 @@ public class AuthTokenService {
     @Value("${custom.accessToken.expirationSeconds}")
     private int accessTokenExpSec;
 
-    String genAccessToken(Member member) {
+    @Value("${custom.refreshToken.expirationSeconds}")
+    private int refreshTokenExpSec;
+
+    public String genAccessToken(Member member) {
         int id = member.getId();
         String email = member.getEmail();
 
@@ -29,6 +32,18 @@ public class AuthTokenService {
                 )
         );
     }
+
+    public String genRefreshToken(Member member) {
+        int id = member.getId();
+        String email = member.getEmail();
+
+        return Ut.jwt.toString(
+                jwtSecretKey,
+                refreshTokenExpSec,
+                Map.of("id", id,
+                        "email",email));
+    }
+
     
     public Map<String, Object> payload(String accessToken) {
         Map<String, Object> parsedPayload = Ut.jwt.payload(jwtSecretKey, accessToken);

@@ -9,6 +9,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -35,4 +36,13 @@ public class MemberService {
         }
     }
     public String geneAccessToken(Member member){ return authTokenService.genAccessToken(member);}
+    public String geneRefreshToken(Member member){
+        String refreshToken = authTokenService.genRefreshToken(member);
+        member.updateRefreshToken(refreshToken);
+        return refreshToken;
+    }
+    public void clearRefreshToken(Member member) {
+        member.clearRefreshToken();
+    }
+
 }
