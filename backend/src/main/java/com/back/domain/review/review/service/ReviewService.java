@@ -25,4 +25,11 @@ public class ReviewService {
         Review review = new Review(reviewRequestDto.content(), reviewRequestDto.rate(), member, book);
         reviewRepository.save(review);
     }
+
+    @Transactional
+    public void deleteReview(Book book, Member member) {
+        Review review = reviewRepository.findByBookAndMember(book, member)
+                .orElseThrow(() -> new IllegalArgumentException("Review not found for the given book and member"));
+        reviewRepository.delete(review);
+    }
 }

@@ -16,6 +16,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -64,5 +65,39 @@ public class ReviewControllerTest {
         assertThat(review.getId()).isEqualTo(1);
     }
 
+    @Test
+    @DisplayName("리뷰 삭제")
+    void t2() throws Exception {
+        Member member = memberService.findByEmail("email").get();
+        String accessToken = authTokenService.genAccessToken(member);
+        mvc.perform(
+                post("/reviews/{book_id}", 1)
+                        .contentType("application/json")
+                        .content("""
+{
+    "content": "이 책 정말 좋았어요!",
+    "rate": 5
+}
+""").cookie(new Cookie("accessToken", accessToken))
+        ).andDo(print());
+        Review review = reviewService.findLatest().orElseThrow(()-> new RuntimeException("리뷰가 없습니다."));
+        assertThat(review.getId()).isEqualTo(1);
+
+        ResultActions resultActions = mvc.perform(
+                delete("/reviews/{book_id}", 1)
+                        .contentType("application/json")
+                        .cookie(new Cookie("accessToken", accessToken))
+        ).andDo(print());
+
+        resultActions
+                .andExpect(handler().handlerType(ReviewController.class))
+                .andExpect(handler().methodName("delete"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resultCode").value("200-1"))
+                .andExpect(jsonPath("$.msg").value("Review deleted successfully"))
+        ;
+        assertThat(reviewService.findLatest()).isEmpty();
+
+    }
 
 }
