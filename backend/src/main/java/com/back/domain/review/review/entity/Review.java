@@ -9,6 +9,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -24,7 +25,7 @@ public class Review extends BaseEntity {
     @Setter
     private int rate;
     @OneToMany(mappedBy = "review", fetch = FetchType.LAZY, orphanRemoval = true, cascade = CascadeType.ALL)
-    private List<ReviewRecommend> reviewRecommends;
+    private List<ReviewRecommend> reviewRecommends = new ArrayList<>();
     @Setter
     private int recommendCount;
 
