@@ -1,15 +1,11 @@
 package com.back.domain.note.controller;
 
 import com.back.domain.bookmarks.entity.Bookmark;
-import com.back.domain.bookmarks.service.BookmarkService;
 import com.back.domain.note.entity.Note;
-import com.back.domain.note.repository.NoteRepository;
 import com.back.domain.note.service.NoteService;
 import org.hamcrest.Matchers;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -27,7 +23,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@TestInstance(TestInstance.Lifecycle.PER_CLASS) // beforall을 static으로 선언하지 않기 위한 어노테이션(테스트 데이터 공유됨)
 @SpringBootTest
 @ActiveProfiles("test")
 @AutoConfigureMockMvc(addFilters = false) // security 필터 비활성(나중에 제거해야함)
@@ -37,45 +32,6 @@ public class NoteControllerTest {
 
     @Autowired
     private NoteService noteService;
-
-    @Autowired
-    private BookmarkService bookmarkService;
-
-    @Autowired
-    private NoteRepository noteRepository;
-
-    @BeforeAll
-    void setUp() {
-        Bookmark b = bookmarkService.save(null);
-        Bookmark bookmark = noteService.findBookmarkById(1).get();
-
-        noteService.write(bookmark,"제목1", "내용1");
-        noteService.write(bookmark,"제목2", "내용2");
-        noteService.write(bookmark,"제목3", "내용3");
-
-        Note note = noteService.findNoteById(bookmark, 1).get();
-        System.out.println(note.getContent());
-//        noteRepository.findById(note.getId()).get();
-        List<Note> notes = noteRepository.findAll();
-
-        for (int i = 0; i < notes.size(); i++) {
-            System.out.println(notes.get(i).getId());
-            System.out.println(notes.get(i).getContent());
-        }
-    }
-
-//    @BeforeAll
-//    void setUpOnce() {
-//        Bookmark b = bookmarkService.save(null);
-//        Bookmark bookmark = noteService.findBookmarkById(1).get();
-//
-//        noteService.write(bookmark,"제목1", "내용1");
-//        noteService.write(bookmark,"제목2", "내용2");
-//        noteService.write(bookmark,"제목3", "내용3");
-//
-//        Note note = noteService.findNoteById(bookmark, 1).get();
-//        System.out.println(note.getContent());
-//    }
 
     @Test
     @DisplayName("노트 단건 조회")

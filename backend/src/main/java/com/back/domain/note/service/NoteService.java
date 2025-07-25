@@ -7,6 +7,7 @@ import com.back.domain.note.repository.NoteRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.NoSuchElementException;
 import java.util.Optional;
 
 @Service
@@ -19,10 +20,13 @@ public class NoteService {
         return bookmarkRepository.findById(id);
     }
 
-    public Note write(Bookmark bookmark, String title, String content) {
+    public Note write(int bookmarkId, String title, String content) {
+        Bookmark bookmark = bookmarkRepository.findById(bookmarkId)
+                .orElseThrow(() -> new NoSuchElementException("%d번 북마크가 없습니다.".formatted(bookmarkId)));
+
         Note note = new Note(title, content, bookmark);
         bookmark.getNotes().add(note);
-
+//        return noteRepository.save(note);
         return note;
     }
 
@@ -47,9 +51,7 @@ public class NoteService {
         return bookmark
                 .getNotes()
                 .stream()
-                .peek(note -> System.out.println("note id: " + note.getId() + " " + id))
                 .filter(note -> note.getId() == id)
-//                .filter(note -> Objects.equals(note.getId(), id))
                 .findFirst();
     }
 }

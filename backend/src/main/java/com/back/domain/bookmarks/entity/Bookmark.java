@@ -1,8 +1,9 @@
 package com.back.domain.bookmarks.entity;
 
+import com.back.domain.book.book.entity.Book;
 import com.back.domain.bookmarks.constant.ReadState;
-import com.back.domain.note.entity.Note;
 import com.back.domain.member.member.entity.Member;
+import com.back.domain.note.entity.Note;
 import com.back.global.jpa.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -13,8 +14,6 @@ import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
-
-import com.back.domain.book.book.entity.Book;
 
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
@@ -44,7 +43,7 @@ public class Bookmark extends BaseEntity {
         this.endReadDate = endReadDate;
     }
 
-    @OneToMany(cascade = {CascadeType.PERSIST, CascadeType.REMOVE}, orphanRemoval = true) //임시 맵핑 - note
+    @OneToMany(mappedBy = "bookmark", cascade = {CascadeType.PERSIST, CascadeType.REMOVE}, orphanRemoval = true) //임시 맵핑 - note
     private List<Note> notes = new ArrayList<>();
 
     @OneToOne

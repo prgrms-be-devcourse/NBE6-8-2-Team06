@@ -68,9 +68,7 @@ public class NoteController {
             @PathVariable int bookmarkId,
             @Valid @RequestBody NoteWriteReqBody reqBody
     ) {
-        Bookmark bookmark = noteService.findBookmarkById(bookmarkId).get();
-
-        Note note = noteService.write(bookmark, reqBody.title, reqBody.content);
+        Note note = noteService.write(bookmarkId, reqBody.title, reqBody.content);
 
         // 미리 db에 반영
         noteService.flush();
