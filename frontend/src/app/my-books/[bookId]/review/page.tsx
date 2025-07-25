@@ -5,7 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, Save, Star, X } from "lucide-react";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { use, useState } from "react";
 
 interface WriteReviewPageProps {
     bookId: number | null;
@@ -23,9 +24,13 @@ interface WriteReviewPageProps {
     totalPages: number;
   }
 
-export default function page(){
-    const bookId = 1;
+  export default function page({params}:{params:Promise<{bookId:string}>}){
+    const {bookId:bookIdStr} = use(params);
+    const bookId = parseInt(bookIdStr);
+      
+    const router = useRouter();
     const onNavigate = (e:string)=>{
+      router.push(e);
     }
 
     // 내 책 데이터
@@ -60,7 +65,7 @@ export default function page(){
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="text-center">
           <p>책을 찾을 수 없습니다.</p>
-          <Button onClick={() => onNavigate('mybooks')} className="mt-4">
+          <Button onClick={() => onNavigate('/my-books')} className="mt-4">
             내 책 목록으로 돌아가기
           </Button>
         </div>
@@ -83,11 +88,12 @@ export default function page(){
   const handleSave = () => {
     // 여기서 실제로는 API 호출을 통해 리뷰를 저장
     console.log('리뷰 저장:', { bookId, rating, review });
-    onNavigate('my-book-detail');
+    
+    onNavigate(`/my-books/${bookId}`);
   };
 
   const handleCancel = () => {
-    onNavigate('my-book-detail');
+    onNavigate(`/my-books/${bookId}`);
   };
 
   const renderStars = () => {

@@ -11,6 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ImageWithFallback } from '@/components/ImageWithFallback';
+import { useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 
 interface BooksPageProps {
   onNavigate: (page: string) => void;
@@ -42,9 +44,10 @@ export default function BooksPage() {
     2: '읽고 있는 책',
     5: '읽고 싶은 책'
   });
-
+  const router = useRouter()
+  const pathName = usePathname()
   const onBookClick = (id:number) => {
-    
+    router.push(`${pathName}/${id}`)
   }
   // DB의 모든 책 데이터 (실제로는 API에서 가져올 데이터)
   const allBooks: Book[] = [
