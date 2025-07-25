@@ -76,7 +76,7 @@ class BookServiceTest {
                 .thenReturn(List.of(book));
 
         // When
-        List<BookSearchDto> result = bookService.searchBooks(query, 1, 10);
+        List<BookSearchDto> result = bookService.searchBooks(query, 10);
 
         // Then
         assertThat(result).hasSize(1);
@@ -114,7 +114,7 @@ class BookServiceTest {
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
         // When
-        List<BookSearchDto> result = bookService.searchBooks(query, 1, 10);
+        List<BookSearchDto> result = bookService.searchBooks(query,  10);
 
         // Then
         verify(restTemplate, atLeastOnce()).getForObject(contains("ItemSearch.aspx"), eq(String.class));
@@ -196,7 +196,7 @@ class BookServiceTest {
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
         // When
-        List<BookSearchDto> result = bookService.searchBooks("book", 1, 10);
+        List<BookSearchDto> result = bookService.searchBooks("book",  10);
 
         // Then
         verify(categoryRepository, atLeastOnce()).findByName("국내도서");
@@ -215,7 +215,7 @@ class BookServiceTest {
                 .thenReturn(apiResponse);
 
         // When
-        List<BookSearchDto> result = bookService.searchBooks("music", 1, 10);
+        List<BookSearchDto> result = bookService.searchBooks("music",  10);
 
         // Then
         assertThat(result).isEmpty(); // 음반은 저장되지 않음
@@ -247,7 +247,7 @@ class BookServiceTest {
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
         // When
-        bookService.searchBooks(query, 1, 10);
+        bookService.searchBooks(query,  10);
 
         // Then
         verify(authorRepository, never()).save(any(Author.class)); // 새로운 작가 생성 안 함
@@ -265,7 +265,7 @@ class BookServiceTest {
                 .thenThrow(new RuntimeException("API 호출 실패"));
 
         // When
-        List<BookSearchDto> result = bookService.searchBooks(query, 1, 10);
+        List<BookSearchDto> result = bookService.searchBooks(query,  10);
 
         // Then
         assertThat(result).isEmpty();
@@ -283,7 +283,7 @@ class BookServiceTest {
         setupCategoryExtractionTest("소설", apiResponse);
 
         // When
-        bookService.searchBooks("소설책", 1, 10);
+        bookService.searchBooks("소설책",  10);
 
         // Then
         verify(categoryRepository, atLeastOnce()).findByName("소설");
@@ -298,7 +298,7 @@ class BookServiceTest {
         setupCategoryExtractionTest("경제경영", apiResponse);
 
         // When
-        bookService.searchBooks("경제책", 1, 10);
+        bookService.searchBooks("경제책", 10);
 
         // Then
         verify(categoryRepository, atLeastOnce()).findByName("경제경영");
@@ -313,7 +313,7 @@ class BookServiceTest {
         setupCategoryExtractionTest("가정/요리/뷰티", apiResponse);
 
         // When
-        bookService.searchBooks("요리책", 1, 10);
+        bookService.searchBooks("요리책", 10);
 
         // Then
         verify(categoryRepository, atLeastOnce()).findByName("가정/요리/뷰티");
@@ -330,7 +330,7 @@ class BookServiceTest {
         setupCategoryExtractionTest("과학", apiResponse);
 
         // When
-        bookService.searchBooks("과학책", 1, 10);
+        bookService.searchBooks("과학책", 10);
 
         // Then
         verify(categoryRepository, atLeastOnce()).findByName("과학");
@@ -345,7 +345,7 @@ class BookServiceTest {
         setupCategoryExtractionTest("문학", apiResponse);
 
         // When
-        bookService.searchBooks("외국문학", 1, 10);
+        bookService.searchBooks("외국문학", 10);
 
         // Then
         verify(categoryRepository, atLeastOnce()).findByName("문학");
@@ -357,7 +357,7 @@ class BookServiceTest {
         setupCategoryExtractionTest("국내도서", apiResponse);
 
         // When
-        bookService.searchBooks("기본책", 1, 10);
+        bookService.searchBooks("기본책", 10);
 
         // Then
         verify(categoryRepository, atLeastOnce()).findByName("국내도서");
@@ -372,7 +372,7 @@ class BookServiceTest {
         setupCategoryExtractionTest("외국도서", apiResponse);
 
         // When
-        bookService.searchBooks("외국책", 1, 10);
+        bookService.searchBooks("외국책", 10);
 
         // Then
         verify(categoryRepository, atLeastOnce()).findByName("외국도서");
@@ -387,7 +387,7 @@ class BookServiceTest {
         setupCategoryExtractionTest("전자책", apiResponse);
 
         // When
-        bookService.searchBooks("전자책", 1, 10);
+        bookService.searchBooks("전자책", 10);
 
         // Then
         verify(categoryRepository, atLeastOnce()).findByName("전자책");
@@ -409,7 +409,7 @@ class BookServiceTest {
                 .thenAnswer(invocation -> invocation.getArgument(0));
 
         // When
-        bookService.searchBooks("새분야책", 1, 10);
+        bookService.searchBooks("새분야책", 10);
 
         // Then
         verify(categoryRepository, atLeastOnce()).findByName("새로운분야");
