@@ -9,11 +9,14 @@ import com.back.domain.book.category.entity.Category;
 import com.back.domain.book.category.repository.CategoryRepository;
 import com.back.domain.book.wrote.entity.Wrote;
 import com.back.domain.book.wrote.repository.WroteRepository;
+import com.back.global.exception.ServiceException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
@@ -520,6 +523,19 @@ public class BookService {
         } catch (Exception e) {
             log.warn("날짜 파싱 실패, 현재 시간으로 설정: {}", pubDateStr);
             return LocalDateTime.now();
+        }
+    }
+
+    public Page<BookSearchDto> getAllBooks(Pageable pageable) {
+        log.info("전체 책 조회: page={}, size={}, sort={}",
+                pageable.getPageNumber(), pageable.getPageSize(), pageable.getSort());
+
+        try {
+            Page<Book> bookPage = bookRepository.findAll(pageable);
+            return bookPage.map(this::convertToDto);
+        } catch (Exception e) {
+            log.error("전체 책 조회 중 오류 발생: {}", e.getMessage());
+            throw new ServiceException("500-1", "전체 책 조회 중 오류가 발생했습니다.");
         }
     }
 

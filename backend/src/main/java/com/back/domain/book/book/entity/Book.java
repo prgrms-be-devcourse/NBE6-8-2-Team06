@@ -2,6 +2,7 @@ package com.back.domain.book.book.entity;
 
 import com.back.domain.book.category.entity.Category;
 import com.back.domain.book.wrote.entity.Wrote;
+import com.back.domain.review.review.entity.Review;
 import com.back.global.jpa.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -34,10 +35,10 @@ public class Book extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id", nullable = false)
     private Category category;
-/*
+
     @OneToMany(mappedBy = "book", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Review> reviews = new ArrayList<>();
-*/
+
     public Book(String title, String publisher, Category category){
         this.title = title;
         this.publisher = publisher;
