@@ -11,10 +11,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -85,5 +82,26 @@ public class BookController {
         return new RsData<>("200-1", books.size() + "개의 책을 찾았습니다.", books);
     }
 
+    @GetMapping("/isbn/{isbn}")
+    public RsData<BookSearchDto> getBookByIsbn(@PathVariable String isbn) {
+
+        if (isbn == null || isbn.trim().isEmpty()) {
+            throw new ServiceException("400-7", "ISBN을 입력해주세요.");
+        }
+
+        // ISBN 형식 검증 (13자리 숫자)
+        String cleanIsbn = isbn.trim().replaceAll("-", "");
+        if (!cleanIsbn.matches("\\d{13}")) {
+            throw new ServiceException("400-8", "올바른 ISBN-13 형식이 아닙니다. (13자리 숫자)");
+        }
+
+        BookSearchDto book = bookService.getBookByIsbn(cleanIsbn);
+
+        if (book == null) {
+            return new RsData<>("404-1", "해당 ISBN의 책을 찾을 수 없습니다.", null);
+        }
+
+        return new RsData<>("200-3", "ISBN으로 책 조회 성공", book);
+    }
 
 }

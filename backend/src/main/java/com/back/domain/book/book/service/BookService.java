@@ -9,6 +9,7 @@ import com.back.domain.book.category.entity.Category;
 import com.back.domain.book.category.repository.CategoryRepository;
 import com.back.domain.book.wrote.entity.Wrote;
 import com.back.domain.book.wrote.repository.WroteRepository;
+import com.back.domain.review.review.entity.Review;
 import com.back.global.exception.ServiceException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -327,14 +328,7 @@ public class BookService {
             }
 
             // 평점 설정
-            JsonNode customerReviewRankNode = itemNode.get("customerReviewRank");
-            if (customerReviewRankNode != null && !customerReviewRankNode.isNull()) {
-                // 알라딘 API는 0~10점 체계이므로 5점 만점으로 변환
-                float avgRate = customerReviewRankNode.floatValue() / 2.0f;
-                book.setAvgRate(avgRate);
-            } else {
-                book.setAvgRate(0.0f);
-            }
+            book.setAvgRate(0.0f);
 
             //간단한 카테고리 추출 - 2번째 깊이 사용
             String categoryName = extractCategoryFromPath(itemNode);
@@ -573,5 +567,30 @@ public class BookService {
                         .map(wrote -> wrote.getAuthor().getName())
                         .toList())
                 .build();
+    }
+
+    @Transactional
+    public void updateBookAvgRate(Book book) {
+        float avgRate = calculateAvgRateForBook(book);
+        book.setAvgRate(avgRate);
+        bookRepository.save(book);
+        log.info("책 평균 평점 업데이트: {} -> {}", book.getTitle(), avgRate);
+    }
+
+    /**
+     * 책의 평균 평점 계산
+     */
+    private float calculateAvgRateForBook(Book book) {
+        List<Review> reviews = book.getReviews();
+        if (reviews == null || reviews.isEmpty()) {
+            return 0.0f;
+        }
+
+        double average = reviews.stream()
+                .mapToInt(Review::getRate)
+                .average()
+                .orElse(0.0);
+
+        return (float) average;
     }
 }

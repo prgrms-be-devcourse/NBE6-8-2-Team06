@@ -297,5 +297,62 @@ class BookControllerTest {
                 .andExpect(jsonPath("$.msg").value("limit은 100 이하여야 합니다."));
     }
 
+    @Test
+    @DisplayName("ISBN 검색 - 정확한 ISBN으로 책 조회 성공")
+    void getBookByIsbn_Success() throws Exception {
+        mockMvc.perform(get("/api/books/isbn/9780123456789"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resultCode").value("200-3"))
+                .andExpect(jsonPath("$.msg").value("ISBN으로 책 조회 성공"))
+                .andExpect(jsonPath("$.data").isNotEmpty())
+                .andExpect(jsonPath("$.data.title").value("테스트 책 1"))
+                .andExpect(jsonPath("$.data.publisher").value("테스트 출판사"))
+                .andExpect(jsonPath("$.data.isbn13").value("9780123456789"))
+                .andExpect(jsonPath("$.data.totalPage").value(200))
+                .andExpect(jsonPath("$.data.avgRate").value(4.5))
+                .andExpect(jsonPath("$.data.categoryName").value("소설"))
+                .andExpect(jsonPath("$.data.authors").isArray())
+                .andExpect(jsonPath("$.data.authors[0]").value("김작가"))
+                .andExpect(jsonPath("$.data.imageUrl").value("https://example.com/book1.jpg"))
+                .andExpect(jsonPath("$.data.publishedDate").exists());
+    }
+
+    @Test
+    @DisplayName("ISBN 검색 - 하이픈이 포함된 ISBN으로 조회 성공")
+    void getBookByIsbn_WithHyphens_Success() throws Exception {
+        mockMvc.perform(get("/api/books/isbn/978-0-123-45678-9"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resultCode").value("200-3"))
+                .andExpect(jsonPath("$.msg").value("ISBN으로 책 조회 성공"))
+                .andExpect(jsonPath("$.data").isNotEmpty())
+                .andExpect(jsonPath("$.data.title").value("테스트 책 1"))
+                .andExpect(jsonPath("$.data.isbn13").value("9780123456789"));
+    }
+
+    @Test
+    @DisplayName("ISBN 검색 실패 - 빈 ISBN")
+    void getBookByIsbn_Fail_EmptyIsbn() throws Exception {
+        mockMvc.perform(get("/api/books/isbn/"))
+                .andExpect(status().isNotFound()); // URL 자체가 매칭되지 않음
+    }
+
+    @Test
+    @DisplayName("ISBN 검색 실패 - 잘못된 ISBN 형식 (12자리)")
+    void getBookByIsbn_Fail_InvalidFormat_12Digits() throws Exception {
+        mockMvc.perform(get("/api/books/isbn/123456789012"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.resultCode").value("400-8"))
+                .andExpect(jsonPath("$.msg").value("올바른 ISBN-13 형식이 아닙니다. (13자리 숫자)"));
+    }
+
+    @Test
+    @DisplayName("ISBN 검색 실패 - 잘못된 ISBN 형식 (14자리)")
+    void getBookByIsbn_Fail_InvalidFormat_14Digits() throws Exception {
+        mockMvc.perform(get("/api/books/isbn/12345678901234"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.resultCode").value("400-8"))
+                .andExpect(jsonPath("$.msg").value("올바른 ISBN-13 형식이 아닙니다. (13자리 숫자)"));
+    }
+
 
 }
