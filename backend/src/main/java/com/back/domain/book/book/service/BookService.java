@@ -50,24 +50,26 @@ public class BookService {
      * 방안 3: 하이브리드 접근방식 - OptResult 사용 + 필요시 보완
      */
     @Transactional
-    public List<BookSearchDto> searchBooks(String query, int page, int size) {
+    public List<BookSearchDto> searchBooks(String query, int limit) {
         // 1. DB에서 먼저 확인
         List<Book> booksFromDb = bookRepository.findByTitleOrAuthorContaining(query);
         if (!booksFromDb.isEmpty()) {
             log.info("DB에서 찾은 책: {} 권", booksFromDb.size());
-            return convertToDto(booksFromDb);
+            // limit 적용해서 반환
+            return convertToDto(booksFromDb.stream().limit(limit).toList());
         }
 
         log.info("DB에 없어서 알라딘 API에서 검색: {}", query);
 
-        // 2. OptResult=authors로 검색 (1차 개선)
-        List<Book> booksFromApi = searchBooksFromAladinApiWithOptResult(query, page, size);
+        // 2. API에서 검색 (limit 적용)
+        List<Book> booksFromApi = searchBooksFromAladinApiWithLimit(query, limit);
 
-        // 3. 여전히 부족한 정보가 있으면 개별 보완 (2차 개선)
+        // 3. 상세 정보 보완
         booksFromApi = enrichMissingDetails(booksFromApi);
 
         return convertToDto(booksFromApi);
     }
+
 
     /**
      * ISBN으로 책 조회 - DB에 없으면 API에서 가져와서 저장
@@ -94,30 +96,33 @@ public class BookService {
     /**
      * OptResult=authors를 포함한 알라딘 API 검색
      */
-    private List<Book> searchBooksFromAladinApiWithOptResult(String query, int page, int size) {
+    private List<Book> searchBooksFromAladinApiWithLimit(String query, int limit) {
         List<Book> allBooks = new ArrayList<>();
 
+        // 각 카테고리별로 적절히 분배해서 검색
+        int limitPerCategory = Math.max(1, limit / 3); // 3개 카테고리로 분배
+
         try {
-            // 국내도서 검색 - OptResult=authors 추가
+            // 국내도서 검색
             String bookUrl = String.format(
-                    "%s/ItemSearch.aspx?ttbkey=%s&Query=%s&QueryType=Title&MaxResults=%d&start=%d&SearchTarget=Book&output=js&Version=20131101&OptResult=authors",
-                    aladinBaseUrl, aladinApiKey, query, size, page
+                    "%s/ItemSearch.aspx?ttbkey=%s&Query=%s&QueryType=Title&MaxResults=%d&start=1&SearchTarget=Book&output=js&Version=20131101&OptResult=authors",
+                    aladinBaseUrl, aladinApiKey, query, limitPerCategory
             );
             List<Book> books = callApiAndParseBooks(bookUrl, "국내도서");
             allBooks.addAll(books);
 
-            // 외국도서 검색 - OptResult=authors 추가
+            // 외국도서 검색
             String foreignUrl = String.format(
-                    "%s/ItemSearch.aspx?ttbkey=%s&Query=%s&QueryType=Title&MaxResults=%d&start=%d&SearchTarget=Foreign&output=js&Version=20131101&OptResult=authors",
-                    aladinBaseUrl, aladinApiKey, query, size, page
+                    "%s/ItemSearch.aspx?ttbkey=%s&Query=%s&QueryType=Title&MaxResults=%d&start=1&SearchTarget=Foreign&output=js&Version=20131101&OptResult=authors",
+                    aladinBaseUrl, aladinApiKey, query, limitPerCategory
             );
             List<Book> foreignBooks = callApiAndParseBooks(foreignUrl, "외국도서");
             allBooks.addAll(foreignBooks);
 
-            // 전자책 검색 - OptResult=authors 추가
+            // 전자책 검색
             String ebookUrl = String.format(
-                    "%s/ItemSearch.aspx?ttbkey=%s&Query=%s&QueryType=Title&MaxResults=%d&start=%d&SearchTarget=eBook&output=js&Version=20131101&OptResult=authors",
-                    aladinBaseUrl, aladinApiKey, query, size, page
+                    "%s/ItemSearch.aspx?ttbkey=%s&Query=%s&QueryType=Title&MaxResults=%d&start=1&SearchTarget=eBook&output=js&Version=20131101&OptResult=authors",
+                    aladinBaseUrl, aladinApiKey, query, limitPerCategory
             );
             List<Book> ebooks = callApiAndParseBooks(ebookUrl, "전자책");
             allBooks.addAll(ebooks);
@@ -126,8 +131,10 @@ public class BookService {
             log.error("알라딘 API 검색 중 오류: {}", e.getMessage());
         }
 
-        return allBooks;
+        // 전체 결과에서 limit 적용
+        return allBooks.stream().limit(limit).toList();
     }
+
 
     /**
      * 부족한 상세 정보 보완 (페이지 수, 추가 저자 정보 등)

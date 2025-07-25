@@ -147,4 +147,155 @@ class BookControllerTest {
                 .andExpect(jsonPath("$.resultCode").value("400-2"))
                 .andExpect(jsonPath("$.msg").value("페이지 크기는 1 이상이어야 합니다."));
     }
+
+    @Test
+    @DisplayName("책 검색 - 제목으로 검색 성공")
+    void searchBooks_ByTitle_Success() throws Exception {
+        mockMvc.perform(get("/api/books/search")
+                        .param("query", "테스트 책")
+                        .param("limit", "20"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resultCode").value("200-1"))
+                .andExpect(jsonPath("$.msg").value("2개의 책을 찾았습니다."))
+                .andExpect(jsonPath("$.data").isArray())
+                .andExpect(jsonPath("$.data.length()").value(2))
+                .andExpect(jsonPath("$.data[0].title").value("테스트 책 1"))
+                .andExpect(jsonPath("$.data[0].publisher").value("테스트 출판사"))
+                .andExpect(jsonPath("$.data[0].categoryName").value("소설"))
+                .andExpect(jsonPath("$.data[0].authors").isArray())
+                .andExpect(jsonPath("$.data[0].authors[0]").value("김작가"))
+                .andExpect(jsonPath("$.data[0].isbn13").value("9780123456789"))
+                .andExpect(jsonPath("$.data[0].totalPage").value(200))
+                .andExpect(jsonPath("$.data[0].avgRate").value(4.5))
+                .andExpect(jsonPath("$.data[1].title").value("테스트 책 2"))
+                .andExpect(jsonPath("$.data[1].publisher").value("다른 출판사"))
+                .andExpect(jsonPath("$.data[1].isbn13").value("9780987654321"));
+    }
+
+    @Test
+    @DisplayName("책 검색 - 작가명으로 검색 성공")
+    void searchBooks_ByAuthor_Success() throws Exception {
+        mockMvc.perform(get("/api/books/search")
+                        .param("query", "김작가")
+                        .param("limit", "20"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resultCode").value("200-1"))
+                .andExpect(jsonPath("$.msg").value("2개의 책을 찾았습니다."))
+                .andExpect(jsonPath("$.data").isArray())
+                .andExpect(jsonPath("$.data.length()").value(2))
+                .andExpect(jsonPath("$.data[0].authors").isArray())
+                .andExpect(jsonPath("$.data[0].authors[0]").value("김작가"))
+                .andExpect(jsonPath("$.data[1].authors").isArray())
+                .andExpect(jsonPath("$.data[1].authors[0]").value("김작가"));
+    }
+
+    @Test
+    @DisplayName("책 검색 - 부분 제목으로 검색 성공")
+    void searchBooks_ByPartialTitle_Success() throws Exception {
+        mockMvc.perform(get("/api/books/search")
+                        .param("query", "책 1")
+                        .param("limit", "20"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resultCode").value("200-1"))
+                .andExpect(jsonPath("$.msg").value("1개의 책을 찾았습니다."))
+                .andExpect(jsonPath("$.data").isArray())
+                .andExpect(jsonPath("$.data.length()").value(1))
+                .andExpect(jsonPath("$.data[0].title").value("테스트 책 1"))
+                .andExpect(jsonPath("$.data[0].id").exists())
+                .andExpect(jsonPath("$.data[0].imageUrl").exists())
+                .andExpect(jsonPath("$.data[0].publishedDate").exists());
+    }
+
+    @Test
+    @DisplayName("책 검색 - limit 제한 테스트")
+    void searchBooks_WithLimitRestriction_Success() throws Exception {
+        mockMvc.perform(get("/api/books/search")
+                        .param("query", "테스트")
+                        .param("limit", "1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resultCode").value("200-1"))
+                .andExpect(jsonPath("$.msg").value("1개의 책을 찾았습니다."))
+                .andExpect(jsonPath("$.data").isArray())
+                .andExpect(jsonPath("$.data.length()").value(1));
+    }
+
+    @Test
+    @DisplayName("책 검색 - 검색 결과 없음")
+    void searchBooks_NoResults_Success() throws Exception {
+        mockMvc.perform(get("/api/books/search")
+                        .param("query", "존재하지않는책")
+                        .param("limit", "20"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resultCode").value("200-2"))
+                .andExpect(jsonPath("$.msg").value("검색 결과가 없습니다."))
+                .andExpect(jsonPath("$.data").isArray())
+                .andExpect(jsonPath("$.data.length()").value(0));
+    }
+
+    @Test
+    @DisplayName("책 검색 실패 - query 파라미터 누락")
+    void searchBooks_Fail_MissingQuery() throws Exception {
+        mockMvc.perform(get("/api/books/search")
+                        .param("limit", "20"))
+                .andExpect(status().isBadRequest());
+        // query는 @RequestParam이므로 누락시 400 에러
+    }
+
+    @Test
+    @DisplayName("책 검색 실패 - 빈 query")
+    void searchBooks_Fail_EmptyQuery() throws Exception {
+        mockMvc.perform(get("/api/books/search")
+                        .param("query", "")
+                        .param("limit", "20"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.resultCode").exists())
+                .andExpect(jsonPath("$.msg").exists());
+        // 빈 문자열 검색 방지를 위한 validation 필요
+    }
+
+    @Test
+    @DisplayName("책 검색 실패 - 공백만 있는 query")
+    void searchBooks_Fail_WhitespaceOnlyQuery() throws Exception {
+        mockMvc.perform(get("/api/books/search")
+                        .param("query", "   ")
+                        .param("limit", "20"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.resultCode").exists())
+                .andExpect(jsonPath("$.msg").exists());
+    }
+
+    @Test
+    @DisplayName("책 검색 실패 - limit이 0")
+    void searchBooks_Fail_ZeroLimit() throws Exception {
+        mockMvc.perform(get("/api/books/search")
+                        .param("query", "테스트")
+                        .param("limit", "0"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.resultCode").value("400-4"))
+                .andExpect(jsonPath("$.msg").value("limit은 1 이상이어야 합니다."));
+    }
+
+    @Test
+    @DisplayName("책 검색 실패 - 음수 limit")
+    void searchBooks_Fail_NegativeLimit() throws Exception {
+        mockMvc.perform(get("/api/books/search")
+                        .param("query", "테스트")
+                        .param("limit", "-5"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.resultCode").value("400-4"))
+                .andExpect(jsonPath("$.msg").value("limit은 1 이상이어야 합니다."));
+    }
+
+    @Test
+    @DisplayName("책 검색 실패 - limit이 최대값 초과")
+    void searchBooks_Fail_ExceedMaxLimit() throws Exception {
+        mockMvc.perform(get("/api/books/search")
+                        .param("query", "테스트")
+                        .param("limit", "101"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.resultCode").value("400-5"))
+                .andExpect(jsonPath("$.msg").value("limit은 100 이하여야 합니다."));
+    }
+
+
 }

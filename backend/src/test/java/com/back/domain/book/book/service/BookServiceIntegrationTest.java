@@ -85,7 +85,7 @@ class BookServiceIntegrationTest {
         assertThat(booksBeforeSearch).isEmpty();
 
         // When
-        List<BookSearchDto> searchResults = bookService.searchBooks(uniqueKeyword, 1, 3);
+        List<BookSearchDto> searchResults = bookService.searchBooks(uniqueKeyword,3);
 
         // Then
         if (!searchResults.isEmpty()) {
@@ -113,7 +113,7 @@ class BookServiceIntegrationTest {
         int countBeforeSearch = booksBeforeSearch.size();
 
         // When
-        List<BookSearchDto> searchResults = bookService.searchBooks(TEST_SEARCH_KEYWORD, 1, 5);
+        List<BookSearchDto> searchResults = bookService.searchBooks(TEST_SEARCH_KEYWORD, 5);
 
         // Then
         assertThat(searchResults).isNotEmpty();
