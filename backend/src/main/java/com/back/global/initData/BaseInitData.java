@@ -132,7 +132,7 @@ public class BaseInitData {
             return;
         }
 
-        Bookmark bookmark = bookmarkRepository.save(new Bookmark(null));
+        Bookmark bookmark = bookmarkRepository.save(new Bookmark(null,null));
         int id = bookmark.getId();
 
         noteService.write(id,"제목1", "내용1");
