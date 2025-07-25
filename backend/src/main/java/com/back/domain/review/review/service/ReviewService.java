@@ -58,4 +58,8 @@ public class ReviewService {
     public Optional<Review> findByBookAndMember(Book book, Member member) {
         return reviewRepository.findByBookAndMember(book, member);
     }
+
+    public Optional<Review> findById(int reviewId) {
+        return reviewRepository.findById(reviewId);
+    }
 }

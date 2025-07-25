@@ -1,6 +1,5 @@
 package com.back.domain.review.reviewRecommend.controller;
 
-import com.back.domain.member.member.controller.MemberController;
 import com.back.domain.member.member.entity.Member;
 import com.back.domain.member.member.service.MemberService;
 import com.back.domain.review.review.controller.ReviewController;
@@ -17,6 +16,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
+
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -27,6 +27,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @Transactional
 @AutoConfigureMockMvc
+@Rollback
 public class ReviewRecommendController {
     @Autowired
     private MockMvc mvc;
@@ -55,16 +56,54 @@ public class ReviewRecommendController {
 
 
         ResultActions resultActions = mvc.perform(
-                post("/reviews/{book_id}/recommend/true", 1)
+                post("/reviews/{review_id}/recommend/{isRecommend}", 1, true)
                         .cookie(new Cookie("accessToken", accessToken))
         ).andDo(print());
         resultActions
-                .andExpect(handler().handlerType(ReviewRecommendController.class))
+                .andExpect(handler().handlerType(ReviewController.class))
                 .andExpect(handler().methodName("recommendReview"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.resultCode").value("200-1"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.resultCode").value("201-1"))
                 .andExpect(jsonPath("$.msg").value("Review recommended successfully"))
         ;
 
+    }
+
+    @Test
+    void t2() throws Exception{
+        Member member = memberService.findByEmail("email").get();
+        Member member2 = memberService.findByEmail("email2").get();
+        String accessToken = memberService.geneAccessToken(member);
+        String accessToken2 = memberService.geneAccessToken(member2);
+        mvc.perform(
+                post("/reviews/{book_id}", 1)
+                        .contentType("application/json")
+                        .content("""
+{
+    "content": "이 책 정말 좋았어요!",
+    "rate": 5
+}
+""").cookie(new Cookie("accessToken", accessToken))
+        ).andDo(print());
+
+
+        Review review = reviewService.findLatest().orElseThrow(()-> new RuntimeException("리뷰가 없습니다."));
+        mvc.perform(
+                post("/reviews/{review_id}/recommend/{isRecommend}", review.getId(), true)
+                        .cookie(new Cookie("accessToken", accessToken))
+        ).andDo(print());
+
+        ResultActions resultActions = mvc.perform(
+                post("/reviews/{review_id}/recommend/{isRecommend}", review.getId(), false)
+                        .cookie(new Cookie("accessToken", accessToken2))
+        ).andDo(print());
+        resultActions
+                .andExpect(handler().handlerType(ReviewController.class))
+                .andExpect(handler().methodName("recommendReview"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.resultCode").value("201-1"))
+                .andExpect(jsonPath("$.msg").value("Review recommended successfully"))
+        ;
+        assertThat(review.getRecommendCount()).isEqualTo(2);
     }
 }
