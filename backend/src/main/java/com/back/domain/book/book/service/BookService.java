@@ -9,11 +9,14 @@ import com.back.domain.book.category.entity.Category;
 import com.back.domain.book.category.repository.CategoryRepository;
 import com.back.domain.book.wrote.entity.Wrote;
 import com.back.domain.book.wrote.repository.WroteRepository;
+import com.back.global.exception.ServiceException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
@@ -74,36 +77,18 @@ public class BookService {
         Optional<Book> bookFromDb = bookRepository.findByIsbn13(isbn);
 
         if (bookFromDb.isPresent()) {
-            log.info("DB에서 찾은 ISBN: {}", isbn);
             return convertToDto(bookFromDb.get());
         }
 
-        log.info("DB에 없어서 알라딘 API에서 조회: {}", isbn);
+        // callApiAndParseBooks 활용
+        String url = String.format(
+                "%s/ItemLookUp.aspx?ttbkey=%s&itemIdType=ISBN13&ItemId=%s&output=js&Version=20131101&OptResult=authors",
+                aladinBaseUrl, aladinApiKey, isbn
+        );
 
-        try {
-            String url = String.format(
-                    "%s/ItemLookUp.aspx?ttbkey=%s&itemIdType=ISBN13&ItemId=%s&output=js&Version=20131101&OptResult=authors",
-                    aladinBaseUrl, aladinApiKey, isbn
-            );
+        List<Book> books = callApiAndParseBooks(url, "ISBN조회");
 
-            String response = restTemplate.getForObject(url, String.class);
-            JsonNode rootNode = objectMapper.readTree(response);
-            JsonNode itemsNode = rootNode.get("item");
-
-            if (itemsNode != null && itemsNode.isArray() && itemsNode.size() > 0) {
-                JsonNode itemNode = itemsNode.get(0);
-                Book savedBook = parseAndSaveBookFromJson(itemNode);
-
-                if (savedBook != null) {
-                    return convertToDto(savedBook);
-                }
-            }
-
-        } catch (Exception e) {
-            log.error("알라딘 API ISBN 조회 중 오류: {}", e.getMessage());
-        }
-
-        return null;
+        return books.isEmpty() ? null : convertToDto(books.get(0));
     }
 
     /**
@@ -344,7 +329,7 @@ public class BookService {
                 book.setAvgRate(0.0f);
             }
 
-            // 🎉 NEW! 간단한 카테고리 추출 - 2번째 깊이 사용
+            //간단한 카테고리 추출 - 2번째 깊이 사용
             String categoryName = extractCategoryFromPath(itemNode);
 
             // 카테고리 찾기 또는 생성
@@ -538,6 +523,19 @@ public class BookService {
         } catch (Exception e) {
             log.warn("날짜 파싱 실패, 현재 시간으로 설정: {}", pubDateStr);
             return LocalDateTime.now();
+        }
+    }
+
+    public Page<BookSearchDto> getAllBooks(Pageable pageable) {
+        log.info("전체 책 조회: page={}, size={}, sort={}",
+                pageable.getPageNumber(), pageable.getPageSize(), pageable.getSort());
+
+        try {
+            Page<Book> bookPage = bookRepository.findAll(pageable);
+            return bookPage.map(this::convertToDto);
+        } catch (Exception e) {
+            log.error("전체 책 조회 중 오류 발생: {}", e.getMessage());
+            throw new ServiceException("500-1", "전체 책 조회 중 오류가 발생했습니다.");
         }
     }
 
