@@ -39,4 +39,15 @@ public class ReviewController {
         reviewService.deleteReview(book, member);
         return new RsData<>("200-1", "Review deleted successfully");
     }
+
+    @PutMapping("/{book_id}")
+    public RsData<Void> modify(@PathVariable("book_id") int bookId, @RequestBody ReviewRequestDto reviewRequestDto) {
+        Book book = bookRepository.findById(bookId).orElseThrow(() -> new ServiceException("404-1", "Book not found"));
+        Member member = rq.getActor();
+        if (member == null) {
+            return new RsData<>("401-1", "Unauthorized access");
+        }
+        reviewService.modifyReview(book, member, reviewRequestDto);
+        return new RsData<>("200-1", "Review modified successfully");
+    }
 }

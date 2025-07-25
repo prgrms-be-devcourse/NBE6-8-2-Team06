@@ -8,6 +8,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.ManyToOne;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Getter
@@ -17,7 +18,9 @@ public class Review extends BaseEntity {
     private Member member;
     @ManyToOne(fetch = FetchType.LAZY)
     private Book book;
+    @Setter
     private String content;
+    @Setter
     private int rate;
 
     public Review(String content, int rate, Member member, Book book) {
