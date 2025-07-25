@@ -45,4 +45,8 @@ public class ReviewService {
         review.setRate(reviewRequestDto.rate());
         reviewRepository.save(review);
     }
+
+    public long count() {
+        return reviewRepository.count();
+    }
 }
