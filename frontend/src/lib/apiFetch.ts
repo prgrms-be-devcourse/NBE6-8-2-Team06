@@ -21,11 +21,11 @@ export async function apiFetch<T>(
   // 401 에러 처리 (로그인, 회원가입, 토큰재발급은 제외)
   if (
     res.status === 401 &&
-    !url.includes("/login") &&
-    !url.includes("/signup") &&
-    !url.includes("/reissue")
+    !url.includes("/user/login") &&
+    !url.includes("/user/signup") &&
+    !url.includes("/user/reissue")
   ) {
-    const reissueRes = await fetch(`${baseUrl}/reissue`, {
+    const reissueRes = await fetch(`${baseUrl}/user/reissue`, {
       method: "POST",
       credentials: "include",
     });
