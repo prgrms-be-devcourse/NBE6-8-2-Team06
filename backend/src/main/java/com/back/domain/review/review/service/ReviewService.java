@@ -1,12 +1,13 @@
 package com.back.domain.review.review.service;
 
 import com.back.domain.book.book.entity.Book;
+import com.back.domain.book.book.service.BookService;
 import com.back.domain.member.member.entity.Member;
 import com.back.domain.review.review.dto.ReviewRequestDto;
 import com.back.domain.review.review.entity.Review;
 import com.back.domain.review.review.repository.ReviewRepository;
 import com.back.global.exception.ServiceException;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -16,6 +17,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class ReviewService {
     private final ReviewRepository reviewRepository;
+    private final BookService bookService;
 
     public Optional<Review> findLatest(){
         return reviewRepository.findFirstByOrderByIdDesc();
@@ -28,6 +30,7 @@ public class ReviewService {
             throw new ServiceException("400-1", "Review already exists");
         }
         reviewRepository.save(review);
+        bookService.updateBookAvgRate(book);
     }
 
     @Transactional
@@ -35,6 +38,7 @@ public class ReviewService {
         Review review = reviewRepository.findByBookAndMember(book, member)
                 .orElseThrow(() -> new ServiceException("404-1","review not found"));
         reviewRepository.delete(review);
+        bookService.updateBookAvgRate(book);
     }
 
     @Transactional
@@ -44,9 +48,18 @@ public class ReviewService {
         review.setContent(reviewRequestDto.content());
         review.setRate(reviewRequestDto.rate());
         reviewRepository.save(review);
+        bookService.updateBookAvgRate(book);
     }
 
     public long count() {
         return reviewRepository.count();
+    }
+
+    public Optional<Review> findByBookAndMember(Book book, Member member) {
+        return reviewRepository.findByBookAndMember(book, member);
+    }
+
+    public Optional<Review> findById(int reviewId) {
+        return reviewRepository.findById(reviewId);
     }
 }

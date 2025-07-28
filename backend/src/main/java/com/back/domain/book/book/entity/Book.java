@@ -24,7 +24,7 @@ public class Book extends BaseEntity {
     String publisher;
     int totalPage;
     LocalDateTime publishedDate;
-    float avgRate;
+    float avgRate = 0.0f;
 
     @Column(unique = true)
     String isbn13;
