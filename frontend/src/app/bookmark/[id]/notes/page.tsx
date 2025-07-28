@@ -36,9 +36,9 @@ interface BookNotesPageProps {
     updatedDate?: string;
   }
 
-  export default withLogin(function page({params}:{params:Promise<{bookId:string}>}){
+  export default withLogin(function page({params}:{params:Promise<{id:string}>}){
 
-    const {bookId:bookIdStr} = use(params);
+    const {id:bookIdStr} = use(params);
     const bookId = parseInt(bookIdStr);
       
     const [searchTerm, setSearchTerm] = useState('');

@@ -12,13 +12,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ImageWithFallback } from '@/components/ImageWithFallback';
 import { Badge } from '@/components/ui/badge';
-import { useAuth } from '../_hooks/auth-context';
-import withLogin from '../_hooks/withLogin';
+import { useAuth } from '@/app/_hooks/auth-context';
+import withLogin from '@/app/_hooks/withLogin';
 
 
 export default withLogin(function Page() {
   const auth = useAuth();
-  console.log(auth.isLoggedIn);
   const router = useRouter();
   const [bookmarks, setBookmarks] = useState<BookmarkPage>();
   const [isLoading, setIsLoading] = useState(true);
