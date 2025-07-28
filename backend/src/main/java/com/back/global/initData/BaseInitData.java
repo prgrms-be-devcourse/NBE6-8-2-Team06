@@ -31,6 +31,7 @@ public class BaseInitData {
     private final BookService bookService;
     private final NoteService noteService;
     private final NoteRepository noteRepository;
+    private final BookmarkRepository bookmarkRepository;
 
 
     @Bean
@@ -134,15 +135,18 @@ public class BaseInitData {
             return;
         }
 
+<<<<<<< HEAD
         Bookmark bookmark = bookmarkRepository.save(new Bookmark(null,null));
+=======
+        Book book = new Book("Text Book", "Publisher", categoryRepository.save(new Category("Test Category")));
+        bookRepository.save(book);
+        Bookmark bookmark = bookmarkRepository.save(new Bookmark(book));
+>>>>>>> 32fc17e (feat: 노트 페이지에 필요한 데이터 가져오기)
         int id = bookmark.getId();
 
-        noteService.write(id,"제목1", "내용1");
-        noteService.write(id,"제목2", "내용2");
-        noteService.write(id,"제목3", "내용3");
-        noteService.write(id,"제목1", "내용4");
+        noteService.write(id,"제목1", "내용1", "1");
+        noteService.write(id,"제목2", "내용2", "2");
+        noteService.write(id,"제목3", "내용3", "3");
+        noteService.write(id,"제목1", "내용4", "4");
     }
-
-    @Autowired
-    private BookmarkRepository bookmarkRepository;
 }
