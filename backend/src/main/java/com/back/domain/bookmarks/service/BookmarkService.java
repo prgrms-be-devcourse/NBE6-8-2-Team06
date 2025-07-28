@@ -2,9 +2,7 @@ package com.back.domain.bookmarks.service;
 
 import com.back.domain.book.book.repository.BookRepository;
 import com.back.domain.bookmarks.constant.ReadState;
-import com.back.domain.bookmarks.dto.BookmarkDetailDto;
-import com.back.domain.bookmarks.dto.BookmarkDto;
-import com.back.domain.bookmarks.dto.BookmarkModifyResponseDto;
+import com.back.domain.bookmarks.dto.*;
 import com.back.domain.bookmarks.entity.Bookmark;
 import com.back.domain.bookmarks.repository.BookmarkRepository;
 import com.back.domain.member.member.entity.Member;
@@ -21,8 +19,8 @@ import org.springframework.stereotype.Service;
 import com.back.domain.book.book.entity.Book;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.NoSuchElementException;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -40,14 +38,14 @@ public class BookmarkService {
     public List<BookmarkDto> toList(){
         return bookmarkRepository.findAll().stream().map(bookmark -> {
             if(bookmark.getReadState()==ReadState.WISH) return new BookmarkDto(bookmark, null);
-            Review review = getReview(bookmark);
+            Review review = getReviews(bookmark.getMember()).get(bookmark.getBook());
             return new BookmarkDto(bookmark, review);
         }).toList();
     }
 
-    public Page<BookmarkDto> toPage(int pageNumber, int pageSize, String category, String state, String keyword){
+    public Page<BookmarkDto> toPage(Member member, int pageNumber, int pageSize, String category, String state, String keyword){
         Pageable pageable = PageRequest.of(pageNumber, pageSize);
-        Specification<Bookmark> spec = ((root, query, criteriaBuilder) -> null);
+        Specification<Bookmark> spec = ((root, query, criteriaBuilder) -> criteriaBuilder.equal(root.get("member"), member));
         if(category != null){
             spec = spec.and((root, query, builder) -> {
                 Join<Bookmark, Book> bookJoin = root.join("book");
@@ -70,7 +68,7 @@ public class BookmarkService {
         Page<Bookmark> bookmarks = bookmarkRepository.findAll(spec, pageable);
         return bookmarks.map(bookmark -> {
             if(bookmark.getReadState()==ReadState.WISH) return new BookmarkDto(bookmark, null);
-            Review review = getReview(bookmark);
+            Review review = getReviews(bookmark.getMember()).get(bookmark.getBook());
             return new BookmarkDto(bookmark, review);
         });
     }
@@ -110,7 +108,23 @@ public class BookmarkService {
         bookmarkRepository.delete(bookmark);
     }
 
+    public BookmarkReadStatesDto getReadStatesCount(Member member) {
+        List<Bookmark> bookmarks = bookmarkRepository.findByMember(member);
+        Map<ReadState, Long> countByReadState = bookmarks.stream().collect(Collectors.groupingBy(Bookmark::getReadState, Collectors.counting()));
+        ReadStateCount readStateCount = new ReadStateCount(countByReadState.getOrDefault(ReadState.READ, 0L),
+                countByReadState.getOrDefault(ReadState.READING, 0L),
+                countByReadState.getOrDefault(ReadState.WISH, 0L));
+        double avgRate = reviewRepository.findAverageRatingByMember(member).orElse(0.0);
+        return new BookmarkReadStatesDto(
+                bookmarks.size(), avgRate, readStateCount
+        );
+    }
+
     private Review getReview(Bookmark bookmark) {
-        return reviewRepository.findByBookAndMember(bookmark.getBook(), bookmark.getMember()).get();
+        return reviewRepository.findByBookAndMember(bookmark.getBook(), bookmark.getMember()).orElse(null);
+    }
+    private Map<Book, Review> getReviews(Member member) {
+        List<Review> reviews = reviewRepository.findAllByMember(member);
+        return reviews.stream().collect(Collectors.toMap(Review::getBook, review -> review));
     }
 }

@@ -8,8 +8,11 @@ import com.back.domain.bookmarks.controller.BookmarkController;
 import com.back.domain.bookmarks.dto.BookmarkDto;
 import com.back.domain.bookmarks.dto.BookmarkDetailDto;
 import com.back.domain.bookmarks.dto.BookmarkModifyResponseDto;
+import com.back.domain.bookmarks.dto.BookmarkReadStatesDto;
 import com.back.domain.bookmarks.entity.Bookmark;
 import com.back.domain.bookmarks.service.BookmarkService;
+import com.back.domain.member.member.entity.Member;
+import com.back.domain.member.member.repository.MemberRepository;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -19,6 +22,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.Page;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithUserDetails;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
@@ -44,6 +48,8 @@ public class BookmarkControllerTest {
     private BookmarkService bookmarkService;
     @Autowired
     private CategoryRepository categoryRepository;
+    @Autowired
+    private MemberRepository memberRepository;
 
     @BeforeEach
     void setup() {
@@ -60,10 +66,13 @@ public class BookmarkControllerTest {
         book.setCategory(category);
         // DB에 저장하면 @GeneratedValue 전략에 따라 ID가 할당됩니다.
         bookRepository.save(book);
+        Member member = new Member("test","test@test.com","test");
+        memberRepository.save(member);
     }
 
     @Test
     @DisplayName("북마크 추가")
+    @WithUserDetails("test")
     void t1() throws Exception {
         Book book = bookRepository.findById(1).get();
         ResultActions resultActions = mvc.perform(
@@ -165,13 +174,14 @@ public class BookmarkControllerTest {
     @Test
     @DisplayName("북마크 다건 조회 - 페이지")
     void t5() throws Exception {
+        Member member = memberRepository.findByEmail("test@test.com").get();
         ResultActions resultActions = mvc
                 .perform(
                         get("/api/bookmarks")
                 )
                 .andDo(print());
 
-        Page<BookmarkDto> bookmarksDtoPage = bookmarkService.toPage(0,10, null, null, null);
+        Page<BookmarkDto> bookmarksDtoPage = bookmarkService.toPage(member,0,10, null, null, null);
 
         resultActions
                 .andExpect(handler().handlerType(BookmarkController.class))
@@ -199,6 +209,7 @@ public class BookmarkControllerTest {
 
     @Test
     @DisplayName("북마크 수정")
+    @WithUserDetails("test")
     void t6() throws Exception {
         int id=1;
         ResultActions resultActions = mvc.perform(
@@ -231,6 +242,7 @@ public class BookmarkControllerTest {
 
     @Test
     @DisplayName("북마크 삭제")
+    @WithUserDetails("test")
     void t7() throws Exception {
         int id = 1;
         ResultActions resultActions = mvc
@@ -245,5 +257,30 @@ public class BookmarkControllerTest {
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.resultCode").value("200-1"))
                 .andExpect(jsonPath("$.msg").value("%d 북마크가 삭제되었습니다.".formatted(id)));
+    }
+
+    @Test
+    @DisplayName("북마크 내책 목록 상태 조회")
+    void t8() throws Exception {
+        Member member = memberRepository.findByEmail("test@test.com").get();
+        ResultActions resultActions = mvc
+                .perform(
+                        get("/api/bookmarks/read-states")
+                )
+                .andDo(print());
+
+        BookmarkReadStatesDto bookmarkReadStatesDto = bookmarkService.getReadStatesCount(member);
+
+        resultActions
+                .andExpect(handler().handlerType(BookmarkController.class))
+                .andExpect(handler().methodName("getBookmark"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resultCode").value("200-1"))
+                .andExpect(jsonPath("$.msg").value("조회 성공"))
+                .andExpect(jsonPath("$.data.total_count").value(bookmarkReadStatesDto.totalCount()))
+                .andExpect(jsonPath("$.data.avg_rate").value(bookmarkReadStatesDto.avgRate()))
+                .andExpect(jsonPath("$.data.read_state.READ").value(bookmarkReadStatesDto.readState().READ()))
+                .andExpect(jsonPath("$.data.read_state.READING").value(bookmarkReadStatesDto.readState().READING()))
+                .andExpect(jsonPath("$.data.read_state.WISH").value(bookmarkReadStatesDto.readState().WISH()));
     }
 }

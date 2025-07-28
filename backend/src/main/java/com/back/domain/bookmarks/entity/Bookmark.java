@@ -29,6 +29,7 @@ public class Bookmark extends BaseEntity {
     public Bookmark(Book book,  Member member) {
         this.book = book;
         this.member = member;
+        this.readState = ReadState.WISH;
     }
 
     public void updateReadState(ReadState readState) {
@@ -45,7 +46,7 @@ public class Bookmark extends BaseEntity {
         this.endReadDate = endReadDate;
     }
 
-    @OneToMany(mappedBy = "bookmark", cascade = {CascadeType.PERSIST, CascadeType.REMOVE}, orphanRemoval = true) //임시 맵핑 - note
+    @OneToMany(mappedBy = "bookmark", cascade = {CascadeType.PERSIST, CascadeType.REMOVE}, orphanRemoval = true)
     private List<Note> notes = new ArrayList<>();
 
     @ManyToOne(fetch = FetchType.LAZY)

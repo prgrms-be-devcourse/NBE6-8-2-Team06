@@ -57,7 +57,8 @@ public class BookmarkController {
                                                                          @RequestParam(value = "category", required = false) String category,
                                                                          @RequestParam(value = "read_state", required = false) String read_state,
                                                                          @RequestParam(value = "keyword", required = false) String keyword) {
-        Page<BookmarkDto> bookmarkDtoPage = bookmarkService.toPage(page, size, category, read_state, keyword);
+        Member member = rq.getActor();
+        Page<BookmarkDto> bookmarkDtoPage = bookmarkService.toPage(member, page, size, category, read_state, keyword);
         if(bookmarkDtoPage.isEmpty()){
             return new RsData<>("404-1", "데이터가 없습니다.", null);
         }
@@ -82,6 +83,14 @@ public class BookmarkController {
         Member member = rq.getActor();
         bookmarkService.deleteBookmark(member, id);
         return new RsData<>("200-1", "%d 북마크가 삭제되었습니다.".formatted(id), null);
+    }
+
+    @GetMapping("/read-states")
+    @Transactional(readOnly = true)
+    public RsData<BookmarkReadStatesDto>  getBookmarkReadStates() {
+        Member member = rq.getActor();
+        BookmarkReadStatesDto bookmarkReadStatesDto = bookmarkService.getReadStatesCount(member);
+        return  new RsData<>("200-1", "조회 성공", bookmarkReadStatesDto);
     }
 
 }
