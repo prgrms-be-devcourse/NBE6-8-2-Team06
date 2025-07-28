@@ -26,6 +26,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 
@@ -73,7 +74,7 @@ class MemberControllerTest {
         when(memberService.join(name, email, encodedPassword)).thenReturn(newMember);
 
         // When & Then
-        mockMvc.perform(post("/member/signup")
+        mockMvc.perform(post("/user/signup")
                         .contentType(APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(reqBody)))
                 .andExpect(status().isOk())
@@ -107,7 +108,7 @@ class MemberControllerTest {
         doNothing().when(rq).setCookie(anyString(), anyString());
 
         // When & Then
-        mockMvc.perform(post("/member/login")
+        mockMvc.perform(post("/user/login")
                         .contentType(APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(reqBody)))
                 .andExpect(status().isOk())
@@ -145,7 +146,7 @@ class MemberControllerTest {
         doNothing().when(rq).setCookie(anyString(), anyString());
 
         // When & Then
-        mockMvc.perform(post("/member/reissue")
+        mockMvc.perform(post("/user/reissue")
                         .cookie(new Cookie("refreshToken", existingRefreshToken))) // Refresh Token 쿠키 추가
                 .andDo(print())
                 .andExpect(status().isOk())
@@ -163,5 +164,29 @@ class MemberControllerTest {
 
         verify(rq, times(1)).setCookie(eq("accessToken"), eq(newAccessToken));
         verify(rq, never()).setCookie(eq("refreshToken"), anyString());
+    }
+
+    @Test
+    @DisplayName("회원탈퇴 성공")
+    void t4() throws Exception {
+        // Given
+        String email = "test@example.com";
+        String name = "TestUser";
+        Member existingMember = new Member(name, email, "encodedPassword123");
+
+        when(rq.getActor()).thenReturn(existingMember);
+        doNothing().when(memberService).deleteMember(existingMember);
+
+        // When & Then
+        mockMvc.perform(delete("/user/my"))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resultCode").value("200-1"))
+                .andExpect(jsonPath("$.msg").value("회원탈퇴가 완료되었습니다."))
+                .andExpect(jsonPath("$.data").isEmpty());
+
+        // Verifications
+        verify(rq, times(1)).getActor();
+        verify(memberService, times(1)).deleteMember(existingMember);
     }
 }
