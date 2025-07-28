@@ -2,6 +2,7 @@ package com.back.domain.book.book.entity;
 
 import com.back.domain.book.category.entity.Category;
 import com.back.domain.book.wrote.entity.Wrote;
+import com.back.domain.bookmarks.entity.Bookmark;
 import com.back.domain.review.review.entity.Review;
 import com.back.global.jpa.entity.BaseEntity;
 import jakarta.persistence.*;
@@ -38,6 +39,9 @@ public class Book extends BaseEntity {
 
     @OneToMany(mappedBy = "book", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Review> reviews = new ArrayList<>();
+
+    @OneToMany(mappedBy = "book", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Bookmark> bookmarks = new ArrayList<>();
 
     public Book(String title, String publisher, Category category){
         this.title = title;

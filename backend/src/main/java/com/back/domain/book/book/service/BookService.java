@@ -2,6 +2,7 @@ package com.back.domain.book.book.service;
 
 import com.back.domain.book.author.entity.Author;
 import com.back.domain.book.author.repository.AuthorRepository;
+import com.back.domain.book.book.dto.BookDetailDto;
 import com.back.domain.book.book.dto.BookSearchDto;
 import com.back.domain.book.book.entity.Book;
 import com.back.domain.book.book.repository.BookRepository;
@@ -11,7 +12,14 @@ import com.back.domain.book.client.aladin.AladinApiClient;
 import com.back.domain.book.client.aladin.dto.AladinBookDto;
 import com.back.domain.book.wrote.entity.Wrote;
 import com.back.domain.book.wrote.repository.WroteRepository;
+import com.back.domain.bookmarks.constant.ReadState;
+import com.back.domain.bookmarks.entity.Bookmark;
+import com.back.domain.bookmarks.repository.BookmarkRepository;
+import com.back.domain.member.member.entity.Member;
+import com.back.domain.review.review.dto.ReviewResponseDto;
 import com.back.domain.review.review.entity.Review;
+import com.back.domain.review.review.repository.ReviewRepository;
+import com.back.global.dto.PageResponseDto;
 import com.back.global.exception.ServiceException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,6 +29,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -34,18 +43,24 @@ public class BookService {
     private final AuthorRepository authorRepository;
     private final WroteRepository wroteRepository;
     private final AladinApiClient aladinApiClient;
+    private final BookmarkRepository bookmarkRepository; // BookmarkService 대신 직접 사용
+    private final ReviewRepository reviewRepository;
 
     /**
-     * 하이브리드 접근방식 - DB 우선, 없으면 API 검색
+     * 하이브리드 접근방식 - DB 우선, 없으면 API 검색 (Member 정보 포함)
      */
     @Transactional
-    public List<BookSearchDto> searchBooks(String query, int limit) {
+    public List<BookSearchDto> searchBooks(String query, int limit, Member member) {
         // 1. DB에서 먼저 확인
         List<Book> booksFromDb = bookRepository.findByTitleOrAuthorContaining(query);
         if (!booksFromDb.isEmpty()) {
             log.info("DB에서 찾은 책: {} 권", booksFromDb.size());
-            return convertToDto(booksFromDb.stream().limit(limit).toList());
+            return convertToDto(booksFromDb.stream().limit(limit).toList(), member);
         }
+
+        /**
+         * 책 평균 평점 업데이트
+         */
 
         log.info("DB에 없어서 알라딘 API에서 검색: {}", query);
 
@@ -61,18 +76,26 @@ public class BookService {
         // 4. 상세 정보 보완
         savedBooks = enrichMissingDetails(savedBooks);
 
-        return convertToDto(savedBooks);
+        return convertToDto(savedBooks, member);
     }
 
     /**
-     * ISBN으로 책 조회 - DB에 없으면 API에서 가져와서 저장
+     * 기존 searchBooks 메서드 (Member 없는 버전) - 하위 호환성 유지
      */
     @Transactional
-    public BookSearchDto getBookByIsbn(String isbn) {
+    public List<BookSearchDto> searchBooks(String query, int limit) {
+        return searchBooks(query, limit, null);
+    }
+
+    /**
+     * ISBN으로 책 조회 - DB에 없으면 API에서 가져와서 저장 (Member 정보 포함)
+     */
+    @Transactional
+    public BookSearchDto getBookByIsbn(String isbn, Member member) {
         Optional<Book> bookFromDb = bookRepository.findByIsbn13(isbn);
 
         if (bookFromDb.isPresent()) {
-            return convertToDto(bookFromDb.get());
+            return convertToDto(bookFromDb.get(), member);
         }
 
         // API에서 검색
@@ -82,28 +105,124 @@ public class BookService {
         }
 
         Book savedBook = convertAndSaveBook(apiBook);
-        return savedBook != null ? convertToDto(savedBook) : null;
+        return savedBook != null ? convertToDto(savedBook, member) : null;
     }
 
     /**
-     * 전체 책 조회 (페이징)
+     * 기존 getBookByIsbn 메서드 (Member 없는 버전) - 하위 호환성 유지
      */
-    public Page<BookSearchDto> getAllBooks(Pageable pageable) {
-        log.info("전체 책 조회: page={}, size={}, sort={}",
-                pageable.getPageNumber(), pageable.getPageSize(), pageable.getSort());
+    @Transactional
+    public BookSearchDto getBookByIsbn(String isbn) {
+        return getBookByIsbn(isbn, null);
+    }
+
+    /**
+     * 전체 책 조회 (페이징, Member 정보 포함)
+     */
+    public Page<BookSearchDto> getAllBooks(Pageable pageable, Member member) {
+        log.info("전체 책 조회: page={}, size={}, sort={}, member={}",
+                pageable.getPageNumber(), pageable.getPageSize(), pageable.getSort(),
+                member != null ? member.getId() : "null");
 
         try {
             Page<Book> bookPage = bookRepository.findAll(pageable);
-            return bookPage.map(this::convertToDto);
+            return bookPage.map(book -> {
+                BookSearchDto dto = convertToDto(book, member);
+                log.info("Book {} converted with readState: {}", book.getId(), dto.getReadState());
+                return dto;
+            });
         } catch (Exception e) {
             log.error("전체 책 조회 중 오류 발생: {}", e.getMessage());
             throw new ServiceException("500-1", "전체 책 조회 중 오류가 발생했습니다.");
         }
     }
 
+
     /**
-     * 책 평균 평점 업데이트
+     * ID로 책 상세 정보 조회 (리뷰 페이징 포함)
      */
+    @Transactional(readOnly = true)
+    public BookDetailDto getBookDetailById(int id, Pageable pageable, Member member) {
+        log.info("책 상세 조회: id={}, page={}, size={}, member={}",
+                id, pageable.getPageNumber(), pageable.getPageSize(),
+                member != null ? member.getId() : "null");
+
+        try {
+            // 책 조회
+            Optional<Book> bookOptional = bookRepository.findById(id);
+            if (bookOptional.isEmpty()) {
+                return null;
+            }
+
+            Book book = bookOptional.get();
+
+            // 리뷰 페이징 조회
+            Page<Review> reviewPage = reviewRepository.findByBookOrderByCreateDateDesc(book, pageable);
+            PageResponseDto<ReviewResponseDto> reviewPageResponse = new PageResponseDto<>(
+                    reviewPage.map(this::convertReviewToDto)
+            );
+
+            // ReadState 조회
+            ReadState readState = null;
+            if (member != null) {
+                readState = getReadStateByMemberAndBook(member, book);
+            }
+
+            return BookDetailDto.builder()
+                    .id(book.getId())
+                    .title(book.getTitle())
+                    .imageUrl(book.getImageUrl())
+                    .publisher(book.getPublisher())
+                    .isbn13(book.getIsbn13())
+                    .totalPage(book.getTotalPage())
+                    .publishedDate(book.getPublishedDate())
+                    .avgRate(book.getAvgRate())
+                    .categoryName(book.getCategory().getName())
+                    .authors(book.getAuthors().stream()
+                            .map(wrote -> wrote.getAuthor().getName())
+                            .toList())
+                    .readState(readState)
+                    .reviews(reviewPageResponse)
+                    .build();
+
+        } catch (Exception e) {
+            log.error("책 상세 조회 중 오류 발생: {}", e.getMessage());
+            throw new ServiceException("500-2", "책 상세 조회 중 오류가 발생했습니다.");
+        }
+    }
+
+
+    /**
+     * 기존 getAllBooks 메서드 (Member 없는 버전) - 하위 호환성 유지
+     */
+    public Page<BookSearchDto> getAllBooks(Pageable pageable) {
+        return getAllBooks(pageable, null);
+    }
+
+    /**
+     * Member와 Book으로 ReadState 조회
+     */
+    private ReadState getReadStateByMemberAndBook(Member member, Book book) {
+        log.info("ReadState 조회: memberId={}, bookId={}", member.getId(), book.getId());
+
+        Optional<Bookmark> bookmark = bookmarkRepository.findByMemberAndBook(member, book);
+        ReadState readState = bookmark.map(Bookmark::getReadState).orElse(null);
+
+        log.info("ReadState 결과: {}", readState);
+        return readState;
+    }
+
+    /**
+     * 여러 책들의 ReadState를 한번에 조회 (성능 최적화)
+     */
+    private Map<Integer, ReadState> getReadStatesForBooks(Member member, List<Integer> bookIds) {
+        return bookmarkRepository.findByMember(member).stream()
+                .filter(bookmark -> bookIds.contains(bookmark.getBook().getId()))
+                .collect(Collectors.toMap(
+                        bookmark -> bookmark.getBook().getId(),
+                        bookmark -> bookmark.getReadState()
+                ));
+    }
     @Transactional
     public void updateBookAvgRate(Book book) {
         float avgRate = calculateAvgRateForBook(book);
@@ -305,18 +424,45 @@ public class BookService {
     }
 
     /**
-     * Book 엔티티를 DTO로 변환
+     * Book 엔티티 리스트를 DTO로 변환 (Member 정보 포함)
      */
-    private List<BookSearchDto> convertToDto(List<Book> books) {
+    private List<BookSearchDto> convertToDto(List<Book> books, Member member) {
+        if (member == null) {
+            return books.stream()
+                    .map(book -> convertToDto(book, (ReadState) null))
+                    .toList();
+        }
+
+        // 성능 최적화: 한번에 모든 책의 ReadState 조회
+        List<Integer> bookIds = books.stream()
+                .map(Book::getId)
+                .collect(Collectors.toList());
+
+        Map<Integer, ReadState> readStatesMap = getReadStatesForBooks(member, bookIds);
+
         return books.stream()
-                .map(this::convertToDto)
+                .map(book -> {
+                    ReadState readState = readStatesMap.get(book.getId());
+                    return convertToDto(book, readState);
+                })
                 .toList();
     }
 
     /**
-     * 단일 Book 엔티티를 DTO로 변환
+     * 단일 Book 엔티티를 DTO로 변환 (Member 정보 포함)
      */
-    private BookSearchDto convertToDto(Book book) {
+    private BookSearchDto convertToDto(Book book, Member member) {
+        ReadState readState = null;
+        if (member != null) {
+            readState = getReadStateByMemberAndBook(member, book);
+        }
+        return convertToDto(book, readState);
+    }
+
+    /**
+     * 단일 Book 엔티티를 DTO로 변환 (ReadState 직접 전달)
+     */
+    private BookSearchDto convertToDto(Book book, ReadState readState) {
         return BookSearchDto.builder()
                 .id(book.getId())
                 .title(book.getTitle())
@@ -330,6 +476,24 @@ public class BookService {
                 .authors(book.getAuthors().stream()
                         .map(wrote -> wrote.getAuthor().getName())
                         .toList())
+                .readState(readState)
+                .build();
+    }
+
+    /**
+     * Review 엔티티를 DTO로 변환
+     */
+    private ReviewResponseDto convertReviewToDto(Review review) {
+        return ReviewResponseDto.builder()
+                .id(review.getId())
+                .content(review.getContent())
+                .rate(review.getRate())
+                .memberName(review.getMember().getName())
+                .memberId(review.getMember().getId())
+                .likeCount(review.getLikeCount())
+                .dislikeCount(review.getDislikeCount())
+                .createdDate(review.getCreateDate())
+                .modifiedDate(review.getModifyDate())
                 .build();
     }
 }

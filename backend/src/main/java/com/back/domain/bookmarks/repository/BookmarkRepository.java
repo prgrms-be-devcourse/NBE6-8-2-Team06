@@ -1,6 +1,7 @@
 package com.back.domain.bookmarks.repository;
 
 import com.back.domain.book.book.entity.Book;
+import com.back.domain.bookmarks.constant.ReadState;
 import com.back.domain.bookmarks.entity.Bookmark;
 import com.back.domain.member.member.entity.Member;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -13,4 +14,6 @@ public interface BookmarkRepository extends JpaRepository<Bookmark, Integer>, Jp
     Optional<Bookmark> findById(int id);
     Optional<Bookmark> findByBook(Book book);
     List<Bookmark> findByMember(Member member);
+    Optional<Bookmark> findByMemberAndBook(Member member, Book book);
+    Optional<ReadState> findReadStateByMemberAndBook(Member member, Book book);
 }
