@@ -1,4 +1,7 @@
 "use client"
+import { useAuth } from "@/app/_hooks/auth-context";
+import { useLogin } from "@/app/_hooks/useLogin";
+import withLogin from "@/app/_hooks/withLogin";
 import { ImageWithFallback } from "@/components/ImageWithFallback";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,8 +29,9 @@ interface WriteReviewPageProps {
     totalPages: number;
   }
 
-  export default function page({params}:{params:Promise<{bookId:string}>}){
-    const {bookId:bookIdStr} = use(params);
+  export default withLogin(function page({params}:{params:Promise<{id:string}>}){
+
+    const {id:bookIdStr} = use(params);
     const bookId = parseInt(bookIdStr);
       
     const router = useRouter();
@@ -90,7 +94,7 @@ interface WriteReviewPageProps {
   const handleSave = async () => {
     // 여기서 실제로는 API 호출을 통해 리뷰를 저장
     console.log('리뷰 저장:', { bookId, rating, review });
-    await apiFetch<ApiResponse>("/reviews/{book_id}", {
+    await apiFetch<ApiResponse>(`/reviews/${bookId}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -248,4 +252,4 @@ interface WriteReviewPageProps {
       </div>
     </div>
   );
-}
+})
