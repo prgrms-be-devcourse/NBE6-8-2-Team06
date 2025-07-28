@@ -9,4 +9,6 @@ import java.util.Optional;
 public interface ReviewRecommendRepository extends JpaRepository<ReviewRecommend, Integer> {
 
     Optional<ReviewRecommend> findByReviewAndMember(Review review, Member member);
+    Integer countByReviewAndIsRecommendedTrue(Review review);
+    Integer countByReviewAndIsRecommendedFalse(Review review);
 }

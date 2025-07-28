@@ -64,6 +64,4 @@ public class ReviewController {
         reviewRecommendService.recommendReview(review, member, isRecommend);
         return new RsData<>("201-1", "Review recommended successfully");
     }
-
-    private final MemberService memberService;
 }
