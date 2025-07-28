@@ -90,7 +90,7 @@ function NavigationContent({ children }: { children: React.ReactNode }) {
                 <>
                   <Button
                     variant="ghost"
-                    onClick={() => onNavigate("profile")}
+                    onClick={() => onNavigate("/profile")}
                     className="flex items-center space-x-2"
                   >
                     <User className="h-4 w-4" />
