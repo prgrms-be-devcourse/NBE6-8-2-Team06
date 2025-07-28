@@ -1,6 +1,8 @@
 package com.back.domain.book.book.dto;
 
 import com.back.domain.bookmarks.constant.ReadState;
+import com.back.domain.review.review.dto.ReviewResponseDto;
+import com.back.global.dto.PageResponseDto;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -9,7 +11,7 @@ import java.util.List;
 
 @Getter
 @Builder
-public class BookSearchDto {
+public class BookDetailDto {
     private int id;
     private String title;
     private String imageUrl;
@@ -21,4 +23,5 @@ public class BookSearchDto {
     private String categoryName;
     private List<String> authors;
     private ReadState readState;
+    private PageResponseDto<ReviewResponseDto> reviews;
 }

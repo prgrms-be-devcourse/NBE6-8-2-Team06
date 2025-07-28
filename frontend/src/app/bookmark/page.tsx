@@ -32,7 +32,7 @@ export default function Page() {
   const [categories, setCategories] = useState<string[]>([]);
   const [readStates, setReadStates] = useState<string[]>(['READ', 'READING', 'WISH']);
 
-  /*
+
   const fetchBookmarks = useCallback(async () => {
     setIsLoading(true);
     setError('');
@@ -57,7 +57,7 @@ export default function Page() {
   useEffect(() => {
     fetchBookmarks();
   }, [fetchBookmarks]);
-*/
+
 
   useEffect(() => {
     const fetchBookmarkReadStates = async () => {
@@ -74,6 +74,7 @@ export default function Page() {
   // Page.tsx 파일 상단 (import 다음, Page 컴포넌트 이전)
 
   // 임시 북마크 데이터
+  /*
   const mockBookmarkPage = {
     content: [
       {
@@ -180,11 +181,9 @@ export default function Page() {
       setIsLoading(false);
     }, 500);
 
-    /*
-    // <<<< 실제 API 연동 시 이 부분을 다시 활성화하세요 >>>>
-    // fetchBookmarks();
-    */
+
   }, []); // [] 로 변경하여 컴포넌트가 처음 마운트될 때 한 번만 실행되도록 합니다.
+*/
   const onNavigate = (path: string) => {
     router.push(path);
   }

@@ -127,4 +127,28 @@ public class BookmarkService {
         List<Review> reviews = reviewRepository.findAllByMember(member);
         return reviews.stream().collect(Collectors.toMap(Review::getBook, review -> review));
     }
+
+    public ReadState getReadStateByMemberAndBook(Member member, Book book) {
+        Optional<Bookmark> bookmark = bookmarkRepository.findByMemberAndBook(member, book);
+        return bookmark.map(Bookmark::getReadState).orElse(null);
+    }
+
+    public ReadState getReadStateByMemberAndBookId(Member member, int bookId) {
+        Book book = bookRepository.findById(bookId).orElse(null);
+        if (book == null) {
+            return null;
+        }
+        return getReadStateByMemberAndBook(member, book);
+    }
+
+    public Map<Integer, ReadState> getReadStatesForBooks(Member member, List<Integer> bookIds) {
+        List<Bookmark> bookmarks = bookmarkRepository.findByMember(member);
+
+        return bookmarks.stream()
+                .filter(bookmark -> bookIds.contains(bookmark.getBook().getId()))
+                .collect(Collectors.toMap(
+                        bookmark -> bookmark.getBook().getId(),
+                        Bookmark::getReadState
+                ));
+    }
 }
