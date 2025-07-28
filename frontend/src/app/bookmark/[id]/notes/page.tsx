@@ -1,4 +1,5 @@
 "use client"
+import withLogin from "@/app/_hooks/withLogin";
 import { ImageWithFallback } from "@/components/ImageWithFallback";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -35,9 +36,9 @@ interface BookNotesPageProps {
     updatedDate?: string;
   }
 
-  export default function page({params}:{params:Promise<{bookId:string}>}){
+  export default withLogin(function page({params}:{params:Promise<{id:string}>}){
 
-    const {bookId:bookIdStr} = use(params);
+    const {id:bookIdStr} = use(params);
     const bookId = parseInt(bookIdStr);
       
     const [searchTerm, setSearchTerm] = useState('');
@@ -394,4 +395,4 @@ interface BookNotesPageProps {
       </div>
     </div>
   );
-}
+})
