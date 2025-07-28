@@ -1,5 +1,6 @@
 "use client"
 import { useAuth } from "@/app/_hooks/auth-context";
+import { useReview } from "@/app/_hooks/useReview";
 import { useLogin } from "@/app/_hooks/useLogin";
 import withLogin from "@/app/_hooks/withLogin";
 import { ImageWithFallback } from "@/components/ImageWithFallback";
@@ -91,16 +92,12 @@ interface WriteReviewPageProps {
     setHoveredRating(0);
   };
 
+  const reviewApi = useReview(bookId);
+
   const handleSave = async () => {
     // 여기서 실제로는 API 호출을 통해 리뷰를 저장
     console.log('리뷰 저장:', { bookId, rating, review });
-    await apiFetch<ApiResponse>(`/reviews/${bookId}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body:JSON.stringify({"content":review, "rate":rating})
-    });
+    reviewApi.createReview({bookId, rating, review})
     
     onNavigate(`/bookmark/${bookId}`);
   };
