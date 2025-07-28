@@ -10,48 +10,49 @@ import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, Edit, FileText, Plus, Save, Search, Trash2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { use, useState } from "react";
+import { useNote } from "./_hook/useNote";
 
 
 interface BookNotesPageProps {
-    bookId: number | null;
-    onNavigate: (page: string) => void;
-  }
-  
-  interface MyBook {
-    id: number;
-    title: string;
-    author: string;
-    category: string;
-    totalPages: number;
-  }
-  
-  interface Note {
-    id: number;
-    bookId: number;
-    title: string;
-    content: string;
-    page?: number;
-    createdDate: string;
-    updatedDate?: string;
-  }
+  bookId: number | null;
+  onNavigate: (page: string) => void;
+}
 
-  export default function page({params}:{params:Promise<{bookId:string}>}){
+interface MyBook {
+  id: number;
+  title: string;
+  author: string;
+  category: string;
+  totalPages: number;
+}
 
-    const {bookId:bookIdStr} = use(params);
-    const bookId = parseInt(bookIdStr);
-      
-    const [searchTerm, setSearchTerm] = useState('');
-    const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const [editingNote, setEditingNote] = useState<Note | null>(null);
-    const [noteForm, setNoteForm] = useState({
-      title: '',
-      content: '',
-      page: ''
-    });
+interface Note {
+  id: number;
+  bookId: number;
+  title: string;
+  content: string;
+  page?: number;
+  createdDate: string;
+  updatedDate?: string;
+}
+
+export default function page({ params }: { params: Promise<{ bookId: string }> }) {
+
+  const { bookId: bookIdStr } = use(params);
+  const bookId = parseInt(bookIdStr);
+
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingNote, setEditingNote] = useState<Note | null>(null);
+  const [noteForm, setNoteForm] = useState({
+    title: '',
+    content: '',
+    page: ''
+  });
 
 
   const router = useRouter();
-  const onNavigate = (e:string) => {
+  const onNavigate = (e: string) => {
     router.push(e);
   }
 
@@ -115,7 +116,7 @@ interface BookNotesPageProps {
   const book = myBooks.find(b => b.id === bookId);
   const bookNotes = notes.filter(note => note.bookId === bookId);
 
-  const filteredNotes = bookNotes.filter(note => 
+  const filteredNotes = bookNotes.filter(note =>
     note.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     note.content.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -137,18 +138,18 @@ interface BookNotesPageProps {
     if (!noteForm.title.trim() || !noteForm.content.trim()) return;
 
     const now = new Date().toISOString().split('T')[0];
-    
+
     if (editingNote) {
       // 수정
-      setNotes(prev => prev.map(note => 
-        note.id === editingNote.id 
+      setNotes(prev => prev.map(note =>
+        note.id === editingNote.id
           ? {
-              ...note,
-              title: noteForm.title,
-              content: noteForm.content,
-              page: noteForm.page ? parseInt(noteForm.page) : undefined,
-              updatedDate: now
-            }
+            ...note,
+            title: noteForm.title,
+            content: noteForm.content,
+            page: noteForm.page ? parseInt(noteForm.page) : undefined,
+            updatedDate: now
+          }
           : note
       ));
     } else {
@@ -192,6 +193,8 @@ interface BookNotesPageProps {
     setIsDialogOpen(true);
   };
 
+  const { note, bookInfo } = useNote("1");
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* 뒤로가기 버튼 */}
@@ -219,7 +222,7 @@ interface BookNotesPageProps {
                 <p className="text-sm text-muted-foreground mb-2">{book.author}</p>
                 <Badge variant="secondary">{book.category}</Badge>
               </div>
-              
+
               <div className="mt-6 pt-6 border-t">
                 <div className="text-center">
                   <div className="text-2xl mb-1">{bookNotes.length}</div>
@@ -239,7 +242,7 @@ interface BookNotesPageProps {
                 읽으면서 중요하다고 생각하는 내용을 기록해보세요
               </p>
             </div>
-            
+
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
                 <Button onClick={openNewNoteDialog}>
@@ -256,7 +259,7 @@ interface BookNotesPageProps {
                     {book.title}에 대한 독서 노트를 작성하세요
                   </DialogDescription>
                 </DialogHeader>
-                
+
                 <div className="space-y-4">
                   <div className="grid grid-cols-4 gap-4">
                     <div className="col-span-3">
@@ -264,7 +267,7 @@ interface BookNotesPageProps {
                       <Input
                         id="title"
                         value={noteForm.title}
-                        onChange={(e) => setNoteForm({...noteForm, title: e.target.value})}
+                        onChange={(e) => setNoteForm({ ...noteForm, title: e.target.value })}
                         placeholder="노트 제목을 입력하세요"
                       />
                     </div>
@@ -276,30 +279,30 @@ interface BookNotesPageProps {
                         min="1"
                         max={book.totalPages}
                         value={noteForm.page}
-                        onChange={(e) => setNoteForm({...noteForm, page: e.target.value})}
+                        onChange={(e) => setNoteForm({ ...noteForm, page: e.target.value })}
                         placeholder="페이지"
                       />
                     </div>
                   </div>
-                  
+
                   <div>
                     <Label htmlFor="content">내용 *</Label>
                     <Textarea
                       id="content"
                       value={noteForm.content}
-                      onChange={(e) => setNoteForm({...noteForm, content: e.target.value})}
+                      onChange={(e) => setNoteForm({ ...noteForm, content: e.target.value })}
                       placeholder="노트 내용을 입력하세요"
                       rows={8}
                       className="resize-none"
                     />
                   </div>
-                  
+
                   <div className="flex justify-end space-x-2 pt-4">
                     <Button variant="outline" onClick={resetForm}>
                       <X className="h-4 w-4 mr-2" />
                       취소
                     </Button>
-                    <Button 
+                    <Button
                       onClick={handleSaveNote}
                       disabled={!noteForm.title.trim() || !noteForm.content.trim()}
                     >
@@ -358,21 +361,21 @@ interface BookNotesPageProps {
                         </div>
                         <CardDescription>
                           {note.createdDate}
-                          {note.updatedDate && note.updatedDate !== note.createdDate && 
+                          {note.updatedDate && note.updatedDate !== note.createdDate &&
                             ` (수정: ${note.updatedDate})`
                           }
                         </CardDescription>
                       </div>
                       <div className="flex space-x-2">
-                        <Button 
-                          variant="ghost" 
+                        <Button
+                          variant="ghost"
                           size="sm"
                           onClick={() => handleEditNote(note)}
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button 
-                          variant="ghost" 
+                        <Button
+                          variant="ghost"
                           size="sm"
                           onClick={() => handleDeleteNote(note.id)}
                         >

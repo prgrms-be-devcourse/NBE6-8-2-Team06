@@ -20,13 +20,13 @@ public class NoteService {
         return bookmarkRepository.findById(id);
     }
 
-    public Note write(int bookmarkId, String title, String content) {
+    public Note write(int bookmarkId, String title, String content, String page) {
         Bookmark bookmark = bookmarkRepository.findById(bookmarkId)
                 .orElseThrow(() -> new NoSuchElementException("%d번 북마크가 없습니다.".formatted(bookmarkId)));
 
-        Note note = new Note(title, content, bookmark);
+        Note note = new Note(title, content, page, bookmark);
         bookmark.getNotes().add(note);
-//        return noteRepository.save(note);
+
         return note;
     }
 
@@ -34,9 +34,10 @@ public class NoteService {
         noteRepository.flush();
     }
 
-    public void modify(Note note, String title, String content) {
+    public void modify(Note note, String title, String content, String page) {
         note.setTitle(title);
         note.setContent(content);
+        note.setPage(page);
     }
 
     public long count() {
