@@ -53,7 +53,7 @@ export default function HomePage() {
         
         {isLoggedIn ? (
           <div className="flex justify-center space-x-4">
-            <Link href="/my-books" passHref>
+            <Link href="/bookmark" passHref>
               <Button size="lg">
                 <BookOpen className="mr-2 h-5 w-5" />
                 내 책 보기
@@ -124,7 +124,7 @@ export default function HomePage() {
           <div className="mb-12">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl">최근 활동</h2>
-              <Link href="/my-books" passHref>
+              <Link href="/bookmark" passHref>
                 <Button variant="outline">
                   내 책 관리
                 </Button>
