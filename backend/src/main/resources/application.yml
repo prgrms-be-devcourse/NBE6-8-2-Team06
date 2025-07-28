@@ -2,7 +2,7 @@ spring:
   application:
     name: back
   profiles:
-    active: dev
+    active: test
   output:
     ansi:
       enabled: always

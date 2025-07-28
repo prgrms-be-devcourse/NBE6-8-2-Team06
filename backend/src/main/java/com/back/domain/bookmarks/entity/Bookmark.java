@@ -4,6 +4,7 @@ import com.back.domain.book.book.entity.Book;
 import com.back.domain.bookmarks.constant.ReadState;
 import com.back.domain.member.member.entity.Member;
 import com.back.domain.note.entity.Note;
+import com.back.global.exception.ServiceException;
 import com.back.global.jpa.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -25,8 +26,10 @@ public class Bookmark extends BaseEntity {
     private LocalDateTime startReadDate;
     private LocalDateTime endReadDate;
 
-    public Bookmark(Book book) {
+    public Bookmark(Book book,  Member member) {
         this.book = book;
+        this.member = member;
+        this.readState = ReadState.WISH;
     }
 
     public void updateReadState(ReadState readState) {
@@ -43,10 +46,10 @@ public class Bookmark extends BaseEntity {
         this.endReadDate = endReadDate;
     }
 
-    @OneToMany(mappedBy = "bookmark", cascade = {CascadeType.PERSIST, CascadeType.REMOVE}, orphanRemoval = true) //임시 맵핑 - note
+    @OneToMany(mappedBy = "bookmark", cascade = {CascadeType.PERSIST, CascadeType.REMOVE}, orphanRemoval = true)
     private List<Note> notes = new ArrayList<>();
 
-    @OneToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "book_id")
     private Book book;
 
@@ -69,6 +72,12 @@ public class Bookmark extends BaseEntity {
     }
 
     public LocalDateTime getDisplayDate(){
-        return readState==ReadState.BEFORE_READING ? getCreateDate():readState==ReadState.READING ? startReadDate:endReadDate;
+        return readState==ReadState.WISH ? getCreateDate():readState==ReadState.READING ? startReadDate:endReadDate;
+    }
+
+    public void checkActor(Member actor){
+        if(!actor.equals(member)){
+            throw new ServiceException("403-1", "권한이 없습니다.");
+        }
     }
 }

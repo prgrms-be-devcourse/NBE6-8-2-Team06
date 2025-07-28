@@ -1,6 +1,7 @@
 package com.back.domain.bookmarks.dto;
 
 import com.back.domain.bookmarks.entity.Bookmark;
+import com.back.domain.review.review.entity.Review;
 
 import java.time.LocalDateTime;
 
@@ -12,9 +13,10 @@ public record BookmarkDto(
         String readState,
         int readPage,
         LocalDateTime date,
-        double readingRate
+        double readingRate,
+        BookmarkReviewDetailDto review
 ) {
-    public BookmarkDto(Bookmark bookmark) {
+    public BookmarkDto(Bookmark bookmark, Review review) {
         this(
                 bookmark.getId(),
                 bookmark.getMember().getId(),
@@ -23,7 +25,8 @@ public record BookmarkDto(
                 bookmark.getReadState().toString(),
                 bookmark.getReadPage(),
                 bookmark.getDisplayDate(),
-                bookmark.calculateReadingRate()
+                bookmark.calculateReadingRate(),
+                new BookmarkReviewDetailDto(review)
         );
     }
 }

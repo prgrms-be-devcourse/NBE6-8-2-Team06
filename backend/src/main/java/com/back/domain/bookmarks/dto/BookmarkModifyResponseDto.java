@@ -7,7 +7,7 @@ public record BookmarkModifyResponseDto(
 ) {
     public BookmarkModifyResponseDto(Bookmark bookmark){
         this(
-                new BookmarkDto(bookmark)
+                new BookmarkDto(bookmark, null)
         );
     }
 }
