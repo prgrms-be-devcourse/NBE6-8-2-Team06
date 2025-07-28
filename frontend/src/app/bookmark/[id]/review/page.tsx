@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { apiFetch } from "@/lib/apiFetch";
+import { ApiResponse } from "@/types/auth";
 import { ArrowLeft, Save, Star, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { use, useState } from "react";
@@ -85,9 +87,16 @@ interface WriteReviewPageProps {
     setHoveredRating(0);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     // 여기서 실제로는 API 호출을 통해 리뷰를 저장
     console.log('리뷰 저장:', { bookId, rating, review });
+    await apiFetch<ApiResponse>("/reviews/{book_id}", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body:JSON.stringify({"content":review, "rate":rating})
+    });
     
     onNavigate(`/bookmark/${bookId}`);
   };
