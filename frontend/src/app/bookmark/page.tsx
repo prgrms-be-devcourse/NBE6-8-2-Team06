@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { getBookmarks, createBookmark, updateBookmark, deleteBookmark } from './lib/bookmarkAPI';
-import { BookmarkPage, Bookmark } from './lib/bookmarkData';
+import { getBookmarks, createBookmark, updateBookmark, deleteBookmark, getBookmarkReadStates } from './lib/bookmarkAPI';
+import { BookmarkPage, Bookmark, BookmarkReadStates } from './lib/bookmarkData';
 import { BookOpen, Plus, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -20,6 +20,7 @@ export default function Page() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [bookmarkReadStates, setBookmarkReadStates] = useState<BookmarkReadStates>();
   const [currentPage, setCurrentPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
@@ -57,6 +58,19 @@ export default function Page() {
     fetchBookmarks();
   }, [fetchBookmarks]);
 */
+
+  useEffect(() => {
+    const fetchBookmarkReadStates = async () => {
+      try {
+        const response = await getBookmarkReadStates();
+        setBookmarkReadStates(response.data);
+      } catch (error) {
+        console.error('북마크 읽기 상태 데이터를 가져올 수 없습니다.', error);
+      }
+    };
+    fetchBookmarkReadStates();
+  }, []);
+
   // Page.tsx 파일 상단 (import 다음, Page 컴포넌트 이전)
 
   // 임시 북마크 데이터
@@ -188,13 +202,6 @@ export default function Page() {
     }
   };
 
-  const getReadStateCount = (readState: string) => {
-    if (readState === '모든 상태') {
-      return bookmarks?.totalElements || 0;
-    }
-    return bookmarks?.content.filter(bookmark => bookmark.readState === readState).length || 0;
-  };
-
   const getReadStateColor = (readState: string) => {
     switch (readState) {
       case 'READ':
@@ -220,7 +227,7 @@ export default function Page() {
         <div>
           <h1 className="text-3xl mb-2">내 책 목록</h1>
           <p className="text-muted-foreground">
-            {totalElements}권의 책을 등록했습니다.
+            {bookmarkReadStates?.totalCount}권의 책을 등록했습니다.
           </p>
         </div>
 
@@ -234,25 +241,25 @@ export default function Page() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <Card>
           <CardContent className="p-4">
-            <div className="text-2xl">{getReadStateCount('모든 상태')}</div>
+            <div className="text-2xl">{bookmarkReadStates?.totalCount || 0}</div>
             <p className="text-sm text-muted-foreground">총 책 수</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="text-2xl text-green-600">{getReadStateCount('READ')}</div>
+            <div className="text-2xl text-green-600">{bookmarkReadStates?.READ || 0}</div>
             <p className="text-sm text-muted-foreground">읽은 책</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="text-2xl text-blue-600">{getReadStateCount('READING')}</div>
+            <div className="text-2xl text-blue-600">{bookmarkReadStates?.READING || 0}</div>
             <p className="text-sm text-muted-foreground">읽고 있는 책</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="text-2xl text-gray-600">{getReadStateCount('WISH')}</div>
+            <div className="text-2xl text-gray-600">{bookmarkReadStates?.WISH || 0}</div>
             <p className="text-sm text-muted-foreground">읽고 싶은 책</p>
           </CardContent>
         </Card>
@@ -295,9 +302,9 @@ export default function Page() {
       <Tabs defaultValue={selectedReadState} onValueChange={setSelectedReadState} className="w-full">
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="all">모든 상태 ({bookmarks?.totalElements})</TabsTrigger>
-          <TabsTrigger value="READ">읽은 책 ({getReadStateCount('READ')})</TabsTrigger>
-          <TabsTrigger value="READING">읽고 있는 책 ({getReadStateCount('READING')})</TabsTrigger>
-          <TabsTrigger value="WISH">읽고 싶은 책 ({getReadStateCount('WISH')})</TabsTrigger>
+          <TabsTrigger value="READ">읽은 책 ({bookmarkReadStates?.READ || 0})</TabsTrigger>
+          <TabsTrigger value="READING">읽고 있는 책 ({bookmarkReadStates?.READING || 0})</TabsTrigger>
+          <TabsTrigger value="WISH">읽고 싶은 책 ({bookmarkReadStates?.WISH || 0})</TabsTrigger>
         </TabsList>
         <div className="mt-6">
           {isLoading ? (

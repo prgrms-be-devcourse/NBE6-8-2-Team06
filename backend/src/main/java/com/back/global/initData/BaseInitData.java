@@ -8,6 +8,8 @@ import com.back.domain.book.category.entity.Category;
 import com.back.domain.book.category.repository.CategoryRepository;
 import com.back.domain.bookmarks.entity.Bookmark;
 import com.back.domain.bookmarks.repository.BookmarkRepository;
+import com.back.domain.bookmarks.service.BookmarkService;
+import com.back.domain.member.member.entity.Member;
 import com.back.domain.member.member.service.MemberService;
 import com.back.domain.note.repository.NoteRepository;
 import com.back.domain.note.service.NoteService;
@@ -18,6 +20,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
 
 @Configuration
 @RequiredArgsConstructor
@@ -31,6 +35,7 @@ public class BaseInitData {
     private final BookService bookService;
     private final NoteService noteService;
     private final NoteRepository noteRepository;
+    private final BookmarkService bookmarkService;
 
 
     @Bean
@@ -39,6 +44,7 @@ public class BaseInitData {
 //            self.initReviewData(); // 리뷰 테스트 시 주석 해제
 //            self.initBookData(); // 책 데이터 초기화
 //            self.initNoteData(); // Note 관련 데이터
+//            self.initBookmarkData(); // Bookmark 데이터 초기화
         };
     }
 
@@ -145,4 +151,17 @@ public class BaseInitData {
 
     @Autowired
     private BookmarkRepository bookmarkRepository;
+
+    public void initBookmarkData(){
+        if (bookmarkRepository.count() > 0) return;
+        Member member = memberService.join("testUser", "email", "password");
+        Book book1 = bookRepository.findById(1).get();
+        Book book2 = bookRepository.findById(2).get();
+        Book book3 = bookRepository.findById(3).get();
+        Bookmark bookmark1 = bookmarkService.save(book1.getId(), member);
+        Bookmark bookmark2 = bookmarkService.save(book2.getId(), member);
+        bookmarkService.save(book3.getId(), member);
+        bookmarkService.modifyBookmark(member, bookmark1.getId(), "READ", LocalDateTime.of(2025,07,22,12,20), LocalDateTime.now(),book1.getTotalPage());
+        bookmarkService.modifyBookmark(member, bookmark2.getId(), "READING", LocalDateTime.now(), null, 101);
+    }
 }
