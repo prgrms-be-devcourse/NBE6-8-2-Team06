@@ -1,4 +1,6 @@
 "use client"
+import { useReview } from "@/app/_hooks/useReview";
+import withLogin from "@/app/_hooks/withLogin";
 import { ImageWithFallback } from "@/components/ImageWithFallback";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,8 +26,8 @@ interface WriteReviewPageProps {
     totalPages: number;
   }
 
-  export default function page({params}:{params:Promise<{bookId:string}>}){
-    const {bookId:bookIdStr} = use(params);
+  export default withLogin(function page({params}:{params:Promise<{id:string}>}){
+    const {id:bookIdStr} = use(params);
     const bookId = parseInt(bookIdStr);
       
     const router = useRouter();
@@ -85,10 +87,12 @@ interface WriteReviewPageProps {
     setHoveredRating(0);
   };
 
+  const reviewApi = useReview(bookId);
+
   const handleSave = () => {
     // 여기서 실제로는 API 호출을 통해 리뷰를 저장
     console.log('리뷰 저장:', { bookId, rating, review });
-    
+    reviewApi.createReview({bookId, rating, review});
     onNavigate(`/bookmark/${bookId}`);
   };
 
@@ -239,4 +243,4 @@ interface WriteReviewPageProps {
       </div>
     </div>
   );
-}
+})
