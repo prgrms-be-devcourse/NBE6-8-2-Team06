@@ -58,6 +58,7 @@ public class Bookmark extends BaseEntity {
     private Member member;
 
     public int calculateReadingRate(){
+        if(readState == ReadState.WISH) return 0;
         int totalPage = book.getTotalPage();
         if(totalPage == 0) return 0;
         if(readPage >= totalPage) return 100;
@@ -67,6 +68,7 @@ public class Bookmark extends BaseEntity {
     }
 
     public long calculateReadingDuration(){
+        if(readState == ReadState.WISH) return 0;
         LocalDateTime effectiveEnd = (endReadDate == null) ? LocalDateTime.now() : endReadDate;
         return ChronoUnit.DAYS.between(startReadDate, effectiveEnd);
     }

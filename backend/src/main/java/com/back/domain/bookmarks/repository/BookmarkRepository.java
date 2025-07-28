@@ -13,6 +13,7 @@ import java.util.Optional;
 public interface BookmarkRepository extends JpaRepository<Bookmark, Integer>, JpaSpecificationExecutor<Bookmark> {
     Optional<Bookmark> findById(int id);
     Optional<Bookmark> findByBook(Book book);
+    Optional<Bookmark> findByIdAndMember(int id, Member member);
     List<Bookmark> findByMember(Member member);
     Optional<Bookmark> findByMemberAndBook(Member member, Book book);
     Optional<ReadState> findReadStateByMemberAndBook(Member member, Book book);
