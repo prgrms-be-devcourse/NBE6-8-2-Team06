@@ -1,7 +1,9 @@
 package com.back.domain.note.controller;
 
+import com.back.domain.book.book.entity.Book;
 import com.back.domain.bookmarks.entity.Bookmark;
 import com.back.domain.note.dto.NoteDto;
+import com.back.domain.note.dto.NotePageDto;
 import com.back.domain.note.entity.Note;
 import com.back.domain.note.service.NoteService;
 import com.back.global.rsData.RsData;
@@ -25,15 +27,19 @@ public class NoteController {
 
     @GetMapping
     @Transactional(readOnly = true)
-    @Operation(summary = "노트 다건 조회")
-    public List<NoteDto> getItems(@PathVariable int bookmarkId) {
+    @Operation(summary = "노트 페이지 전체 조회")
+    public NotePageDto getItems(@PathVariable int bookmarkId) {
         Bookmark bookmark = noteService.findBookmarkById(bookmarkId).get();
 
-        return bookmark
+        Book book = bookmark.getBook();
+
+        List<NoteDto> notes = bookmark
                 .getNotes()
                 .stream()
                 .map(note -> new NoteDto(note))
                 .collect(Collectors.toList());
+
+        return new NotePageDto(notes, book);
     }
 
     @GetMapping("/{id}")
@@ -56,7 +62,8 @@ public class NoteController {
             String title,
             @NotBlank
             @Size(min = 2, max = 1000)
-            String content
+            String content,
+            String page
     ) {
     }
 
@@ -68,7 +75,7 @@ public class NoteController {
             @PathVariable int bookmarkId,
             @Valid @RequestBody NoteWriteReqBody reqBody
     ) {
-        Note note = noteService.write(bookmarkId, reqBody.title, reqBody.content);
+        Note note = noteService.write(bookmarkId, reqBody.title, reqBody.content, reqBody.page);
 
         // 미리 db에 반영
         noteService.flush();
@@ -87,7 +94,8 @@ public class NoteController {
             String title,
             @NotBlank
             @Size(min = 2, max = 1000)
-            String content
+            String content,
+            String page
     ) {
     }
 
@@ -104,7 +112,7 @@ public class NoteController {
 
         Note note = noteService.findNoteById(bookmark, id).get();
 
-        noteService.modify(note, reqBody.title, reqBody.content);
+        noteService.modify(note, reqBody.title, reqBody.content, reqBody.page);
 
         return new RsData<>(
                 "200-1",
