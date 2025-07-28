@@ -13,6 +13,8 @@ import com.back.domain.bookmarks.entity.Bookmark;
 import com.back.domain.bookmarks.repository.BookmarkRepository;
 import com.back.domain.member.member.entity.Member;
 import com.back.domain.member.member.repository.MemberRepository;
+import com.back.domain.review.review.entity.Review;
+import com.back.domain.review.review.repository.ReviewRepository;
 import com.back.global.security.SecurityUser;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
@@ -65,6 +67,12 @@ class BookControllerTest {
     @Autowired
     private EntityManager entityManager;
 
+    @Autowired
+    private ReviewRepository reviewRepository;
+
+    private Review review1;
+    private Review review2;
+
     private Member testMember;
     private Book book1;
     private Book book2;
@@ -109,6 +117,12 @@ class BookControllerTest {
         bookmark.updateReadState(ReadState.READING);
         bookmark.updateReadPage(50);
         bookmarkRepository.save(bookmark);
+
+        review1 = new Review("정말 좋은 책입니다!", 5, testMember, book1);
+        review1 = reviewRepository.save(review1);
+
+        review2 = new Review("보통이네요", 3, testMember, book1);
+        review2 = reviewRepository.save(review2);
 
         // 영속성 컨텍스트 플러시 및 클리어
         entityManager.flush();
@@ -459,4 +473,151 @@ class BookControllerTest {
                 new UsernamePasswordAuthenticationToken(testMember, null, null);
         SecurityContextHolder.getContext().setAuthentication(authentication);
     }
+
+    @Test
+    @DisplayName("책 상세 조회 - 로그인하지 않은 사용자 (readState null)")
+    void getBookById_NotLoggedIn_Success() throws Exception {
+        mockMvc.perform(get("/api/books/" + book1.getId())
+                        .param("page", "0")
+                        .param("size", "10")
+                        .param("sortBy", "id")
+                        .param("sortDir", "desc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resultCode").value("200-4"))
+                .andExpect(jsonPath("$.msg").value("책 상세 조회 성공"))
+                .andExpect(jsonPath("$.data").isNotEmpty())
+                .andExpect(jsonPath("$.data.id").value(book1.getId()))
+                .andExpect(jsonPath("$.data.title").value("테스트 책 1"))
+                .andExpect(jsonPath("$.data.publisher").value("테스트 출판사"))
+                .andExpect(jsonPath("$.data.isbn13").value("9780123456789"))
+                .andExpect(jsonPath("$.data.totalPage").value(200))
+                .andExpect(jsonPath("$.data.avgRate").value(4.5))
+                .andExpect(jsonPath("$.data.categoryName").value("소설"))
+                .andExpect(jsonPath("$.data.authors").isArray())
+                .andExpect(jsonPath("$.data.authors[0]").value("김작가"))
+                .andExpect(jsonPath("$.data.imageUrl").value("https://example.com/book1.jpg"))
+                .andExpect(jsonPath("$.data.publishedDate").exists())
+                .andExpect(jsonPath("$.data.readState").doesNotExist()) // null이므로 JSON에 포함되지 않음
+                .andExpect(jsonPath("$.data.reviews").isNotEmpty())
+                .andExpect(jsonPath("$.data.reviews.data").isArray())
+                .andExpect(jsonPath("$.data.reviews.data.length()").value(2))
+                .andExpect(jsonPath("$.data.reviews.totalElements").value(2))
+                .andExpect(jsonPath("$.data.reviews.totalPages").value(1))
+                .andExpect(jsonPath("$.data.reviews.pageSize").value(10))
+                .andExpect(jsonPath("$.data.reviews.pageNumber").value(0))
+                .andExpect(jsonPath("$.data.reviews.isLast").value(true));
+    }
+
+    @Test
+    @DisplayName("책 상세 조회 - 로그인한 사용자 (readState 포함)")
+    void getBookById_LoggedIn_Success() throws Exception {
+        mockMvc.perform(get("/api/books/" + book1.getId())
+                        .with(user(new SecurityUser(testMember)))
+                        .param("page", "0")
+                        .param("size", "10")
+                        .param("sortBy", "id")
+                        .param("sortDir", "desc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resultCode").value("200-4"))
+                .andExpect(jsonPath("$.msg").value("책 상세 조회 성공"))
+                .andExpect(jsonPath("$.data").isNotEmpty())
+                .andExpect(jsonPath("$.data.id").value(book1.getId()))
+                .andExpect(jsonPath("$.data.title").value("테스트 책 1"))
+                .andExpect(jsonPath("$.data.readState").value("READING")) // 북마크된 책
+                .andExpect(jsonPath("$.data.reviews").isNotEmpty())
+                .andExpect(jsonPath("$.data.reviews.data").isArray())
+                .andExpect(jsonPath("$.data.reviews.data.length()").value(2));
+    }
+
+    @Test
+    @DisplayName("책 상세 조회 - 리뷰 내용 검증")
+    void getBookById_ReviewContent_Success() throws Exception {
+        mockMvc.perform(get("/api/books/" + book1.getId())
+                        .with(user(new SecurityUser(testMember)))
+                        .param("page", "0")
+                        .param("size", "10")
+                        .param("sortBy", "id")
+                        .param("sortDir", "desc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.reviews.data[0].id").exists())
+                .andExpect(jsonPath("$.data.reviews.data[0].content").exists())
+                .andExpect(jsonPath("$.data.reviews.data[0].rate").exists())
+                .andExpect(jsonPath("$.data.reviews.data[0].memberName").exists())
+                .andExpect(jsonPath("$.data.reviews.data[0].memberId").value(testMember.getId()))
+                .andExpect(jsonPath("$.data.reviews.data[0].likeCount").exists())
+                .andExpect(jsonPath("$.data.reviews.data[0].dislikeCount").exists())
+                .andExpect(jsonPath("$.data.reviews.data[0].createdDate").exists())
+                .andExpect(jsonPath("$.data.reviews.data[0].modifiedDate").exists());
+    }
+
+    @Test
+    @DisplayName("책 상세 조회 - 리뷰 페이징 테스트")
+    void getBookById_ReviewPaging_Success() throws Exception {
+        mockMvc.perform(get("/api/books/" + book1.getId())
+                        .param("page", "0")
+                        .param("size", "1") // 페이지 크기를 1로 설정
+                        .param("sortBy", "id")
+                        .param("sortDir", "desc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.reviews.data.length()").value(1))
+                .andExpect(jsonPath("$.data.reviews.totalElements").value(2))
+                .andExpect(jsonPath("$.data.reviews.totalPages").value(2))
+                .andExpect(jsonPath("$.data.reviews.pageSize").value(1))
+                .andExpect(jsonPath("$.data.reviews.pageNumber").value(0))
+                .andExpect(jsonPath("$.data.reviews.isLast").value(false));
+
+        // 두 번째 페이지 확인
+        mockMvc.perform(get("/api/books/" + book1.getId())
+                        .param("page", "1")
+                        .param("size", "1")
+                        .param("sortBy", "id")
+                        .param("sortDir", "desc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.reviews.data.length()").value(1))
+                .andExpect(jsonPath("$.data.reviews.pageNumber").value(1))
+                .andExpect(jsonPath("$.data.reviews.isLast").value(true));
+    }
+
+
+    @Test
+    @DisplayName("책 상세 조회 - 리뷰가 없는 책")
+    void getBookById_NoReviews_Success() throws Exception {
+        mockMvc.perform(get("/api/books/" + book2.getId()) // book2는 리뷰가 없음
+                        .param("page", "0")
+                        .param("size", "10")
+                        .param("sortBy", "id")
+                        .param("sortDir", "desc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resultCode").value("200-4"))
+                .andExpect(jsonPath("$.data.id").value(book2.getId()))
+                .andExpect(jsonPath("$.data.title").value("테스트 책 2"))
+                .andExpect(jsonPath("$.data.reviews").isNotEmpty())
+                .andExpect(jsonPath("$.data.reviews.data").isArray())
+                .andExpect(jsonPath("$.data.reviews.data.length()").value(0))
+                .andExpect(jsonPath("$.data.reviews.totalElements").value(0))
+                .andExpect(jsonPath("$.data.reviews.totalPages").value(0));
+    }
+
+
+
+    @Test
+    @DisplayName("책 상세 조회 - 리뷰 정렬 테스트 (생성일시 내림차순)")
+    void getBookById_ReviewSortByCreatedDate_Success() throws Exception {
+        // 추가 리뷰 생성 (시간 차이를 두기 위해)
+        Thread.sleep(1000); // 1초 대기
+        Review newerReview = new Review("최신 리뷰입니다", 4, testMember, book1);
+        reviewRepository.save(newerReview);
+        entityManager.flush();
+        entityManager.clear();
+
+        mockMvc.perform(get("/api/books/" + book1.getId())
+                        .param("page", "0")
+                        .param("size", "10")
+                        .param("sortBy", "createDate") // 생성일시로 정렬
+                        .param("sortDir", "desc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.reviews.data.length()").value(3))
+                .andExpect(jsonPath("$.data.reviews.data[0].content").value("최신 리뷰입니다")); // 최신 리뷰가 첫 번째에 와야 함
+    }
+
 }

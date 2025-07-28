@@ -1,5 +1,6 @@
 package com.back.domain.book.book.controller;
 
+import com.back.domain.book.book.dto.BookDetailDto;
 import com.back.domain.book.book.dto.BookSearchDto;
 import com.back.domain.book.book.service.BookService;
 import com.back.domain.member.member.entity.Member;
@@ -112,6 +113,46 @@ public class BookController {
         }
 
         return new RsData<>("200-3", "ISBN으로 책 조회 성공", book);
+    }
+
+    @GetMapping("/{id}")
+    public RsData<BookDetailDto> getBookById(
+            @PathVariable int id,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir) {
+
+        if (page < 0) {
+            throw new ServiceException("400-1", "페이지 번호는 0 이상이어야 합니다.");
+        }
+
+        if (size <= 0) {
+            throw new ServiceException("400-2", "페이지 크기는 1 이상이어야 합니다.");
+        }
+
+        Sort.Direction direction;
+        if (sortDir.equalsIgnoreCase("desc")) {
+            direction = Sort.Direction.DESC;
+        } else if (sortDir.equalsIgnoreCase("asc")) {
+            direction = Sort.Direction.ASC;
+        } else {
+            throw new ServiceException("400-3", "정렬 방향은 'asc' 또는 'desc'만 허용됩니다.");
+        }
+
+        // Pageable 객체 생성
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+
+        // 현재 로그인한 사용자 정보 가져오기 (로그인하지 않은 경우 null)
+        Member member = rq.getActor();
+
+        BookDetailDto bookDetail = bookService.getBookDetailById(id, pageable, member);
+
+        if (bookDetail == null) {
+            return new RsData<>("404-1", "해당 ID의 책을 찾을 수 없습니다.", null);
+        }
+
+        return new RsData<>("200-4", "책 상세 조회 성공", bookDetail);
     }
 
 }

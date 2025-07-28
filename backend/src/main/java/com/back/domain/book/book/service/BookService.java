@@ -2,6 +2,7 @@ package com.back.domain.book.book.service;
 
 import com.back.domain.book.author.entity.Author;
 import com.back.domain.book.author.repository.AuthorRepository;
+import com.back.domain.book.book.dto.BookDetailDto;
 import com.back.domain.book.book.dto.BookSearchDto;
 import com.back.domain.book.book.entity.Book;
 import com.back.domain.book.book.repository.BookRepository;
@@ -15,7 +16,10 @@ import com.back.domain.bookmarks.constant.ReadState;
 import com.back.domain.bookmarks.entity.Bookmark;
 import com.back.domain.bookmarks.repository.BookmarkRepository;
 import com.back.domain.member.member.entity.Member;
+import com.back.domain.review.review.dto.ReviewResponseDto;
 import com.back.domain.review.review.entity.Review;
+import com.back.domain.review.review.repository.ReviewRepository;
+import com.back.global.dto.PageResponseDto;
 import com.back.global.exception.ServiceException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -40,6 +44,7 @@ public class BookService {
     private final WroteRepository wroteRepository;
     private final AladinApiClient aladinApiClient;
     private final BookmarkRepository bookmarkRepository; // BookmarkService 대신 직접 사용
+    private final ReviewRepository reviewRepository;
 
     /**
      * 하이브리드 접근방식 - DB 우선, 없으면 API 검색 (Member 정보 포함)
@@ -131,6 +136,61 @@ public class BookService {
             throw new ServiceException("500-1", "전체 책 조회 중 오류가 발생했습니다.");
         }
     }
+
+
+    /**
+     * ID로 책 상세 정보 조회 (리뷰 페이징 포함)
+     */
+    @Transactional(readOnly = true)
+    public BookDetailDto getBookDetailById(int id, Pageable pageable, Member member) {
+        log.info("책 상세 조회: id={}, page={}, size={}, member={}",
+                id, pageable.getPageNumber(), pageable.getPageSize(),
+                member != null ? member.getId() : "null");
+
+        try {
+            // 책 조회
+            Optional<Book> bookOptional = bookRepository.findById(id);
+            if (bookOptional.isEmpty()) {
+                return null;
+            }
+
+            Book book = bookOptional.get();
+
+            // 리뷰 페이징 조회
+            Page<Review> reviewPage = reviewRepository.findByBookOrderByCreateDateDesc(book, pageable);
+            PageResponseDto<ReviewResponseDto> reviewPageResponse = new PageResponseDto<>(
+                    reviewPage.map(this::convertReviewToDto)
+            );
+
+            // ReadState 조회
+            ReadState readState = null;
+            if (member != null) {
+                readState = getReadStateByMemberAndBook(member, book);
+            }
+
+            return BookDetailDto.builder()
+                    .id(book.getId())
+                    .title(book.getTitle())
+                    .imageUrl(book.getImageUrl())
+                    .publisher(book.getPublisher())
+                    .isbn13(book.getIsbn13())
+                    .totalPage(book.getTotalPage())
+                    .publishedDate(book.getPublishedDate())
+                    .avgRate(book.getAvgRate())
+                    .categoryName(book.getCategory().getName())
+                    .authors(book.getAuthors().stream()
+                            .map(wrote -> wrote.getAuthor().getName())
+                            .toList())
+                    .readState(readState)
+                    .reviews(reviewPageResponse)
+                    .build();
+
+        } catch (Exception e) {
+            log.error("책 상세 조회 중 오류 발생: {}", e.getMessage());
+            throw new ServiceException("500-2", "책 상세 조회 중 오류가 발생했습니다.");
+        }
+    }
+
 
     /**
      * 기존 getAllBooks 메서드 (Member 없는 버전) - 하위 호환성 유지
@@ -417,6 +477,23 @@ public class BookService {
                         .map(wrote -> wrote.getAuthor().getName())
                         .toList())
                 .readState(readState)
+                .build();
+    }
+
+    /**
+     * Review 엔티티를 DTO로 변환
+     */
+    private ReviewResponseDto convertReviewToDto(Review review) {
+        return ReviewResponseDto.builder()
+                .id(review.getId())
+                .content(review.getContent())
+                .rate(review.getRate())
+                .memberName(review.getMember().getName())
+                .memberId(review.getMember().getId())
+                .likeCount(review.getLikeCount())
+                .dislikeCount(review.getDislikeCount())
+                .createdDate(review.getCreateDate())
+                .modifiedDate(review.getModifyDate())
                 .build();
     }
 }
