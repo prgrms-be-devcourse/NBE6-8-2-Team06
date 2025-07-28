@@ -1,5 +1,6 @@
 package com.back.domain.book.book.dto;
 
+import com.back.domain.bookmarks.constant.ReadState;
 import lombok.Builder;
 import lombok.Getter;
 
@@ -19,4 +20,5 @@ public class BookSearchDto {
     private float avgRate;
     private String categoryName;
     private List<String> authors;
+    private ReadState readState;
 }
