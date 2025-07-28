@@ -64,4 +64,15 @@ public class ReviewController {
         reviewRecommendService.recommendReview(review, member, isRecommend);
         return new RsData<>("201-1", "Review recommended successfully");
     }
+
+    @PutMapping("/{review_id}/recommend/{is_recommend}")
+    public RsData<Void> modifyRecommendReview(@PathVariable("review_id") int reviewId, @PathVariable("is_recommend") boolean isRecommend) {
+        Review review = reviewService.findById(reviewId).orElseThrow(() -> new ServiceException("404-1", "Review not found"));
+        Member member = rq.getActor();
+        if (member == null) {
+            return new RsData<>("401-1", "Unauthorized access");
+        }
+        reviewRecommendService.modifyRecommendReview(review, member, isRecommend);
+        return new RsData<>("200-1", "Review recommendation modified successfully");
+    }
 }

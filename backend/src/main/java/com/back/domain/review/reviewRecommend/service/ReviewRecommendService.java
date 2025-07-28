@@ -27,4 +27,17 @@ public class ReviewRecommendService {
             review.setDislikeCount(reviewRecommendRepository.countByReviewAndIsRecommendedFalse(review));
         }
     }
+
+    @Transactional
+    public void modifyRecommendReview(Review review, Member member, boolean isRecommend) {
+        ReviewRecommend reviewRecommend = reviewRecommendRepository.findByReviewAndMember(review, member)
+                .orElseThrow(() -> new ServiceException("404-1", "Review recommendation not found"));
+        if (reviewRecommend.isRecommended() == isRecommend) {
+            throw new ServiceException("400-2", "Review recommendation already set to this value");
+        }
+        reviewRecommend.setRecommended(isRecommend);
+        reviewRecommendRepository.save(reviewRecommend);
+        review.setLikeCount(reviewRecommendRepository.countByReviewAndIsRecommendedTrue(review));
+        review.setDislikeCount(reviewRecommendRepository.countByReviewAndIsRecommendedFalse(review));
+    }
 }
