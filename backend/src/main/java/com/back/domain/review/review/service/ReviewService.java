@@ -7,7 +7,7 @@ import com.back.domain.review.review.dto.ReviewRequestDto;
 import com.back.domain.review.review.entity.Review;
 import com.back.domain.review.review.repository.ReviewRepository;
 import com.back.global.exception.ServiceException;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -53,5 +53,13 @@ public class ReviewService {
 
     public long count() {
         return reviewRepository.count();
+    }
+
+    public Optional<Review> findByBookAndMember(Book book, Member member) {
+        return reviewRepository.findByBookAndMember(book, member);
+    }
+
+    public Optional<Review> findById(int reviewId) {
+        return reviewRepository.findById(reviewId);
     }
 }

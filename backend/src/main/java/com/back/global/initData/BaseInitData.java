@@ -48,6 +48,9 @@ public class BaseInitData {
             return; // 이미 데이터가 존재하면 초기화하지 않음
         }
         memberService.join("testUser", "email", "password");
+        memberService.join("testUser2", "email2", "password2");
+        memberService.join("testUser3", "email3", "password3");
+        memberService.join("testUser4", "email4", "password4");
         Category category = categoryRepository.save(new Category("Test Category"));
         bookRepository.save(new Book("Text Book", "Publisher", category));
 
