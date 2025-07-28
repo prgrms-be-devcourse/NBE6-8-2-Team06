@@ -36,9 +36,9 @@ interface Note {
   updatedDate?: string;
 }
 
-export default function page({ params }: { params: Promise<{ bookId: string }> }) {
+export default function page({ params }: { params: Promise<{ id: string }> }) {
 
-  const { bookId: bookIdStr } = use(params);
+  const { id: bookIdStr } = use(params);
   const bookId = parseInt(bookIdStr);
 
   const [searchTerm, setSearchTerm] = useState('');
