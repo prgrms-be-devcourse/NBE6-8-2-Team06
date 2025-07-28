@@ -65,7 +65,7 @@ interface WriteReviewPageProps {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="text-center">
           <p>책을 찾을 수 없습니다.</p>
-          <Button onClick={() => onNavigate('/my-books')} className="mt-4">
+          <Button onClick={() => onNavigate('/bookmark')} className="mt-4">
             내 책 목록으로 돌아가기
           </Button>
         </div>
@@ -89,11 +89,11 @@ interface WriteReviewPageProps {
     // 여기서 실제로는 API 호출을 통해 리뷰를 저장
     console.log('리뷰 저장:', { bookId, rating, review });
     
-    onNavigate(`/my-books/${bookId}`);
+    onNavigate(`/bookmark/${bookId}`);
   };
 
   const handleCancel = () => {
-    onNavigate(`/my-books/${bookId}`);
+    onNavigate(`/bookmark/${bookId}`);
   };
 
   const renderStars = () => {

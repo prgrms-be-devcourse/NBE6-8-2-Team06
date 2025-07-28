@@ -125,7 +125,7 @@ interface BookNotesPageProps {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="text-center">
           <p>책을 찾을 수 없습니다.</p>
-          <Button onClick={() => onNavigate('/my-books')} className="mt-4">
+          <Button onClick={() => onNavigate('/bookmark')} className="mt-4">
             내 책 목록으로 돌아가기
           </Button>
         </div>
@@ -197,7 +197,7 @@ interface BookNotesPageProps {
       {/* 뒤로가기 버튼 */}
       <Button 
         variant="ghost" 
-        onClick={() => onNavigate(`/my-books/${bookId}`)}
+        onClick={() => onNavigate(`/bookmark/${bookId}`)}
         className="mb-6"
       >
         <ArrowLeft className="h-4 w-4 mr-2" />

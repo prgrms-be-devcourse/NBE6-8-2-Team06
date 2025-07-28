@@ -26,7 +26,7 @@ import Link from "next/link";
 import React from "react";
 import { BookOpen, Home, User, LogOut, Library } from "lucide-react";
 
-type Page = "home" | "login" | "books" | "mybooks" | "profile";
+type Page = "home" | "login" | "books" | "bookmark" | "profile";
 
 interface NavigationProps {
   currentPage: Page;
@@ -74,8 +74,8 @@ function NavigationContent({ children }: { children: React.ReactNode }) {
 
                 {isLoggedIn && (
                   <Button
-                    variant={currentPage === "/my-books" ? "default" : "ghost"}
-                    onClick={() => onNavigate("mybooks")}
+                    variant={currentPage === "/bookmark" ? "default" : "ghost"}
+                    onClick={() => onNavigate("/bookmark")}
                     className="flex items-center space-x-2"
                   >
                     <Library className="h-4 w-4" />

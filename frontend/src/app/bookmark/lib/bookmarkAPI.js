@@ -48,3 +48,8 @@ export const deleteBookmark = async (id) => {
     })
     return handleResponse(response);
 }
+
+export const getBookmarkReadStates = async () => {
+    const response = await fetch(`${API_URL}/bookmarks/read-states`);
+    return handleResponse(response);
+}

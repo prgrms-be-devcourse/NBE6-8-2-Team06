@@ -65,3 +65,11 @@ export type BookmarkUpdate = {
     endReadDate: string;
     readPage: number;
 }
+
+export type BookmarkReadStates = {
+    totalPages: number;
+    avgRate: number;
+    READ: number;
+    READING: number;
+    WISH: number;
+}
