@@ -54,4 +54,5 @@ public class MemberService {
         return authTokenService.payload(refreshToken);
     }
 
+    public void deleteMember(Member member) { memberRepository.delete(member); }
 }

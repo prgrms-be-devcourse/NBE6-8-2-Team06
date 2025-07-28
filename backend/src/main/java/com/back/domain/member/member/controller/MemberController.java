@@ -172,5 +172,29 @@ public class MemberController {
         return new RsData<>("200","AccessToken이 재발급되었습니다.",null);
     }
 
+    @DeleteMapping("/my")
+    public RsData<String> deleteMember(HttpServletResponse response) {
+        Member actor = rq.getActor();
+        if (actor == null) {
+            return new RsData<>("401-1","로그인 상태가 아닙니다.",null);
+        }
+
+        // 회원 삭제
+        memberService.deleteMember(actor);
+
+        // 쿠키에서 토큰 삭제
+        for(String tokenName: List.of("accessToken","refreshToken")){
+            Cookie cookie = new Cookie(tokenName, "");
+            cookie.setPath("/");
+            cookie.setHttpOnly(true);
+            cookie.setSecure(true);
+            cookie.setMaxAge(0);
+            cookie.setAttribute("SameSite","Strict");
+            response.addCookie(cookie);
+        }
+
+        return new RsData<>("200-1", "회원탈퇴가 완료되었습니다.", null);
+    }
+
 
 }
