@@ -42,4 +42,13 @@ public class ReviewRecommendService {
         review.setLikeCount(reviewRecommendRepository.countByReviewAndIsRecommendedTrue(review));
         review.setDislikeCount(reviewRecommendRepository.countByReviewAndIsRecommendedFalse(review));
     }
+
+    @Transactional
+    public void cancelRecommendReview(Review review, Member member) {
+        ReviewRecommend reviewRecommend = reviewRecommendRepository.findByReviewAndMember(review, member)
+                .orElseThrow(() -> new NoSuchElementException("Review recommendation not found"));
+        reviewRecommendRepository.delete(reviewRecommend);
+        review.setLikeCount(reviewRecommendRepository.countByReviewAndIsRecommendedTrue(review));
+        review.setDislikeCount(reviewRecommendRepository.countByReviewAndIsRecommendedFalse(review));
+    }
 }
