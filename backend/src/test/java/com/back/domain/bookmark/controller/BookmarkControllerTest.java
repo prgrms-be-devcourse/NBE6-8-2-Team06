@@ -26,7 +26,6 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.Page;
 import org.springframework.http.MediaType;
-import org.springframework.security.test.context.support.WithUserDetails;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
@@ -134,8 +133,8 @@ public class BookmarkControllerTest {
                 .andExpect(jsonPath("$.data.bookId").value(bookmarkDto.bookmarkDto().bookId()))
                 .andExpect(jsonPath("$.data.readState").value(bookmarkDto.bookmarkDto().readState()))
                 .andExpect(jsonPath("$.data.readPage").value(bookmarkDto.bookmarkDto().readPage()))
-                .andExpect(jsonPath("$.data.date").value(Matchers.startsWith(bookmarkDto.bookmarkDto().date().toString().substring(0,18))))
-                .andExpect(jsonPath("$.data.createAt").value(Matchers.startsWith(bookmarkDto.createAt().toString().substring(0,18))))
+                .andExpect(jsonPath("$.data.createDate").value(Matchers.startsWith(bookmarkDto.bookmarkDto().createDate().toString().substring(0,18))))
+                .andExpect(jsonPath("$.data.startReadDate").value(Matchers.startsWith(bookmarkDto.bookmarkDto().startReadDate().toString().substring(0,18))))
                 .andExpect(jsonPath("$.data.readingDuration").value(bookmarkDto.readingDuration()))
                 .andExpect(jsonPath("$.data.book.id").value(bookmarkDto.bookmarkDto().bookId()))
                 .andExpect(jsonPath("$.data.book.isbn13").value(bookmarkDto.bookmarkDto().book().isbn13()))
@@ -198,7 +197,7 @@ public class BookmarkControllerTest {
                     .andExpect(jsonPath("$.data[%d].readState".formatted(i)).value(bookmarksDto.readState()))
                     .andExpect(jsonPath("$.data[%d].readPage".formatted(i)).value(bookmarksDto.readPage()))
                     .andExpect(jsonPath("$.data[%d].readingRate".formatted(i)).value(bookmarksDto.readingRate()))
-                    .andExpect(jsonPath("$.data[%d].date".formatted(i)).value(Matchers.startsWith(bookmarksDto.date().toString().substring(0,18))))
+                    .andExpect(jsonPath("$.data[%d].createDate".formatted(i)).value(Matchers.startsWith(bookmarksDto.createDate().toString().substring(0,18))))
                     .andExpect(jsonPath("$.data[%d].book.id".formatted(i)).value(bookmarksDto.book().id()))
                     .andExpect(jsonPath("$.data[%d].book.isbn13".formatted(i)).value(bookmarksDto.book().isbn13()))
                     .andExpect(jsonPath("$.data[%d].book.title".formatted(i)).value(bookmarksDto.book().title()))
@@ -245,7 +244,7 @@ public class BookmarkControllerTest {
                     .andExpect(jsonPath("$.data.data[%d].readState".formatted(i)).value(bookmarksDto.readState()))
                     .andExpect(jsonPath("$.data.data[%d].readPage".formatted(i)).value(bookmarksDto.readPage()))
                     .andExpect(jsonPath("$.data.data[%d].readingRate".formatted(i)).value(bookmarksDto.readingRate()))
-                    .andExpect(jsonPath("$.data.data[%d].date".formatted(i)).value(Matchers.startsWith(bookmarksDto.date().toString().substring(0,18))))
+                    .andExpect(jsonPath("$.data.data[%d].createDate".formatted(i)).value(Matchers.startsWith(bookmarksDto.createDate().toString().substring(0,18))))
                     .andExpect(jsonPath("$.data.data[%d].book.id".formatted(i)).value(bookmarksDto.book().id()))
                     .andExpect(jsonPath("$.data.data[%d].book.isbn13".formatted(i)).value(bookmarksDto.book().isbn13()))
                     .andExpect(jsonPath("$.data.data[%d].book.title".formatted(i)).value(bookmarksDto.book().title()))
@@ -289,7 +288,7 @@ public class BookmarkControllerTest {
                 .andExpect(jsonPath("$.data.readState").value(bookmark.getReadState().toString()))
                 .andExpect(jsonPath("$.data.readPage").value(bookmark.getReadPage()))
                 .andExpect(jsonPath("$.data.readingRate").value(bookmark.calculateReadingRate()))
-                .andExpect(jsonPath("$.data.date").value(Matchers.startsWith(bookmark.getDisplayDate().toString().substring(0,16))))
+                .andExpect(jsonPath("$.data.createDate").value(Matchers.startsWith(bookmark.getCreateDate().toString().substring(0,16))))
                 .andExpect(jsonPath("$.data.book.id").value(bookmark.getBook().getId()))
                 .andExpect(jsonPath("$.data.book.isbn13").value(bookmark.getBook().getIsbn13()))
                 .andExpect(jsonPath("$.data.book.title").value(bookmark.getBook().getTitle()))

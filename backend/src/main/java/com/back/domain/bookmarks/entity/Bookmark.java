@@ -73,10 +73,6 @@ public class Bookmark extends BaseEntity {
         return ChronoUnit.DAYS.between(startReadDate, effectiveEnd);
     }
 
-    public LocalDateTime getDisplayDate(){
-        return readState==ReadState.WISH ? getCreateDate():readState==ReadState.READING ? startReadDate:endReadDate;
-    }
-
     public void checkActor(Member actor){
         if(!actor.equals(member)){
             throw new ServiceException("403-1", "권한이 없습니다.");

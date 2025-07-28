@@ -11,7 +11,9 @@ public record BookmarkDto(
         BookmarkBookDetailDto book,
         String readState,
         int readPage,
-        LocalDateTime date,
+        LocalDateTime createDate,
+        LocalDateTime startReadDate,
+        LocalDateTime endReadDate,
         double readingRate,
         BookmarkReviewDetailDto review
 ) {
@@ -22,7 +24,9 @@ public record BookmarkDto(
                 new BookmarkBookDetailDto(bookmark.getBook()),
                 bookmark.getReadState().toString(),
                 bookmark.getReadPage(),
-                bookmark.getDisplayDate(),
+                bookmark.getCreateDate(),
+                bookmark.getStartReadDate(),
+                bookmark.getEndReadDate(),
                 bookmark.calculateReadingRate(),
                 review != null ? new BookmarkReviewDetailDto(review):null
         );

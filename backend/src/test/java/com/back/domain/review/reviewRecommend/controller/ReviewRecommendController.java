@@ -22,8 +22,7 @@ import org.springframework.test.web.servlet.ResultActions;
 import java.util.List;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -77,6 +76,13 @@ public class ReviewRecommendController {
     ResultActions updateRecommendReview(int reviewId, boolean isRecommend, String accessToken) throws Exception{
         return mvc.perform(
                 put("/reviews/{review_id}/recommend/{isRecommend}", reviewId, isRecommend)
+                        .cookie(new Cookie("accessToken", accessToken))
+        ).andDo(print());
+    }
+
+    ResultActions deleteRecommendReview(int reviewId, String accessToken) throws Exception{
+        return mvc.perform(
+                delete("/reviews/{review_id}/recommend", reviewId)
                         .cookie(new Cookie("accessToken", accessToken))
         ).andDo(print());
     }
@@ -266,6 +272,79 @@ public class ReviewRecommendController {
         resultActions
                 .andExpect(handler().handlerType(ReviewController.class))
                 .andExpect(handler().methodName("modifyRecommendReview"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.resultCode").value("404-1"))
+                .andExpect(jsonPath("$.msg").value("Review recommendation not found"))
+        ;
+    }
+
+    @Test
+    @DisplayName("리뷰 추천 취소 - 성공")
+    void t9() throws Exception{
+        List<String> accessTokens = makeAccessTokens(1);
+        createReview(1, "이 책 정말 좋았어요!", 5, accessTokens.get(0));
+        Review review = reviewService.findLatest().orElseThrow(()-> new RuntimeException("리뷰가 없습니다."));
+
+        createRecommendReview(review.getId(), true, accessTokens.get(0)).andDo(print());
+
+        ResultActions resultActions = deleteRecommendReview(review.getId(), accessTokens.get(0));
+        resultActions
+                .andExpect(handler().handlerType(ReviewController.class))
+                .andExpect(handler().methodName("cancelRecommendReview"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resultCode").value("200-1"))
+                .andExpect(jsonPath("$.msg").value("Review recommendation cancelled successfully"))
+        ;
+    }
+
+    @Test
+    @DisplayName("리뷰 추천 취소 - 실패 (추천하지 않은 리뷰)")
+    void t10() throws Exception{
+        List<String> accessTokens = makeAccessTokens(1);
+        createReview(1, "이 책 정말 좋았어요!", 5, accessTokens.get(0));
+        Review review = reviewService.findLatest().orElseThrow(()-> new RuntimeException("리뷰가 없습니다."));
+
+        ResultActions resultActions = deleteRecommendReview(review.getId(), accessTokens.get(0));
+        resultActions
+                .andExpect(handler().handlerType(ReviewController.class))
+                .andExpect(handler().methodName("cancelRecommendReview"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.resultCode").value("404-1"))
+                .andExpect(jsonPath("$.msg").value("Review recommendation not found"))
+        ;
+    }
+
+    @Test
+    @DisplayName("리뷰 추천 취소 - 실패 (없는 리뷰)")
+    void t11() throws Exception{
+        List<String> accessTokens = makeAccessTokens(1);
+        createReview(1, "이 책 정말 좋았어요!", 5, accessTokens.get(0));
+        Review review = reviewService.findLatest().orElseThrow(()-> new RuntimeException("리뷰가 없습니다."));
+
+        ResultActions resultActions = deleteRecommendReview(-1, accessTokens.get(0));
+        resultActions
+                .andExpect(handler().handlerType(ReviewController.class))
+                .andExpect(handler().methodName("cancelRecommendReview"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.resultCode").value("404-1"))
+                .andExpect(jsonPath("$.msg").value("Review not found"))
+        ;
+    }
+
+    @Test
+    @DisplayName("리뷰 추천 취소 - 취소한 리뷰 취소")
+    void t12() throws Exception{
+        List<String> accessTokens = makeAccessTokens(1);
+        createReview(1, "이 책 정말 좋았어요!", 5, accessTokens.get(0));
+        Review review = reviewService.findLatest().orElseThrow(()-> new RuntimeException("리뷰가 없습니다."));
+
+        createRecommendReview(review.getId(), true, accessTokens.get(0)).andDo(print());
+        deleteRecommendReview(review.getId(), accessTokens.get(0)).andDo(print());
+
+        ResultActions resultActions = deleteRecommendReview(review.getId(), accessTokens.get(0));
+        resultActions
+                .andExpect(handler().handlerType(ReviewController.class))
+                .andExpect(handler().methodName("cancelRecommendReview"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.resultCode").value("404-1"))
                 .andExpect(jsonPath("$.msg").value("Review recommendation not found"))
