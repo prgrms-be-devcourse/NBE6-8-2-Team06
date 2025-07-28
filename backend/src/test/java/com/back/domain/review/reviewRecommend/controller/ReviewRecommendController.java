@@ -1,12 +1,14 @@
 package com.back.domain.review.reviewRecommend.controller;
 
 import com.back.domain.member.member.entity.Member;
+import com.back.domain.member.member.repository.MemberRepository;
 import com.back.domain.member.member.service.MemberService;
 import com.back.domain.review.review.controller.ReviewController;
 import com.back.domain.review.review.entity.Review;
 import com.back.domain.review.review.service.ReviewService;
 import jakarta.servlet.http.Cookie;
 import jakarta.transaction.Transactional;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -17,8 +19,11 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
 
+import java.util.List;
+
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -38,20 +43,50 @@ public class ReviewRecommendController {
     @Autowired
     private ReviewService reviewService;
 
-    @Test
-    void t1() throws Exception{
-        Member member = memberService.findByEmail("email").get();
-        String accessToken = memberService.geneAccessToken(member);
+    @Autowired
+    private MemberRepository memberRepository;
+
+    List<String> makeAccessTokens(int count){
+        return memberRepository.findAll().stream()
+                .limit(count)
+                .map(member -> memberService.geneAccessToken(member))
+                .toList();
+    }
+
+    void createReview(int bookId, String content, int rate, String accessToken) throws Exception{
         mvc.perform(
-                post("/reviews/{book_id}", 1)
+                post("/reviews/{book_id}", bookId)
                         .contentType("application/json")
                         .content("""
-{
-    "content": "이 책 정말 좋았어요!",
-    "rate": 5
-}
-""").cookie(new Cookie("accessToken", accessToken))
+    {
+        "content": "%s",
+        "rate": "%d"
+        }
+""".formatted(content, rate))
+                        .cookie(new Cookie("accessToken", accessToken))
         ).andDo(print());
+    }
+
+    ResultActions createRecommendReview(int reviewId, boolean isRecommend, String accessToken) throws Exception{
+        return mvc.perform(
+                post("/reviews/{review_id}/recommend/{isRecommend}", reviewId, isRecommend)
+                        .cookie(new Cookie("accessToken", accessToken))
+        ).andDo(print());
+    }
+
+    ResultActions updateRecommendReview(int reviewId, boolean isRecommend, String accessToken) throws Exception{
+        return mvc.perform(
+                put("/reviews/{review_id}/recommend/{isRecommend}", reviewId, isRecommend)
+                        .cookie(new Cookie("accessToken", accessToken))
+        ).andDo(print());
+    }
+
+    @Test
+    @DisplayName("리뷰 추천하기 - 성공")
+    void t1() throws Exception{
+        Member member = memberService.findByEmail("email1").get();
+        String accessToken = memberService.geneAccessToken(member);
+        createReview(1, "이 책 정말 좋았어요!", 5, accessToken);
         Review review = reviewService.findLatest().orElseThrow(()-> new RuntimeException("리뷰가 없습니다."));
 
 
@@ -70,8 +105,9 @@ public class ReviewRecommendController {
     }
 
     @Test
+    @DisplayName("리뷰 여러명이 추천하기 - 성공")
     void t2() throws Exception{
-        Member member = memberService.findByEmail("email").get();
+        Member member = memberService.findByEmail("email1").get();
         Member member2 = memberService.findByEmail("email2").get();
         Member member3 = memberService.findByEmail("email3").get();
         Member member4 = memberService.findByEmail("email4").get();
@@ -79,16 +115,7 @@ public class ReviewRecommendController {
         String accessToken2 = memberService.geneAccessToken(member2);
         String accessToken3 = memberService.geneAccessToken(member3);
         String accessToken4 = memberService.geneAccessToken(member4);
-        mvc.perform(
-                post("/reviews/{book_id}", 1)
-                        .contentType("application/json")
-                        .content("""
-{
-    "content": "이 책 정말 좋았어요!",
-    "rate": 5
-}
-""").cookie(new Cookie("accessToken", accessToken))
-        ).andDo(print());
+        createReview(1, "이 책 정말 좋았어요!", 5, accessToken);
 
 
         Review review = reviewService.findLatest().orElseThrow(()-> new RuntimeException("리뷰가 없습니다."));
@@ -120,5 +147,128 @@ public class ReviewRecommendController {
         ;
         assertThat(review.getLikeCount()).isEqualTo(2);
         assertThat(review.getDislikeCount()).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("리뷰 추천하기 - 실패 (이미 추천한 리뷰)")
+    void t3() throws Exception{
+        Member member = memberService.findByEmail("email1").get();
+        String accessToken = memberService.geneAccessToken(member);
+        createReview(1, "이 책 정말 좋았어요!", 5, accessToken);
+
+        Review review = reviewService.findLatest().orElseThrow(()-> new RuntimeException("리뷰가 없습니다."));
+        mvc.perform(
+                post("/reviews/{review_id}/recommend/{isRecommend}", review.getId(), true)
+                        .cookie(new Cookie("accessToken", accessToken))
+        ).andDo(print());
+        ResultActions resultActions = mvc.perform(
+                post("/reviews/{review_id}/recommend/{isRecommend}", review.getId(), true)
+                        .cookie(new Cookie("accessToken", accessToken))
+        ).andDo(print());
+        resultActions
+                .andExpect(handler().handlerType(ReviewController.class))
+                .andExpect(handler().methodName("recommendReview"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.resultCode").value("400-1"))
+                .andExpect(jsonPath("$.msg").value("Review recommendation already exists"))
+        ;
+    }
+
+    @Test
+    @DisplayName("없는 리뷰 추천하기 - 실패")
+    void t4()throws Exception{
+        Member member = memberService.findByEmail("email1").get();
+        String accessToken = memberService.geneAccessToken(member);
+        createReview(1, "이 책 정말 좋았어요!", 5, accessToken);
+        Review review = reviewService.findLatest().orElseThrow(()-> new RuntimeException("리뷰가 없습니다."));
+        ResultActions resultActions = createRecommendReview(-1, true, accessToken);
+        resultActions
+                .andExpect(handler().handlerType(ReviewController.class))
+                .andExpect(handler().methodName("recommendReview"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.resultCode").value("404-1"))
+                .andExpect(jsonPath("$.msg").value("Review not found"))
+                ;
+    }
+
+    @Test
+    @DisplayName("리뷰 추천 업데이트 - 성공")
+    void t5() throws Exception{
+        List<String> accessTokens = makeAccessTokens(10);
+        createReview(1, "이 책 정말 좋았어요!", 5, accessTokens.get(0));
+
+
+        Review review = reviewService.findLatest().orElseThrow(()-> new RuntimeException("리뷰가 없습니다."));
+
+        for (int i = 0; i < accessTokens.size(); i++) {
+            boolean isRecommend = i % 2 == 0; // 짝수 인덱스는 추천, 홀수 인덱스는 비추천
+            createRecommendReview(review.getId(), isRecommend, accessTokens.get(i)).andDo(print());
+        }
+
+        for (int i = 0; i < accessTokens.size(); i++) {
+            boolean isRecommend = i % 2 != 0; // 짝수 인덱스는 비추천, 홀수 인덱스는 추천
+            updateRecommendReview(review.getId(), isRecommend, accessTokens.get(i)).andDo(print());
+        }
+
+        assertThat(review.getLikeCount()).isEqualTo(accessTokens.size() / 2);
+        assertThat(review.getDislikeCount()).isEqualTo(accessTokens.size() / 2);
+    }
+
+    @Test
+    @DisplayName("리뷰 추천 업데이트 - 실패")
+    void t6() throws Exception{
+        List<String> accessTokens = makeAccessTokens(10);
+        createReview(1, "이 책 정말 좋았어요!", 5, accessTokens.get(0));
+        Review review = reviewService.findLatest().orElseThrow(()-> new RuntimeException("리뷰가 없습니다."));
+
+        for (int i = 0; i < accessTokens.size(); i++) {
+            boolean isRecommend = i % 2 == 0; // 짝수 인덱스는 추천, 홀수 인덱스는 비추천
+            createRecommendReview(review.getId(), isRecommend, accessTokens.get(i)).andDo(print());
+        }
+
+        ResultActions resultActions = updateRecommendReview(-1, true, accessTokens.get(0));
+        resultActions
+                .andExpect(handler().handlerType(ReviewController.class))
+                .andExpect(handler().methodName("modifyRecommendReview"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.resultCode").value("404-1"))
+                .andExpect(jsonPath("$.msg").value("Review not found"))
+                ;
+    }
+
+    @Test
+    @DisplayName("리뷰 추천 업데이트 - 실패 (이미 추천한 리뷰)")
+    void t7() throws Exception{
+        List<String> accessTokens = makeAccessTokens(1);
+        createReview(1, "이 책 정말 좋았어요!", 5, accessTokens.get(0));
+        Review review = reviewService.findLatest().orElseThrow(()-> new RuntimeException("리뷰가 없습니다."));
+
+        createRecommendReview(review.getId(), true, accessTokens.get(0)).andDo(print());
+
+        ResultActions resultActions = updateRecommendReview(review.getId(), true, accessTokens.get(0));
+        resultActions
+                .andExpect(handler().handlerType(ReviewController.class))
+                .andExpect(handler().methodName("modifyRecommendReview"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.resultCode").value("400-2"))
+                .andExpect(jsonPath("$.msg").value("Review recommendation already set to this value"))
+        ;
+    }
+
+    @Test
+    @DisplayName("리뷰 추천 업데이트 - 실패 (추천하지 않은 리뷰)")
+    void t8() throws Exception{
+        List<String> accessTokens = makeAccessTokens(1);
+        createReview(1, "이 책 정말 좋았어요!", 5, accessTokens.get(0));
+        Review review = reviewService.findLatest().orElseThrow(()-> new RuntimeException("리뷰가 없습니다."));
+
+        ResultActions resultActions = updateRecommendReview(review.getId(), true, accessTokens.get(0));
+        resultActions
+                .andExpect(handler().handlerType(ReviewController.class))
+                .andExpect(handler().methodName("modifyRecommendReview"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.resultCode").value("404-1"))
+                .andExpect(jsonPath("$.msg").value("Review recommendation not found"))
+        ;
     }
 }
