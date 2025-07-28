@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.NoSuchElementException;
 import java.util.Optional;
 
 @Service
@@ -36,7 +37,7 @@ public class ReviewService {
     @Transactional
     public void deleteReview(Book book, Member member) {
         Review review = reviewRepository.findByBookAndMember(book, member)
-                .orElseThrow(() -> new ServiceException("404-1","review not found"));
+                .orElseThrow(() -> new NoSuchElementException("review not found"));
         reviewRepository.delete(review);
         bookService.updateBookAvgRate(book);
     }
@@ -44,7 +45,7 @@ public class ReviewService {
     @Transactional
     public void modifyReview(Book book, Member member, ReviewRequestDto reviewRequestDto) {
         Review review = reviewRepository.findByBookAndMember(book, member)
-                .orElseThrow(() -> new ServiceException("404-1","review not found"));
+                .orElseThrow(() -> new NoSuchElementException("review not found"));
         review.setContent(reviewRequestDto.content());
         review.setRate(reviewRequestDto.rate());
         reviewRepository.save(review);
