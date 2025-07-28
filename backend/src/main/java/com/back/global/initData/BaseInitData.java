@@ -36,13 +36,14 @@ public class BaseInitData {
     private final NoteService noteService;
     private final NoteRepository noteRepository;
     private final BookmarkService bookmarkService;
+    private final BookmarkRepository bookmarkRepository;
 
 
     @Bean
     ApplicationRunner baseInitDataApplicationRunner(){
         return args->{
 //            self.initReviewData(); // 리뷰 테스트 시 주석 해제
-//            self.initBookData(); // 책 데이터 초기화
+            self.initBookData(); // 책 데이터 초기화
 //            self.initNoteData(); // Note 관련 데이터
 //            self.initBookmarkData(); // Bookmark 데이터 초기화
         };
@@ -140,17 +141,16 @@ public class BaseInitData {
             return;
         }
 
-        Bookmark bookmark = bookmarkRepository.save(new Bookmark(null,null));
+        Book book = new Book("Text Book", "Publisher", categoryRepository.save(new Category("Test Category")));
+        bookRepository.save(book);
+        Bookmark bookmark = bookmarkRepository.save(new Bookmark(book, null));
         int id = bookmark.getId();
 
-        noteService.write(id,"제목1", "내용1");
-        noteService.write(id,"제목2", "내용2");
-        noteService.write(id,"제목3", "내용3");
-        noteService.write(id,"제목1", "내용4");
+        noteService.write(id,"제목1", "내용1", "1");
+        noteService.write(id,"제목2", "내용2", "2");
+        noteService.write(id,"제목3", "내용3", "3");
+        noteService.write(id,"제목4", "내용4", "4");
     }
-
-    @Autowired
-    private BookmarkRepository bookmarkRepository;
 
     public void initBookmarkData(){
         if (bookmarkRepository.count() > 0) return;
