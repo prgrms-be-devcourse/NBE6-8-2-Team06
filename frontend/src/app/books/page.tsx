@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { ImageWithFallback } from '@/components/ImageWithFallback';
 import { useRouter } from 'next/navigation';
 import { usePathname } from 'next/navigation';
-import { BookSearchDto, ReadState, fetchBooks, BooksResponse } from '@/types/book';
+import { BookSearchDto, ReadState, fetchBooks, searchBooks, BooksResponse } from '@/types/book';
 
 interface BooksPageProps {
   onNavigate: (page: string) => void;
@@ -23,6 +23,7 @@ interface BooksPageProps {
 
 export default function BooksPage() {
   const [searchTerm, setSearchTerm] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [sortBy, setSortBy] = useState('title');
   const [books, setBooks] = useState<BookSearchDto[]>([]);
@@ -42,11 +43,21 @@ export default function BooksPage() {
     router.push(`${pathName}/${id}`)
   }
 
-  const loadBooks = async (page: number = 0) => {
+  const loadBooks = async (page: number = 0, query?: string) => {
     try {
       setLoading(true);
-      console.log(`🚀 books 페이지에서 API 호출 시작 - 페이지: ${page}`);
-      const response = await fetchBooks(page);
+      let response: BooksResponse;
+      
+      if (query && query.trim()) {
+        console.log(`🔍 검색 API 호출 시작 - 검색어: "${query}", 페이지: ${page}`);
+        response = await searchBooks(query.trim(), page);
+        setIsSearching(true);
+      } else {
+        console.log(`🚀 전체 조회 API 호출 시작 - 페이지: ${page}`);
+        response = await fetchBooks(page);
+        setIsSearching(false);
+      }
+      
       console.log('📚 받아온 응답:', response);
       setBooks(response.books);
       setCurrentPage(response.pageInfo.currentPage);
@@ -57,6 +68,28 @@ export default function BooksPage() {
       setError(err instanceof Error ? err.message : '책을 불러오는데 실패했습니다.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // 검색 처리 함수
+  const handleSearch = () => {
+    setCurrentPage(0); // 검색 시 첫 페이지로 이동
+    loadBooks(0, searchTerm);
+  };
+
+  // 검색어 초기화 함수
+  const handleClearSearch = () => {
+    setSearchTerm('');
+    setCurrentPage(0);
+    loadBooks(0); // 전체 목록 다시 로드
+  };
+
+  // 페이지 로드 함수 (검색 상태 유지)
+  const handlePageChange = (page: number) => {
+    if (isSearching && searchTerm.trim()) {
+      loadBooks(page, searchTerm);
+    } else {
+      loadBooks(page);
     }
   };
 
@@ -185,12 +218,25 @@ export default function BooksPage() {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input
-              placeholder="책 제목, 저자, 내용으로 검색..."
+              placeholder="책 제목, 저자로 검색..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleSearch();
+                }
+              }}
               className="pl-10"
             />
           </div>
+          <Button onClick={handleSearch} disabled={loading}>
+            검색
+          </Button>
+          {isSearching && (
+            <Button variant="outline" onClick={handleClearSearch}>
+              전체보기
+            </Button>
+          )}
           <Select value={selectedCategory} onValueChange={setSelectedCategory}>
             <SelectTrigger className="w-full sm:w-48">
               <SelectValue placeholder="카테고리 선택" />
@@ -221,19 +267,25 @@ export default function BooksPage() {
       {/* 검색 결과 */}
       <div className="mb-6">
         <p className="text-sm text-muted-foreground">
-          {filteredBooks.length}개의 책이 검색되었습니다
+          {isSearching ? (
+            `"${searchTerm}"에 대한 검색 결과: ${totalElements}개의 책`
+          ) : (
+            `${totalElements}개의 책이 검색되었습니다`
+          )}
         </p>
       </div>
 
       {/* 책 목록 */}
-      {filteredBooks.length === 0 ? (
+      {books.length === 0 ? (
         <div className="text-center py-12">
           <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <p className="text-muted-foreground">검색 조건에 맞는 책이 없습니다.</p>
+          <p className="text-muted-foreground">
+            {isSearching ? `"${searchTerm}"에 대한 검색 결과가 없습니다.` : '책이 없습니다.'}
+          </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredBooks.map((book) => (
+          {books.map((book) => (
             <Card key={book.id} className="h-full flex flex-col cursor-pointer hover:shadow-lg transition-shadow">
               <CardHeader onClick={() => onBookClick(book.id)}>
                 <div className="flex items-start justify-between">
@@ -333,7 +385,7 @@ export default function BooksPage() {
           <Button
             variant="outline"
             disabled={currentPage === 0}
-            onClick={() => loadBooks(currentPage - 1)}
+            onClick={() => handlePageChange(currentPage - 1)}
           >
             이전
           </Button>
@@ -356,7 +408,7 @@ export default function BooksPage() {
                   key={pageNum}
                   variant={currentPage === pageNum ? "default" : "outline"}
                   size="sm"
-                  onClick={() => loadBooks(pageNum)}
+                  onClick={() => handlePageChange(pageNum)}
                 >
                   {pageNum + 1}
                 </Button>
@@ -367,7 +419,7 @@ export default function BooksPage() {
           <Button
             variant="outline"
             disabled={currentPage === totalPages - 1}
-            onClick={() => loadBooks(currentPage + 1)}
+            onClick={() => handlePageChange(currentPage + 1)}
           >
             다음
           </Button>

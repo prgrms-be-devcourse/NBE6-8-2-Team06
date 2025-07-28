@@ -38,7 +38,7 @@ public class BaseInitData {
     ApplicationRunner baseInitDataApplicationRunner(){
         return args->{
 //            self.initReviewData(); // 리뷰 테스트 시 주석 해제
-            self.initBookData(); // 책 데이터 초기화
+//            self.initBookData(); // 책 데이터 초기화
 //            self.initNoteData(); // Note 관련 데이터
         };
     }

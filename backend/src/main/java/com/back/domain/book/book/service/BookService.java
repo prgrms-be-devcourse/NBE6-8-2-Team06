@@ -24,7 +24,9 @@ import com.back.global.exception.ServiceException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,11 +45,43 @@ public class BookService {
     private final AuthorRepository authorRepository;
     private final WroteRepository wroteRepository;
     private final AladinApiClient aladinApiClient;
-    private final BookmarkRepository bookmarkRepository; // BookmarkService 대신 직접 사용
+    private final BookmarkRepository bookmarkRepository;
     private final ReviewRepository reviewRepository;
 
     /**
-     * 하이브리드 접근방식 - DB 우선, 없으면 API 검색 (Member 정보 포함)
+     * 새로운 페이징 지원 검색 메서드
+     */
+    @Transactional
+    public Page<BookSearchDto> searchBooks(String query, Pageable pageable, Member member) {
+        // 1. DB에서 먼저 확인
+        List<Book> booksFromDb = bookRepository.findByTitleOrAuthorContaining(query);
+
+        if (!booksFromDb.isEmpty()) {
+            log.info("DB에서 찾은 책: {} 권", booksFromDb.size());
+            return createPageFromList(booksFromDb, pageable, member);
+        }
+
+        log.info("DB에 없어서 알라딘 API에서 검색: {}", query);
+
+        // 2. API에서 검색 (더 많은 결과를 가져와서 페이징 처리)
+        int apiLimit = Math.max(100, (pageable.getPageNumber() + 1) * pageable.getPageSize());
+        List<AladinBookDto> apiBooks = aladinApiClient.searchBooks(query, apiLimit);
+
+        // 3. API 결과를 엔티티로 변환하고 저장
+        List<Book> savedBooks = apiBooks.stream()
+                .map(this::convertAndSaveBook)
+                .filter(book -> book != null)
+                .collect(Collectors.toList());
+
+        // 4. 상세 정보 보완
+        savedBooks = enrichMissingDetails(savedBooks);
+
+        // 5. 페이징 처리하여 반환
+        return createPageFromList(savedBooks, pageable, member);
+    }
+
+    /**
+     * 기존 limit 방식 검색 메서드 (하위 호환성 유지)
      */
     @Transactional
     public List<BookSearchDto> searchBooks(String query, int limit, Member member) {
@@ -57,10 +91,6 @@ public class BookService {
             log.info("DB에서 찾은 책: {} 권", booksFromDb.size());
             return convertToDto(booksFromDb.stream().limit(limit).toList(), member);
         }
-
-        /**
-         * 책 평균 평점 업데이트
-         */
 
         log.info("DB에 없어서 알라딘 API에서 검색: {}", query);
 
@@ -80,11 +110,76 @@ public class BookService {
     }
 
     /**
-     * 기존 searchBooks 메서드 (Member 없는 버전) - 하위 호환성 유지
+     * 기존 limit 방식 검색 메서드 (Member 없는 버전) - 하위 호환성 유지
      */
     @Transactional
     public List<BookSearchDto> searchBooks(String query, int limit) {
         return searchBooks(query, limit, null);
+    }
+
+    /**
+     * List를 Page로 변환하는 헬퍼 메서드
+     */
+    private Page<BookSearchDto> createPageFromList(List<Book> books, Pageable pageable, Member member) {
+        // 정렬 처리
+        List<Book> sortedBooks = sortBooks(books, pageable.getSort());
+
+        // 페이징 처리
+        int start = (int) pageable.getOffset();
+        int end = Math.min(start + pageable.getPageSize(), sortedBooks.size());
+
+        List<Book> pagedBooks = start >= sortedBooks.size() ?
+                List.of() : sortedBooks.subList(start, end);
+
+        // DTO 변환
+        List<BookSearchDto> bookDtos = convertToDto(pagedBooks, member);
+
+        // Page 객체 생성
+        return new PageImpl<>(bookDtos, pageable, sortedBooks.size());
+    }
+
+    /**
+     * 책 목록 정렬 처리
+     */
+    private List<Book> sortBooks(List<Book> books, Sort sort) {
+        if (sort.isUnsorted()) {
+            return books;
+        }
+
+        return books.stream()
+                .sorted((book1, book2) -> {
+                    for (Sort.Order order : sort) {
+                        int comparison = compareBooks(book1, book2, order.getProperty());
+                        if (comparison != 0) {
+                            return order.isAscending() ? comparison : -comparison;
+                        }
+                    }
+                    return 0;
+                })
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 책 비교 메서드
+     */
+    private int compareBooks(Book book1, Book book2, String property) {
+        switch (property.toLowerCase()) {
+            case "id":
+                return Integer.compare(book1.getId(), book2.getId());
+            case "title":
+                return book1.getTitle().compareToIgnoreCase(book2.getTitle());
+            case "publisher":
+                return book1.getPublisher().compareToIgnoreCase(book2.getPublisher());
+            case "publisheddate":
+                if (book1.getPublishedDate() == null && book2.getPublishedDate() == null) return 0;
+                if (book1.getPublishedDate() == null) return -1;
+                if (book2.getPublishedDate() == null) return 1;
+                return book1.getPublishedDate().compareTo(book2.getPublishedDate());
+            case "avgrate":
+                return Float.compare(book1.getAvgRate(), book2.getAvgRate());
+            default:
+                return Integer.compare(book1.getId(), book2.getId());
+        }
     }
 
     /**
@@ -128,7 +223,7 @@ public class BookService {
             Page<Book> bookPage = bookRepository.findAll(pageable);
             return bookPage.map(book -> {
                 BookSearchDto dto = convertToDto(book, member);
-                log.info("Book {} converted with readState: {}", book.getId(), dto.getReadState());
+                log.debug("Book {} converted with readState: {}", book.getId(), dto.getReadState());
                 return dto;
             });
         } catch (Exception e) {
@@ -137,6 +232,12 @@ public class BookService {
         }
     }
 
+    /**
+     * 기존 getAllBooks 메서드 (Member 없는 버전) - 하위 호환성 유지
+     */
+    public Page<BookSearchDto> getAllBooks(Pageable pageable) {
+        return getAllBooks(pageable, null);
+    }
 
     /**
      * ID로 책 상세 정보 조회 (리뷰 페이징 포함)
@@ -191,24 +292,27 @@ public class BookService {
         }
     }
 
-
     /**
-     * 기존 getAllBooks 메서드 (Member 없는 버전) - 하위 호환성 유지
+     * 책 평균 평점 업데이트
      */
-    public Page<BookSearchDto> getAllBooks(Pageable pageable) {
-        return getAllBooks(pageable, null);
+    @Transactional
+    public void updateBookAvgRate(Book book) {
+        float avgRate = calculateAvgRateForBook(book);
+        book.setAvgRate(avgRate);
+        bookRepository.save(book);
+        log.info("책 평균 평점 업데이트: {} -> {}", book.getTitle(), avgRate);
     }
 
     /**
      * Member와 Book으로 ReadState 조회
      */
     private ReadState getReadStateByMemberAndBook(Member member, Book book) {
-        log.info("ReadState 조회: memberId={}, bookId={}", member.getId(), book.getId());
+        log.debug("ReadState 조회: memberId={}, bookId={}", member.getId(), book.getId());
 
         Optional<Bookmark> bookmark = bookmarkRepository.findByMemberAndBook(member, book);
         ReadState readState = bookmark.map(Bookmark::getReadState).orElse(null);
 
-        log.info("ReadState 결과: {}", readState);
+        log.debug("ReadState 결과: {}", readState);
         return readState;
     }
 
@@ -222,13 +326,6 @@ public class BookService {
                         bookmark -> bookmark.getBook().getId(),
                         bookmark -> bookmark.getReadState()
                 ));
-    }
-    @Transactional
-    public void updateBookAvgRate(Book book) {
-        float avgRate = calculateAvgRateForBook(book);
-        book.setAvgRate(avgRate);
-        bookRepository.save(book);
-        log.info("책 평균 평점 업데이트: {} -> {}", book.getTitle(), avgRate);
     }
 
     /**

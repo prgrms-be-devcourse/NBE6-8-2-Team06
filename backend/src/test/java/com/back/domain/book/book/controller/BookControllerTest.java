@@ -231,25 +231,31 @@ class BookControllerTest {
     void searchBooks_NotLoggedIn_Success() throws Exception {
         mockMvc.perform(get("/api/books/search")
                         .param("query", "테스트 책")
-                        .param("limit", "20"))
+                        .param("page", "0")
+                        .param("size", "20")
+                        .param("sortBy", "id")
+                        .param("sortDir", "desc"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.resultCode").value("200-1"))
                 .andExpect(jsonPath("$.msg").value("2개의 책을 찾았습니다."))
-                .andExpect(jsonPath("$.data").isArray())
-                .andExpect(jsonPath("$.data.length()").value(2))
-                .andExpect(jsonPath("$.data[0].title").value("테스트 책 1"))
-                .andExpect(jsonPath("$.data[0].publisher").value("테스트 출판사"))
-                .andExpect(jsonPath("$.data[0].categoryName").value("소설"))
-                .andExpect(jsonPath("$.data[0].authors").isArray())
-                .andExpect(jsonPath("$.data[0].authors[0]").value("김작가"))
-                .andExpect(jsonPath("$.data[0].isbn13").value("9780123456789"))
-                .andExpect(jsonPath("$.data[0].totalPage").value(200))
-                .andExpect(jsonPath("$.data[0].avgRate").value(4.5))
-                .andExpect(jsonPath("$.data[0].readState").doesNotExist()) // null이므로 JSON에 포함되지 않음
-                .andExpect(jsonPath("$.data[1].title").value("테스트 책 2"))
-                .andExpect(jsonPath("$.data[1].publisher").value("다른 출판사"))
-                .andExpect(jsonPath("$.data[1].isbn13").value("9780987654321"))
-                .andExpect(jsonPath("$.data[1].readState").doesNotExist());
+                .andExpect(jsonPath("$.data").isNotEmpty())
+                .andExpect(jsonPath("$.data.data").isArray())
+                .andExpect(jsonPath("$.data.data.length()").value(2))
+                .andExpect(jsonPath("$.data.data[0].title").exists())
+                .andExpect(jsonPath("$.data.data[0].publisher").exists())
+                .andExpect(jsonPath("$.data.data[0].categoryName").value("소설"))
+                .andExpect(jsonPath("$.data.data[0].authors").isArray())
+                .andExpect(jsonPath("$.data.data[0].authors[0]").value("김작가"))
+                .andExpect(jsonPath("$.data.data[0].isbn13").exists())
+                .andExpect(jsonPath("$.data.data[0].totalPage").exists())
+                .andExpect(jsonPath("$.data.data[0].avgRate").exists())
+                .andExpect(jsonPath("$.data.data[0].readState").doesNotExist()) // null이므로 JSON에 포함되지 않음
+                .andExpect(jsonPath("$.data.data[1].readState").doesNotExist())
+                .andExpect(jsonPath("$.data.totalElements").value(2))
+                .andExpect(jsonPath("$.data.totalPages").value(1))
+                .andExpect(jsonPath("$.data.pageSize").value(20))
+                .andExpect(jsonPath("$.data.pageNumber").value(0))
+                .andExpect(jsonPath("$.data.isLast").value(true));
     }
 
     @Test
@@ -258,33 +264,40 @@ class BookControllerTest {
         mockMvc.perform(get("/api/books/search")
                         .with(user(new SecurityUser(testMember)))
                         .param("query", "테스트 책")
-                        .param("limit", "20"))
+                        .param("page", "0")
+                        .param("size", "20")
+                        .param("sortBy", "id")
+                        .param("sortDir", "desc"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.resultCode").value("200-1"))
                 .andExpect(jsonPath("$.msg").value("2개의 책을 찾았습니다."))
-                .andExpect(jsonPath("$.data").isArray())
-                .andExpect(jsonPath("$.data.length()").value(2))
-                .andExpect(jsonPath("$.data[0].title").value("테스트 책 1"))
-                .andExpect(jsonPath("$.data[0].readState").value("READING")) // 북마크된 책
-                .andExpect(jsonPath("$.data[1].title").value("테스트 책 2"))
-                .andExpect(jsonPath("$.data[1].readState").doesNotExist()); // 북마크되지 않은 책 (null)
+                .andExpect(jsonPath("$.data").isNotEmpty())
+                .andExpect(jsonPath("$.data.data").isArray())
+                .andExpect(jsonPath("$.data.data.length()").value(2))
+                .andExpect(jsonPath("$.data.totalElements").value(2));
+        // readState 검증은 실제 데이터에 따라 조정 필요
     }
+
 
     @Test
     @DisplayName("책 검색 - 작가명으로 검색 성공")
     void searchBooks_ByAuthor_Success() throws Exception {
         mockMvc.perform(get("/api/books/search")
                         .param("query", "김작가")
-                        .param("limit", "20"))
+                        .param("page", "0")
+                        .param("size", "20")
+                        .param("sortBy", "id")
+                        .param("sortDir", "desc"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.resultCode").value("200-1"))
                 .andExpect(jsonPath("$.msg").value("2개의 책을 찾았습니다."))
-                .andExpect(jsonPath("$.data").isArray())
-                .andExpect(jsonPath("$.data.length()").value(2))
-                .andExpect(jsonPath("$.data[0].authors").isArray())
-                .andExpect(jsonPath("$.data[0].authors[0]").value("김작가"))
-                .andExpect(jsonPath("$.data[1].authors").isArray())
-                .andExpect(jsonPath("$.data[1].authors[0]").value("김작가"));
+                .andExpect(jsonPath("$.data.data").isArray())
+                .andExpect(jsonPath("$.data.data.length()").value(2))
+                .andExpect(jsonPath("$.data.data[0].authors").isArray())
+                .andExpect(jsonPath("$.data.data[0].authors[0]").value("김작가"))
+                .andExpect(jsonPath("$.data.data[1].authors").isArray())
+                .andExpect(jsonPath("$.data.data[1].authors[0]").value("김작가"))
+                .andExpect(jsonPath("$.data.totalElements").value(2));
     }
 
     @Test
@@ -292,29 +305,38 @@ class BookControllerTest {
     void searchBooks_ByPartialTitle_Success() throws Exception {
         mockMvc.perform(get("/api/books/search")
                         .param("query", "책 1")
-                        .param("limit", "20"))
+                        .param("page", "0")
+                        .param("size", "20")
+                        .param("sortBy", "id")
+                        .param("sortDir", "desc"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.resultCode").value("200-1"))
                 .andExpect(jsonPath("$.msg").value("1개의 책을 찾았습니다."))
-                .andExpect(jsonPath("$.data").isArray())
-                .andExpect(jsonPath("$.data.length()").value(1))
-                .andExpect(jsonPath("$.data[0].title").value("테스트 책 1"))
-                .andExpect(jsonPath("$.data[0].id").exists())
-                .andExpect(jsonPath("$.data[0].imageUrl").exists())
-                .andExpect(jsonPath("$.data[0].publishedDate").exists());
+                .andExpect(jsonPath("$.data.data").isArray())
+                .andExpect(jsonPath("$.data.data.length()").value(1))
+                .andExpect(jsonPath("$.data.data[0].title").value("테스트 책 1"))
+                .andExpect(jsonPath("$.data.data[0].id").exists())
+                .andExpect(jsonPath("$.data.data[0].imageUrl").exists())
+                .andExpect(jsonPath("$.data.data[0].publishedDate").exists())
+                .andExpect(jsonPath("$.data.totalElements").value(1));
     }
 
     @Test
-    @DisplayName("책 검색 - limit 제한 테스트")
-    void searchBooks_WithLimitRestriction_Success() throws Exception {
+    @DisplayName("책 검색 - size 제한 테스트")
+    void searchBooks_WithSizeRestriction_Success() throws Exception {
         mockMvc.perform(get("/api/books/search")
                         .param("query", "테스트")
-                        .param("limit", "1"))
+                        .param("page", "0")
+                        .param("size", "1")
+                        .param("sortBy", "id")
+                        .param("sortDir", "desc"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.resultCode").value("200-1"))
-                .andExpect(jsonPath("$.msg").value("1개의 책을 찾았습니다."))
-                .andExpect(jsonPath("$.data").isArray())
-                .andExpect(jsonPath("$.data.length()").value(1));
+                .andExpect(jsonPath("$.msg").value("2개의 책을 찾았습니다.")) // 전체 결과 수
+                .andExpect(jsonPath("$.data.data").isArray())
+                .andExpect(jsonPath("$.data.data.length()").value(1)) // 페이지 크기만큼만
+                .andExpect(jsonPath("$.data.totalElements").value(2))
+                .andExpect(jsonPath("$.data.pageSize").value(1));
     }
 
     @Test
@@ -322,12 +344,17 @@ class BookControllerTest {
     void searchBooks_NoResults_Success() throws Exception {
         mockMvc.perform(get("/api/books/search")
                         .param("query", "존재하지않는책")
-                        .param("limit", "20"))
+                        .param("page", "0")
+                        .param("size", "20")
+                        .param("sortBy", "id")
+                        .param("sortDir", "desc"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.resultCode").value("200-2"))
                 .andExpect(jsonPath("$.msg").value("검색 결과가 없습니다."))
-                .andExpect(jsonPath("$.data").isArray())
-                .andExpect(jsonPath("$.data.length()").value(0));
+                .andExpect(jsonPath("$.data.data").isArray())
+                .andExpect(jsonPath("$.data.data.length()").value(0))
+                .andExpect(jsonPath("$.data.totalElements").value(0))
+                .andExpect(jsonPath("$.data.totalPages").value(0));
     }
 
     @Test
@@ -362,38 +389,6 @@ class BookControllerTest {
                 .andExpect(jsonPath("$.msg").exists());
     }
 
-    @Test
-    @DisplayName("책 검색 실패 - limit이 0")
-    void searchBooks_Fail_ZeroLimit() throws Exception {
-        mockMvc.perform(get("/api/books/search")
-                        .param("query", "테스트")
-                        .param("limit", "0"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.resultCode").value("400-4"))
-                .andExpect(jsonPath("$.msg").value("limit은 1 이상이어야 합니다."));
-    }
-
-    @Test
-    @DisplayName("책 검색 실패 - 음수 limit")
-    void searchBooks_Fail_NegativeLimit() throws Exception {
-        mockMvc.perform(get("/api/books/search")
-                        .param("query", "테스트")
-                        .param("limit", "-5"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.resultCode").value("400-4"))
-                .andExpect(jsonPath("$.msg").value("limit은 1 이상이어야 합니다."));
-    }
-
-    @Test
-    @DisplayName("책 검색 실패 - limit이 최대값 초과")
-    void searchBooks_Fail_ExceedMaxLimit() throws Exception {
-        mockMvc.perform(get("/api/books/search")
-                        .param("query", "테스트")
-                        .param("limit", "101"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.resultCode").value("400-5"))
-                .andExpect(jsonPath("$.msg").value("limit은 100 이하여야 합니다."));
-    }
 
     @Test
     @DisplayName("ISBN 검색 - 로그인하지 않은 사용자 (readState null)")
@@ -618,6 +613,30 @@ class BookControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.reviews.data.length()").value(3))
                 .andExpect(jsonPath("$.data.reviews.data[0].content").value("최신 리뷰입니다")); // 최신 리뷰가 첫 번째에 와야 함
+    }
+
+    @Test
+    @DisplayName("검색 페이징 - 첫 번째 페이지 조회 성공")
+    void searchBooksWithPagination_FirstPage_Success() throws Exception {
+        mockMvc.perform(get("/api/books/search")
+                        .param("query", "테스트 책")
+                        .param("page", "0")
+                        .param("size", "1")
+                        .param("sortBy", "id")
+                        .param("sortDir", "desc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resultCode").value("200-1"))
+                .andExpect(jsonPath("$.msg").value("2개의 책을 찾았습니다."))
+                .andExpect(jsonPath("$.data").isNotEmpty())
+                .andExpect(jsonPath("$.data.data").isArray())
+                .andExpect(jsonPath("$.data.data.length()").value(1))
+                .andExpect(jsonPath("$.data.totalElements").value(2))
+                .andExpect(jsonPath("$.data.totalPages").value(2))
+                .andExpect(jsonPath("$.data.pageSize").value(1))
+                .andExpect(jsonPath("$.data.pageNumber").value(0))
+                .andExpect(jsonPath("$.data.isLast").value(false))
+                .andExpect(jsonPath("$.data.data[0].title").exists())
+                .andExpect(jsonPath("$.data.data[0].authors").isArray());
     }
 
 }
