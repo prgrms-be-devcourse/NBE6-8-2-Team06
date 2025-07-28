@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@radix-ui/react-select";
-import { ArrowLeft, BookOpen, Building, Calendar, Globe, Heart, Plus, Star, ThumbsDown, ThumbsUp } from "lucide-react";
+import { ArrowLeft, BookOpen, Building, Calendar, Globe, Heart, Plus, Star } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { use, useState } from "react";
 
@@ -40,8 +40,6 @@ interface BookDetailPageProps {
     review: string;
     reviewDate: string;
     likes: number;
-    diskies: number;
-    myLike?: boolean;
   }
 
   export default function page({params}:{params:Promise<{bookId:string}>}){
@@ -210,9 +208,7 @@ interface BookDetailPageProps {
         rating: 5,
         review: "프로그래머라면 반드시 읽어야 할 책입니다. 코드 품질에 대한 인식이 완전히 바뀌었어요. 특히 함수와 변수명을 짓는 방법에 대한 부분이 가장 도움이 되었습니다. 실무에서 바로 적용할 수 있는 실용적인 내용들이 많아서 정말 좋았습니다.",
         reviewDate: "2024-02-15",
-        likes: 23,
-        diskies: 10,
-        myLike: true
+        likes: 23
       },
       {
         id: 2,
@@ -222,9 +218,7 @@ interface BookDetailPageProps {
         rating: 4,
         review: "코드 리뷰를 할 때 많은 도움이 되는 책입니다. 다만 일부 내용은 현재 개발 환경과 맞지 않는 부분도 있어요. 그래도 기본 원칙들은 여전히 유효하고 매우 유용합니다.",
         reviewDate: "2024-02-10",
-        likes: 15,
-        diskies: 10,
-        myLike: false
+        likes: 15
       },
       // 사피엔스 리뷰
       {
@@ -235,9 +229,7 @@ interface BookDetailPageProps {
         rating: 5,
         review: "인류 역사를 완전히 새로운 관점에서 바라볼 수 있게 해준 책입니다. 농업혁명이 인류에게 축복이 아닐 수도 있다는 관점은 정말 충격적이었어요. 쉬운 문체로 복잡한 역사를 설명하는 저자의 능력이 탁월합니다.",
         reviewDate: "2024-02-12",
-        likes: 45,
-        diskies: 10,
-        myLike: undefined
+        likes: 45
       },
       {
         id: 4,
@@ -247,9 +239,7 @@ interface BookDetailPageProps {
         rating: 4.5,
         review: "방대한 스케일의 역사서임에도 불구하고 지루하지 않게 읽을 수 있었습니다. 특히 화폐와 종교가 인류 협력을 가능하게 했다는 분석이 인상적이었어요.",
         reviewDate: "2024-02-08",
-        likes: 32,
-        diskies: 10,
-        myLike: undefined
+        likes: 32
       },
       // 1984 리뷰
       {
@@ -260,9 +250,7 @@ interface BookDetailPageProps {
         rating: 5,
         review: "현재 우리 사회와 너무나 유사한 부분들이 많아서 소름이 돋았습니다. 70년 전에 쓰인 소설이지만 예언서처럼 느껴져요. 빅 브라더의 감시 사회는 이제 현실이 되었습니다.",
         reviewDate: "2024-02-14",
-        likes: 67,
-        diskies: 10,
-        myLike: undefined
+        likes: 67
       },
       {
         id: 6,
@@ -272,9 +260,7 @@ interface BookDetailPageProps {
         rating: 4.5,
         review: "언어의 힘과 위험성에 대해 깊이 생각해볼 수 있었습니다. 신어(Newspeak)의 개념은 정말 무서우면서도 현실적으로 느껴졌어요. 모든 시민이 읽어야 할 필독서입니다.",
         reviewDate: "2024-02-11",
-        likes: 28,
-        diskies: 10,
-        myLike: undefined
+        likes: 28
       },
       // 아토믹 해빗 리뷰
       {
@@ -285,9 +271,7 @@ interface BookDetailPageProps {
         rating: 4.5,
         review: "실제로 적용 가능한 구체적인 방법들이 많아서 좋았습니다. 1% 개선의 복리 효과에 대한 설명이 특히 인상깊었어요. 읽고 나서 실제로 몇 가지 습관을 만들어가고 있습니다.",
         reviewDate: "2024-02-09",
-        likes: 39,
-        diskies: 10,
-        myLike: undefined
+        likes: 39
       },
       {
         id: 8,
@@ -297,9 +281,7 @@ interface BookDetailPageProps {
         rating: 4,
         review: "습관 형성에 대한 과학적 접근이 매우 흥미로웠습니다. 환경 디자인의 중요성을 새롭게 깨달았어요. 다만 일부 내용은 이미 알고 있던 것들도 있었습니다.",
         reviewDate: "2024-02-06",
-        likes: 22,
-        diskies: 10,
-        myLike: undefined
+        likes: 22
       },
       // 해리포터 리뷰
       {
@@ -310,9 +292,7 @@ interface BookDetailPageProps {
         rating: 5,
         review: "어른이 되어서 다시 읽어도 여전히 재미있는 마법 같은 책입니다. 호그와트에서의 첫 해가 이렇게 생생하게 그려질 줄 몰랐어요. 아이와 함께 읽으면서 동심을 되찾을 수 있었습니다.",
         reviewDate: "2024-02-13",
-        likes: 56,
-        diskies: 10,
-        myLike: undefined
+        likes: 56
       },
       {
         id: 10,
@@ -322,9 +302,7 @@ interface BookDetailPageProps {
         rating: 4.5,
         review: "판타지 소설의 새로운 기준을 제시한 작품이라고 생각합니다. 마법 세계의 설정이 정말 세밀하고, 캐릭터들도 모두 매력적이에요. 시리즈 전체를 읽게 만드는 중독성이 있습니다.",
         reviewDate: "2024-02-07",
-        likes: 43,
-        diskies: 10,
-        myLike: undefined
+        likes: 43
       }
     ];
 
@@ -528,13 +506,9 @@ interface BookDetailPageProps {
                             {review.review}
                           </p>
                           <div className="flex items-center space-x-4">
-                            <Button variant={review.myLike === true? "default":"ghost"} size="sm">
-                              <ThumbsUp className="h-4 w-4 mr-1" />
-                              좋아요 {review.likes}
-                            </Button>
-                            <Button variant={review.myLike === false? "default" : "ghost"} size="sm">
-                              <ThumbsDown className="h-4 w-4 mr-1" />
-                              싫어요 {review.diskies}
+                            <Button variant="ghost" size="sm">
+                              <Heart className="h-4 w-4 mr-1" />
+                              도움됨 {review.likes}
                             </Button>
                           </div>
                         </div>

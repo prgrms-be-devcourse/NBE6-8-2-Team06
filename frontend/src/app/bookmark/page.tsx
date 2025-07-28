@@ -12,12 +12,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ImageWithFallback } from '@/components/ImageWithFallback';
 import { Badge } from '@/components/ui/badge';
-import { useAuth } from '@/app/_hooks/auth-context';
-import withLogin from '@/app/_hooks/withLogin';
 
 
-export default withLogin(function Page() {
-  const auth = useAuth();
+export default function Page() {
   const router = useRouter();
   const [bookmarks, setBookmarks] = useState<BookmarkPage>();
   const [isLoading, setIsLoading] = useState(true);
@@ -366,4 +363,4 @@ export default withLogin(function Page() {
       </Tabs>
     </div>
   );
-})
+}

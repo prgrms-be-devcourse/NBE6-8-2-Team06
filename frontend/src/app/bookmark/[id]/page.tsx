@@ -1,6 +1,5 @@
 "use client"
 
-import withLogin from "@/app/_hooks/withLogin";
 import { ImageWithFallback } from "@/components/ImageWithFallback";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -48,10 +47,10 @@ interface MyBookDetailPageProps {
     createdDate: string;
   }
 
-export default withLogin(function page({params}:{params:Promise<{id:string}>}){
-  const {id:bookIdStr} = use(params);
+export default function page({params}:{params:Promise<{bookId:string}>}){
+  const {bookId:bookIdStr} = use(params);
   const bookId = parseInt(bookIdStr);
-  console.log(bookId);
+    
   const router = useRouter()
   const onNavigate = (e:string)=>{
     router.push(e)
@@ -491,4 +490,4 @@ export default withLogin(function page({params}:{params:Promise<{id:string}>}){
       </div>
     </div>
   );
-})
+}
