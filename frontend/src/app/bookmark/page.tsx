@@ -4,9 +4,9 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { getBookmarks, updateBookmark, deleteBookmark, getBookmarkReadStates } from '../../types/bookmarkAPI';
 import { BookmarkPage, Bookmark, BookmarkReadStates, UpdateBookmark } from '../../types/bookmarkData';
-import { BookOpen, Plus, Search, Trash2 } from 'lucide-react';
+import { BookOpen, Plus, Search, Trash2, Edit, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -14,7 +14,6 @@ import { ImageWithFallback } from '@/components/ImageWithFallback';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
-import { Edit } from 'lucide-react';
 import { useAuth } from "../_hooks/auth-context";
 
 
@@ -215,6 +214,19 @@ export default function Page() {
   }, []); // [] 로 변경하여 컴포넌트가 처음 마운트될 때 한 번만 실행되도록 합니다.
 */
 
+  const renderStars = (rating?: number) => {
+    if (!rating) return null;
+    return [...Array(5)].map((_, i) => (
+      <Star
+        key={i}
+        className={`h-4 w-4 ${i < Math.floor(rating)
+            ? 'fill-yellow-400 text-yellow-400'
+            : 'text-gray-300'
+          }`}
+      />
+    ));
+  };
+
   const getReadState = (readState: string) => {
     switch (readState) {
       case 'READ':
@@ -379,7 +391,7 @@ export default function Page() {
               <Button onClick={() => onNavigate('books')}>새 책 추가하기</Button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredBookmarks.map((bookmark) => (
                 <Card key={bookmark.id} className="h-full cursor-pointer hover:shadow-lg transition-shadow overflow-hidden" onClick={() => onNavigate(`/bookmark/${bookmark.id}`)}>
                   <CardHeader>
@@ -398,7 +410,7 @@ export default function Page() {
                       />
                     </div>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="flex-grow">
                     <div className="space-y-4">
                       <div className="flex justify-between text-sm text-muted-foreground">
                         <span>카테고리: {bookmark.book.category}</span>
@@ -417,14 +429,24 @@ export default function Page() {
                       )}
                     </div>
                     {/* 카드 평점 */}
-
+                    {bookmark.review?.rate > 0 && (
+                      <p className="flex items-center space-x-1 py-2">
+                        {renderStars(bookmark.review.rate)}
+                        <span className="text-sm ml-2">{bookmark.review.rate}</span>
+                      </p>
+                    )}
+                    {bookmark.review?.content && (
+                      <p className="text-sm text-muted-foreground line-clamp-2 gap-2 py-2">
+                        {bookmark.review.content}
+                      </p>
+                    )}
                     {/* 날짜 정보 */}
-                    <div className="text-xs text-muted-foreground">
-                      {bookmark.readState === 'READ' ? `완독 : ${bookmark.endReadDate?.substring(0,10)}` : bookmark.readState === 'READING' ? `시작 : ${bookmark.startReadDate?.substring(0,10)}` : `추가 : ${bookmark.createDate?.substring(0,10)}`}
+                    <div className="text-xs text-muted-foreground gap-2 py-2">
+                      {bookmark.readState === 'READ' ? `완독 : ${bookmark.endReadDate?.substring(0, 10)}` : bookmark.readState === 'READING' ? `시작 : ${bookmark.startReadDate?.substring(0, 10)}` : `추가 : ${bookmark.createDate?.substring(0, 10)}`}
                     </div>
-
+                  </CardContent>
+                  <CardFooter className="flex justify-end space-x-2 py-3">
                     {/* 북마크 편집 버튼 */}
-                    <div className="flex justify-between items-center pt-2">
                       <div className="flex space-x-2" onClick={(e) => e.stopPropagation()}>
                         <Dialog open={isEditDialogOpen && editBookmark?.id === bookmark.id} onOpenChange={setIsEditDialogOpen}>
                           <DialogTrigger asChild>
@@ -463,8 +485,7 @@ export default function Page() {
                           <Trash2 className='h-4 w-4' />
                         </Button>
                       </div>
-                    </div>
-                  </CardContent>
+                  </CardFooter>
                 </Card>
               ))}
             </div>
@@ -484,16 +505,16 @@ interface BookmarkEditFormProps {
 function BookmarkEditForm({ bookmark, onSave, onCancel }: BookmarkEditFormProps) {
   const [formData, setFormData] = useState({
     readState: bookmark.readState,
-    startReadDate: bookmark.startReadDate?.substring(0,10) || '',
-    endReadDate: bookmark.endReadDate?.substring(0,10) || '',
+    startReadDate: bookmark.startReadDate?.substring(0, 10) || '',
+    endReadDate: bookmark.endReadDate?.substring(0, 10) || '',
     readPage: bookmark.readPage || 0,
   });
 
   useEffect(() => {
     setFormData({
       readState: bookmark.readState,
-      startReadDate: bookmark.startReadDate?.substring(0,10) || '',
-      endReadDate: bookmark.endReadDate?.substring(0,10) || '',
+      startReadDate: bookmark.startReadDate?.substring(0, 10) || '',
+      endReadDate: bookmark.endReadDate?.substring(0, 10) || '',
       readPage: bookmark.readPage || 0,
     });
   }, [bookmark]);
@@ -502,8 +523,8 @@ function BookmarkEditForm({ bookmark, onSave, onCancel }: BookmarkEditFormProps)
     e.preventDefault();
     const dataToSend = {
       ...formData,
-      startReadDate : formData.startReadDate? `${formData.startReadDate}T00:00:00` : null,
-      endReadDate : formData.endReadDate? `${formData.endReadDate}T00:00:00` : null,
+      startReadDate: formData.startReadDate ? `${formData.startReadDate}T00:00:00` : null,
+      endReadDate: formData.endReadDate ? `${formData.endReadDate}T00:00:00` : null,
     };
     onSave(dataToSend);
   };
