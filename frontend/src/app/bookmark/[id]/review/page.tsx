@@ -92,7 +92,7 @@ interface WriteReviewPageProps {
   const handleSave = () => {
     // 여기서 실제로는 API 호출을 통해 리뷰를 저장
     console.log('리뷰 저장:', { bookId, rating, review });
-    reviewApi.createReview({bookId, rating, review});
+    reviewApi.createReview({rating, review});
     onNavigate(`/bookmark/${bookId}`);
   };
 
