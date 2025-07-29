@@ -81,7 +81,7 @@ public class MemberController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<?> logout(HttpServletResponse response){
+    public ResponseEntity<?> logout(){
         Member actor = rq.getActor();
 
         if(actor != null){
@@ -89,15 +89,9 @@ public class MemberController {
             memberService.clearRefreshToken(actor);
         }
 
-        for(String tokenName: List.of("accessToken","refreshToken")){
-            Cookie cookie = new Cookie(tokenName, "");
-            cookie.setPath("/");
-            cookie.setHttpOnly(true);
-            cookie.setSecure(true);
-            cookie.setMaxAge(0); //즉시 만료
-            cookie.setAttribute("SameSite","Strict");
-            response.addCookie(cookie);
-        }
+        // 쿠키에서 토큰 삭제
+        rq.clearAuthCookies();
+
         return ResponseEntity.noContent().build();
     }
 
@@ -155,15 +149,7 @@ public class MemberController {
         memberService.deleteMember(actor);
 
         // 쿠키에서 토큰 삭제
-        for(String tokenName: List.of("accessToken","refreshToken")){
-            Cookie cookie = new Cookie(tokenName, "");
-            cookie.setPath("/");
-            cookie.setHttpOnly(true);
-            cookie.setSecure(true);
-            cookie.setMaxAge(0);
-            cookie.setAttribute("SameSite","Strict");
-            response.addCookie(cookie);
-        }
+        rq.clearAuthCookies();
 
         return new RsData<>("200-1", "회원탈퇴가 완료되었습니다.", null);
     }
