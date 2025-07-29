@@ -1,6 +1,9 @@
 package com.back.domain.member.member.controller;
 
 import com.back.domain.member.member.dto.MemberDto;
+import com.back.domain.member.member.dto.MemberJoinReqDto;
+import com.back.domain.member.member.dto.MemberLoginReqDto;
+import com.back.domain.member.member.dto.MemberLoginResDto;
 import com.back.domain.member.member.entity.Member;
 import com.back.domain.member.member.service.MemberService;
 import com.back.global.exception.ServiceException;
@@ -10,15 +13,12 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -29,25 +29,12 @@ public class MemberController {
 
     private final MemberService memberService;
     private final PasswordEncoder passwordEncoder;
-
     private final Rq rq;
-
-    record MemberJoinReqBody(
-        @NotBlank
-        @Size(min = 2, max = 30)
-        String email,
-        @NotBlank
-        @Size(min = 2, max = 20)
-        String name,
-        @NotBlank
-        @Size(min = 2, max = 20)
-        String password
-    ) {}
 
     @PostMapping("/signup")
     @Transactional
     public RsData<MemberDto> join(
-            @Valid @RequestBody MemberJoinReqBody reqBody
+            @Valid @RequestBody MemberJoinReqDto reqBody
     ){
         memberService.findByEmail(reqBody.email()).ifPresent(member -> {
             throw new ServiceException("409","이미 존재하는 이메일 입니다. 다시 입력해주세요.");
@@ -55,7 +42,7 @@ public class MemberController {
         Member member = memberService.join(
                 reqBody.name(),
                 reqBody.email(),
-                passwordEncoder.encode(reqBody.password)
+                passwordEncoder.encode(reqBody.password())
         );
         return new RsData<>(
                 "201-1",
@@ -64,30 +51,15 @@ public class MemberController {
         );
     }
 
-    record MemberLoginReqBody(
-            @NotBlank
-            @Size(min = 2, max = 30)
-            String email,
-            @NotBlank
-            @Size(min = 2, max = 50)
-            String password
-    ){}
-
-    record MemberLoginResBody(
-            MemberDto memDto,
-            String accessToken
-    ) {
-    }
-
     @PostMapping("/login")
     @Transactional
-    public RsData<MemberLoginResBody> login(
-            @Valid @RequestBody MemberLoginReqBody reqBody
+    public RsData<MemberLoginResDto> login(
+            @Valid @RequestBody MemberLoginReqDto reqBody
     ){
-        Member member =memberService.findByEmail(reqBody.email())
+        Member member = memberService.findByEmail(reqBody.email())
                 .orElseThrow(()->new ServiceException("401-1", "존재하지 않는 아이디입니다."));
 
-        memberService.checkPassword(member,reqBody.password);
+        memberService.checkPassword(member, reqBody.password());
 
         String accessToken = memberService.geneAccessToken(member);
         String refreshToken = memberService.geneRefreshToken(member);
@@ -95,13 +67,13 @@ public class MemberController {
         member.updateRefreshToken(refreshToken);
         memberService.save(member);
 
-        rq.setCookie("accessToken",accessToken);
-        rq.setCookie("refreshToken",refreshToken);
+        rq.setCookie("accessToken", accessToken);
+        rq.setCookie("refreshToken", refreshToken);
 
         return new RsData<>(
                 "200-1",
                 "%s님 환영합니다.".formatted(member.getEmail()),
-                new MemberLoginResBody(
+                new MemberLoginResDto(
                         new MemberDto(member),
                         accessToken
                 )
@@ -195,6 +167,4 @@ public class MemberController {
 
         return new RsData<>("200-1", "회원탈퇴가 완료되었습니다.", null);
     }
-
-
 }
