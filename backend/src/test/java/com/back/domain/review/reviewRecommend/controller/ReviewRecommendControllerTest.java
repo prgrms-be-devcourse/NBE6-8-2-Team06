@@ -34,7 +34,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Transactional
 @AutoConfigureMockMvc
 @Rollback
-public class ReviewRecommendController {
+public class ReviewRecommendControllerTest {
     @Autowired
     private MockMvc mvc;
 
@@ -73,21 +73,21 @@ public class ReviewRecommendController {
 
     ResultActions createRecommendReview(int reviewId, boolean isRecommend, String accessToken) throws Exception{
         return mvc.perform(
-                post("/reviews/{review_id}/recommend/{isRecommend}", reviewId, isRecommend)
+                post("/reviewRecommend/{review_id}/recommend/{isRecommend}", reviewId, isRecommend)
                         .cookie(new Cookie("accessToken", accessToken))
         ).andDo(print());
     }
 
     ResultActions updateRecommendReview(int reviewId, boolean isRecommend, String accessToken) throws Exception{
         return mvc.perform(
-                put("/reviews/{review_id}/recommend/{isRecommend}", reviewId, isRecommend)
+                put("/reviewRecommend/{review_id}/recommend/{isRecommend}", reviewId, isRecommend)
                         .cookie(new Cookie("accessToken", accessToken))
         ).andDo(print());
     }
 
     ResultActions deleteRecommendReview(int reviewId, String accessToken) throws Exception{
         return mvc.perform(
-                delete("/reviews/{review_id}/recommend", reviewId)
+                delete("/reviewRecommend/{review_id}/recommend", reviewId)
                         .cookie(new Cookie("accessToken", accessToken))
         ).andDo(print());
     }
@@ -103,11 +103,11 @@ public class ReviewRecommendController {
 
 
         ResultActions resultActions = mvc.perform(
-                post("/reviews/{review_id}/recommend/{isRecommend}", review.getId(), true)
+                post("/reviewRecommend/{review_id}/recommend/{isRecommend}", review.getId(), true)
                         .cookie(new Cookie("accessToken", accessToken))
         ).andDo(print());
         resultActions
-                .andExpect(handler().handlerType(ReviewController.class))
+                .andExpect(handler().handlerType(ReviewRecommendController.class))
                 .andExpect(handler().methodName("recommendReview"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.resultCode").value("201-1"))
@@ -133,26 +133,26 @@ public class ReviewRecommendController {
 
         Review review = reviewService.findLatest().orElseThrow(()-> new RuntimeException("리뷰가 없습니다."));
         mvc.perform(
-                post("/reviews/{review_id}/recommend/{isRecommend}", review.getId(), true)
+                post("/reviewRecommend/{review_id}/recommend/{isRecommend}", review.getId(), true)
                         .cookie(new Cookie("accessToken", accessToken))
         ).andDo(print());
 
         ResultActions resultActions = mvc.perform(
-                post("/reviews/{review_id}/recommend/{isRecommend}", review.getId(), false)
+                post("/reviewRecommend/{review_id}/recommend/{isRecommend}", review.getId(), false)
                         .cookie(new Cookie("accessToken", accessToken2))
         ).andDo(print());
 
         mvc.perform(
-                post("/reviews/{review_id}/recommend/{isRecommend}", review.getId(), true)
+                post("/reviewRecommend/{review_id}/recommend/{isRecommend}", review.getId(), true)
                         .cookie(new Cookie("accessToken", accessToken3))
         ).andDo(print());
 
         mvc.perform(
-                post("/reviews/{review_id}/recommend/{isRecommend}", review.getId(), false)
+                post("/reviewRecommend/{review_id}/recommend/{isRecommend}", review.getId(), false)
                         .cookie(new Cookie("accessToken", accessToken4))
         ).andDo(print());
         resultActions
-                .andExpect(handler().handlerType(ReviewController.class))
+                .andExpect(handler().handlerType(ReviewRecommendController.class))
                 .andExpect(handler().methodName("recommendReview"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.resultCode").value("201-1"))
@@ -172,15 +172,15 @@ public class ReviewRecommendController {
 
         Review review = reviewService.findLatest().orElseThrow(()-> new RuntimeException("리뷰가 없습니다."));
         mvc.perform(
-                post("/reviews/{review_id}/recommend/{isRecommend}", review.getId(), true)
+                post("/reviewRecommend/{review_id}/recommend/{isRecommend}", review.getId(), true)
                         .cookie(new Cookie("accessToken", accessToken))
         ).andDo(print());
         ResultActions resultActions = mvc.perform(
-                post("/reviews/{review_id}/recommend/{isRecommend}", review.getId(), true)
+                post("/reviewRecommend/{review_id}/recommend/{isRecommend}", review.getId(), true)
                         .cookie(new Cookie("accessToken", accessToken))
         ).andDo(print());
         resultActions
-                .andExpect(handler().handlerType(ReviewController.class))
+                .andExpect(handler().handlerType(ReviewRecommendController.class))
                 .andExpect(handler().methodName("recommendReview"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.resultCode").value("400-1"))
@@ -198,7 +198,7 @@ public class ReviewRecommendController {
         Review review = reviewService.findLatest().orElseThrow(()-> new RuntimeException("리뷰가 없습니다."));
         ResultActions resultActions = createRecommendReview(-1, true, accessToken);
         resultActions
-                .andExpect(handler().handlerType(ReviewController.class))
+                .andExpect(handler().handlerType(ReviewRecommendController.class))
                 .andExpect(handler().methodName("recommendReview"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.resultCode").value("404-1"))
@@ -245,7 +245,7 @@ public class ReviewRecommendController {
 
         ResultActions resultActions = updateRecommendReview(-1, true, accessTokens.get(0));
         resultActions
-                .andExpect(handler().handlerType(ReviewController.class))
+                .andExpect(handler().handlerType(ReviewRecommendController.class))
                 .andExpect(handler().methodName("modifyRecommendReview"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.resultCode").value("404-1"))
@@ -265,7 +265,7 @@ public class ReviewRecommendController {
 
         ResultActions resultActions = updateRecommendReview(review.getId(), true, accessTokens.get(0));
         resultActions
-                .andExpect(handler().handlerType(ReviewController.class))
+                .andExpect(handler().handlerType(ReviewRecommendController.class))
                 .andExpect(handler().methodName("modifyRecommendReview"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.resultCode").value("400-2"))
@@ -283,7 +283,7 @@ public class ReviewRecommendController {
 
         ResultActions resultActions = updateRecommendReview(review.getId(), true, accessTokens.get(0));
         resultActions
-                .andExpect(handler().handlerType(ReviewController.class))
+                .andExpect(handler().handlerType(ReviewRecommendController.class))
                 .andExpect(handler().methodName("modifyRecommendReview"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.resultCode").value("404-1"))
@@ -303,7 +303,7 @@ public class ReviewRecommendController {
 
         ResultActions resultActions = deleteRecommendReview(review.getId(), accessTokens.get(0));
         resultActions
-                .andExpect(handler().handlerType(ReviewController.class))
+                .andExpect(handler().handlerType(ReviewRecommendController.class))
                 .andExpect(handler().methodName("cancelRecommendReview"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.resultCode").value("200-1"))
@@ -321,7 +321,7 @@ public class ReviewRecommendController {
 
         ResultActions resultActions = deleteRecommendReview(review.getId(), accessTokens.get(0));
         resultActions
-                .andExpect(handler().handlerType(ReviewController.class))
+                .andExpect(handler().handlerType(ReviewRecommendController.class))
                 .andExpect(handler().methodName("cancelRecommendReview"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.resultCode").value("404-1"))
@@ -339,7 +339,7 @@ public class ReviewRecommendController {
 
         ResultActions resultActions = deleteRecommendReview(-1, accessTokens.get(0));
         resultActions
-                .andExpect(handler().handlerType(ReviewController.class))
+                .andExpect(handler().handlerType(ReviewRecommendController.class))
                 .andExpect(handler().methodName("cancelRecommendReview"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.resultCode").value("404-1"))
@@ -360,7 +360,7 @@ public class ReviewRecommendController {
 
         ResultActions resultActions = deleteRecommendReview(review.getId(), accessTokens.get(0));
         resultActions
-                .andExpect(handler().handlerType(ReviewController.class))
+                .andExpect(handler().handlerType(ReviewRecommendController.class))
                 .andExpect(handler().methodName("cancelRecommendReview"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.resultCode").value("404-1"))
