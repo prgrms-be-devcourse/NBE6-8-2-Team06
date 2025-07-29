@@ -20,7 +20,7 @@ export type BookmarkBookDetail = {
     avgRate: number;
     category: string;
     publishDate: string;
-    author: string[];
+    authors: string[];
     description: string;
 };
 

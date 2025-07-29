@@ -47,7 +47,7 @@ export default function Page() {
     }
   }, [isAuthLoading, isLoggedIn, onNavigate]);
 
-  const fetchBookmarks = useCallback(async () => {
+  const fetchBookmarks = useCallback(async (searchKeyword) => {
     setIsLoading(true);
     setError('');
     try {
@@ -75,7 +75,7 @@ export default function Page() {
     } finally {
       setIsLoading(false);
     }
-  }, [currentPage, selectedCategory, selectedReadState, searchKeyword]);
+  }, [currentPage, selectedCategory, selectedReadState]);
 
   const fetchBookmarkReadStates = useCallback(async () => {
     setIsLoading(true);
@@ -91,126 +91,18 @@ export default function Page() {
   }, []);
 
   useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchBookmarks(searchKeyword);
+    }, 500);
+    return () => {
+      clearTimeout(timer);
+    };
+  },[searchKeyword, fetchBookmarks]);
+  useEffect(() => {
     if (!isAuthLoading && isLoggedIn) {
       fetchBookmarkReadStates();
-      fetchBookmarks();
     }
-  }, [isAuthLoading, isLoggedIn, fetchBookmarks, fetchBookmarkReadStates]);
-
-
-  // Page.tsx 파일 상단 (import 다음, Page 컴포넌트 이전)
-
-  // 임시 북마크 데이터
-  /*
-  const mockBookmarkPage = {
-    content: [
-      {
-        id: 1,
-        memberId: 1,
-        bookId: 1,
-        readState: 'READ',
-        readPage: 464,
-        readingRate: 100,
-        date: '2024-07-20',
-        book: {
-          id: 1,
-          isbn13: "9788960777330",
-          publisher: "프로그래밍 인사이트",
-          avgRate: 4.5,
-          publishDate: "2013-01-01",
-          title: "클린 코드(Clean Code)",
-          author: ["로버트 C. 마틴"],
-          imageUrl: "https://image.aladin.co.kr/product/19/24/cover/8966262130_1.jpg",
-          category: "프로그래밍",
-          totalPage: 464,
-        }
-      },
-      {
-        id: 2,
-        memberId: 1,
-        bookId: 2,
-        readState: 'READING',
-        readPage: 150,
-        readingRate: 27,
-        date: '2025-07-10',
-        book: {
-          id: 2,
-          isbn13: "9788960777330",
-          publisher: "프로그래밍 인사이트",
-          avgRate: 4.5,
-          publishDate: "2013-01-01",
-          title: "리팩터링 2판",
-          author: ["마틴 파울러"],
-          imageUrl: "https://image.aladin.co.kr/product/216/23/cover/8966262378_1.jpg",
-          category: "프로그래밍",
-          totalPage: 550,
-        }
-      },
-      {
-        id: 3,
-        memberId: 1,
-        bookId: 1,
-        readState: 'WISH',
-        readPage: 0,
-        readingRate: 0,
-        date: '2025-06-30',
-        book: {
-          id: 3,
-          isbn13: "9788960777330",
-          publisher: "프로그래밍 인사이트",
-          avgRate: 4.5,
-          publishDate: "2013-01-01",
-          title: "Sapiens: A Brief History of Humankind",
-          author: ["유발 하라리"],
-          imageUrl: "https://image.aladin.co.kr/product/74/26/cover/8934910911_2.jpg",
-          category: "역사",
-          totalPage: 512,
-        }
-      },
-      {
-        id: 4,
-        memberId: 1,
-        bookId: 4,
-        readState: 'READ',
-        readPage: 396,
-        readingRate: 100,
-        date: '2025-05-15',
-        book: {
-          id: 4,
-          isbn13: "9788960777330",
-          publisher: "프로그래밍 인사이트",
-          avgRate: 4.5,
-          publishDate: "2013-01-01",
-          title: "코스모스",
-          author: ["칼 세이건"],
-          imageUrl: "https://image.aladin.co.kr/product/21/11/cover/8983719213_2.jpg",
-          category: "과학",
-          totalPage: 396,
-        }
-      },
-    ],
-    totalPages: 1,
-    totalElements: 4,
-    pageNumber: 0,
-    pageSize: 10,
-    isLast: true,
-  };
-  useEffect(() => {
-    // <<<< API 연동 대신 임시 데이터를 사용하도록 수정 >>>>
-    console.log("임시 데이터로 렌더링합니다.");
-    setIsLoading(true);
-
-    // 실제 로딩처럼 보이게 0.5초 딜레이를 줍니다.
-    setTimeout(() => {
-      setBookmarks(mockBookmarkPage);
-      setTotalPages(mockBookmarkPage.totalPages);
-      setTotalElements(mockBookmarkPage.totalElements);
-      setIsLoading(false);
-    }, 500);
-
-
-  }, []); // [] 로 변경하여 컴포넌트가 처음 마운트될 때 한 번만 실행되도록 합니다.
-*/
+  }, [isAuthLoading, isLoggedIn, fetchBookmarkReadStates]);
 
   const renderStars = (rating?: number) => {
     if (!rating) return null;
@@ -264,7 +156,7 @@ export default function Page() {
       setIsEditDialogOpen(false);
       setEditBookmark(null);
       await fetchBookmarkReadStates();
-      await fetchBookmarks();
+      await fetchBookmarks(searchKeyword);
     } catch (error) {
       setError(error instanceof Error ? error.message : '북마크 업데이트가 실패했습니다.');
     }
@@ -275,7 +167,7 @@ export default function Page() {
       try {
         await deleteBookmark(bookmarkId);
         await fetchBookmarkReadStates();
-        await fetchBookmarks();
+        await fetchBookmarks(searchKeyword);
       } catch (error) {
         setError(error instanceof Error ? error.message : '북마크 삭제에 실패했습니다.');
       }
@@ -405,7 +297,7 @@ export default function Page() {
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <CardTitle className="line-clamp-2">{bookmark.book.title}</CardTitle>
-                        <CardDescription>{bookmark.book?.author?.join(', ') || '저자 정보 없음'}</CardDescription>
+                        <CardDescription>{bookmark.book?.authors?.join(', ') || '저자 정보 없음'}</CardDescription>
                         <Badge className={`mt-2 ${getReadStateColor(bookmark.readState)}`}>
                           {getReadState(bookmark.readState)}
                         </Badge>
@@ -625,6 +517,7 @@ function BookmarkEditForm({ bookmark, onSave, onCancel }: BookmarkEditFormProps)
                 type="date"
                 value={formData.endReadDate || ''}
                 onChange={(e) => handleValueChange('endReadDate', e.target.value)}
+                min={formData.startReadDate || undefined}
               />
             </div>
           </>
@@ -639,6 +532,7 @@ function BookmarkEditForm({ bookmark, onSave, onCancel }: BookmarkEditFormProps)
             type="date"
             value={formData.startReadDate || ''}
             onChange={(e) => handleValueChange('startReadDate', e.target.value)}
+            max={formData.endReadDate || undefined}
           />
         </div>
       )}
