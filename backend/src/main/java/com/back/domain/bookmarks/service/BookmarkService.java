@@ -90,18 +90,18 @@ public class BookmarkService {
     public BookmarkModifyResponseDto modifyBookmark(Member member, int id, String state, LocalDateTime startReadDate, LocalDateTime endReadDate, int readPage) {
         Bookmark bookmark = findById(id);
         bookmark.checkActor(member);
-        if(state != null){
-            ReadState readState = ReadState.valueOf(state.toUpperCase());
-            bookmark.updateReadState(readState);
+        if(endReadDate != null){
+            bookmark.updateEndReadDate(endReadDate);
         }
         if(startReadDate != null){
             bookmark.updateStartReadDate(startReadDate);
         }
-        if(endReadDate != null){
-            bookmark.updateEndReadDate(endReadDate);
-        }
         if(readPage > 0){
             bookmark.updateReadPage(readPage);
+        }
+        if(state != null){
+            ReadState readState = ReadState.valueOf(state.toUpperCase());
+            bookmark.updateReadState(readState);
         }
         return new BookmarkModifyResponseDto(bookmarkRepository.save(bookmark));
     }
