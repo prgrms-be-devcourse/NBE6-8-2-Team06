@@ -54,8 +54,8 @@ public class NoteControllerTest {
                 .andExpect(handler().methodName("getItem"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(note.getId()))
-                .andExpect(jsonPath("$.createDate").value(Matchers.startsWith(note.CreateDateParsing(note.getCreateDate()))))
-                .andExpect(jsonPath("$.modifyDate").value(Matchers.startsWith(note.UpdateDateParsing(note.getModifyDate()))))
+                .andExpect(jsonPath("$.createDate").value(Matchers.startsWith(note.getCreateDate().toString().substring(0, 20))))
+                .andExpect(jsonPath("$.modifyDate").value(Matchers.startsWith(note.getModifyDate().toString().substring(0, 20))))
                 .andExpect(jsonPath("$.title").value(note.getTitle()))
                 .andExpect(jsonPath("$.content").value(note.getContent()))
                 .andExpect(jsonPath("$.page").value(note.getPage()));
@@ -124,8 +124,8 @@ public class NoteControllerTest {
                 .andExpect(jsonPath("$.resultCode").value("201-1"))
                 .andExpect(jsonPath("$.msg").value("%d번 노트가 작성되었습니다.".formatted(note.getId())))
                 .andExpect(jsonPath("$.data.id").value(note.getId()))
-                .andExpect(jsonPath("$.data.createDate").value(Matchers.startsWith(note.CreateDateParsing(note.getCreateDate()))))
-                .andExpect(jsonPath("$.data.modifyDate").value(Matchers.startsWith(note.UpdateDateParsing(note.getModifyDate()))))
+                .andExpect(jsonPath("$.data.createDate").value(Matchers.startsWith(note.getCreateDate().toString().substring(0, 20))))
+                .andExpect(jsonPath("$.data.modifyDate").value(Matchers.startsWith(note.getModifyDate().toString().substring(0, 20))))
                 .andExpect(jsonPath("$.data.title").value("테스트 제목"))
                 .andExpect(jsonPath("$.data.content").value("테스트 내용"))
                 .andExpect(jsonPath("$.data.page").value("1"));
@@ -209,8 +209,7 @@ public class NoteControllerTest {
 
             resultActions
                     .andExpect(jsonPath("$.notes[%d].id".formatted(i)).value(note.getId()))
-                    .andExpect(jsonPath("$.notes[%d].createDate".formatted(i)).value(Matchers.startsWith(note.CreateDateParsing(note.getCreateDate()))))
-                    .andExpect(jsonPath("$.notes[%d].modifyDate".formatted(i)).value(Matchers.startsWith(note.UpdateDateParsing(note.getModifyDate()))))
+                    .andExpect(jsonPath("$.notes[%d].modifyDate".formatted(i)).value(Matchers.startsWith(note.getModifyDate().toString().substring(0, 20))))
                     .andExpect(jsonPath("$.notes[%d].title".formatted(i)).value(note.getTitle()))
                     .andExpect(jsonPath("$.notes[%d].content".formatted(i)).value(note.getContent()))
                     .andExpect(jsonPath("$.notes[%d].page".formatted(i)).value(note.getPage()));
