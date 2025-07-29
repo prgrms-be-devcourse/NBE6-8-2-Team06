@@ -1,71 +1,80 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import BookCard from '@/components/BookCard';
-import { Search, Heart, BookOpen, Star, Filter, Plus } from 'lucide-react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { ImageWithFallback } from '@/components/ImageWithFallback';
-import { useRouter } from 'next/navigation';
-import { usePathname } from 'next/navigation';
-import { BookSearchDto, ReadState, fetchBooks, searchBooks, BooksResponse } from '@/types/book';
+import React, { useState, useEffect } from "react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import BookCard from "@/components/BookCard";
+import { Search, Heart, BookOpen, Star, Filter, Plus } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { ImageWithFallback } from "@/components/ImageWithFallback";
+import { useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
+import {
+  BookSearchDto,
+  ReadState,
+  fetchBooks,
+  BooksResponse,
+} from "@/types/book";
 
 interface BooksPageProps {
   onNavigate: (page: string) => void;
   onBookClick: (bookId: number) => void;
 }
 
-
 export default function BooksPage() {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [isSearching, setIsSearching] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState('all');
-  const [sortBy, setSortBy] = useState('title');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [sortBy, setSortBy] = useState("title");
   const [books, setBooks] = useState<BookSearchDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
-  const [userBookStatus, setUserBookStatus] = useState<{[key: number]: string}>({
-    1: '읽은 책',
-    2: '읽고 있는 책',
-    5: '읽고 싶은 책'
+  const [userBookStatus, setUserBookStatus] = useState<{
+    [key: number]: string;
+  }>({
+    1: "읽은 책",
+    2: "읽고 있는 책",
+    5: "읽고 싶은 책",
   });
-  const router = useRouter()
-  const pathName = usePathname()
-  const onBookClick = (id:number) => {
-    router.push(`${pathName}/${id}`)
-  }
+  const router = useRouter();
+  const pathName = usePathname();
+  const onBookClick = (id: number) => {
+    router.push(`${pathName}/${id}`);
+  };
 
   const loadBooks = async (page: number = 0, query?: string) => {
     try {
       setLoading(true);
-      let response: BooksResponse;
-      
-      if (query && query.trim()) {
-        console.log(`🔍 검색 API 호출 시작 - 검색어: "${query}", 페이지: ${page}`);
-        response = await searchBooks(query.trim(), page);
-        setIsSearching(true);
-      } else {
-        console.log(`🚀 전체 조회 API 호출 시작 - 페이지: ${page}`);
-        response = await fetchBooks(page);
-        setIsSearching(false);
-      }
-      
-      console.log('📚 받아온 응답:', response);
+      console.log(`🚀 books 페이지에서 API 호출 시작 - 페이지: ${page}`);
+      const response = await fetchBooks(page);
+      console.log("📚 받아온 응답:", response);
       setBooks(response.books);
       setCurrentPage(response.pageInfo.currentPage);
       setTotalPages(response.pageInfo.totalPages);
       setTotalElements(response.pageInfo.totalElements);
     } catch (err) {
-      console.error('💥 에러 발생:', err);
-      setError(err instanceof Error ? err.message : '책을 불러오는데 실패했습니다.');
+      console.error("💥 에러 발생:", err);
+      setError(
+        err instanceof Error ? err.message : "책을 불러오는데 실패했습니다."
+      );
     } finally {
       setLoading(false);
     }
@@ -98,36 +107,50 @@ export default function BooksPage() {
   }, []);
 
   // Get unique categories from books data
-  const categories = ['all', ...Array.from(new Set(books.map(book => book.categoryName)))];
+  const categories = [
+    "all",
+    ...Array.from(new Set(books.map((book) => book.categoryName))),
+  ];
 
   // Helper function to get display text for read state
   const getReadStateText = (readState: ReadState) => {
     switch (readState) {
-      case ReadState.READ: return '읽은 책';
-      case ReadState.READING: return '읽고 있는 책';
-      case ReadState.NOT_READ: return '읽고 싶은 책';
-      default: return '';
+      case ReadState.READ:
+        return "읽은 책";
+      case ReadState.READING:
+        return "읽고 있는 책";
+      case ReadState.NOT_READ:
+        return "읽고 싶은 책";
+      default:
+        return "";
     }
   };
 
   const filteredBooks = books
-    .filter(book => {
-      const matchesSearch = book.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           book.authors.some(author => author.toLowerCase().includes(searchTerm.toLowerCase()));
-      const matchesCategory = selectedCategory === 'all' || book.categoryName === selectedCategory;
+    .filter((book) => {
+      const matchesSearch =
+        book.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        book.authors.some((author) =>
+          author.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+      const matchesCategory =
+        selectedCategory === "all" || book.categoryName === selectedCategory;
       return matchesSearch && matchesCategory;
     })
     .sort((a, b) => {
       switch (sortBy) {
-        case 'title':
+        case "title":
           return a.title.localeCompare(b.title);
-        case 'author':
-          return a.authors[0]?.localeCompare(b.authors[0] || '') || 0;
-        case 'rating':
+        case "author":
+          return a.authors[0]?.localeCompare(b.authors[0] || "") || 0;
+        case "rating":
           return b.avgRate - a.avgRate;
-        case 'published':
-          return new Date(b.publishedDate).getTime() - new Date(a.publishedDate).getTime();
-        case 'popularity':
+        case "published":
+          return (
+            new Date(b.publishedDate).getTime() -
+            new Date(a.publishedDate).getTime()
+          );
+        case "popularity":
           return b.avgRate - a.avgRate; // Using avgRate as popularity metric
         default:
           return 0;
@@ -158,36 +181,35 @@ export default function BooksPage() {
   }
 
   const sortOptions = [
-    { value: 'title', label: '제목순' },
-    { value: 'author', label: '저자순' },
-    { value: 'rating', label: '평점순' },
-    { value: 'published', label: '출간일순' },
-    { value: 'popularity', label: '인기순' }
+    { value: "title", label: "제목순" },
+    { value: "author", label: "저자순" },
+    { value: "rating", label: "평점순" },
+    { value: "published", label: "출간일순" },
+    { value: "popularity", label: "인기순" },
   ];
-
 
   const renderStars = (rating: number) => {
     return [...Array(5)].map((_, i) => (
       <Star
         key={i}
         className={`h-4 w-4 ${
-          i < Math.floor(rating) 
-            ? 'fill-yellow-400 text-yellow-400' 
-            : 'text-gray-300'
+          i < Math.floor(rating)
+            ? "fill-yellow-400 text-yellow-400"
+            : "text-gray-300"
         }`}
       />
     ));
   };
 
   const addToMyBooks = (bookId: number, status: string) => {
-    setUserBookStatus(prev => ({
+    setUserBookStatus((prev) => ({
       ...prev,
-      [bookId]: status
+      [bookId]: status,
     }));
   };
 
   const removeFromMyBooks = (bookId: number) => {
-    setUserBookStatus(prev => {
+    setUserBookStatus((prev) => {
       const newStatus = { ...prev };
       delete newStatus[bookId];
       return newStatus;
@@ -196,10 +218,14 @@ export default function BooksPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case '읽은 책': return 'bg-green-100 text-green-800';
-      case '읽고 있는 책': return 'bg-blue-100 text-blue-800';
-      case '읽고 싶은 책': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case "읽은 책":
+        return "bg-green-100 text-green-800";
+      case "읽고 있는 책":
+        return "bg-blue-100 text-blue-800";
+      case "읽고 싶은 책":
+        return "bg-gray-100 text-gray-800";
+      default:
+        return "bg-gray-100 text-gray-800";
     }
   };
 
@@ -208,7 +234,8 @@ export default function BooksPage() {
       <div className="mb-8">
         <h1 className="text-3xl mb-2">책 탐색</h1>
         <p className="text-muted-foreground">
-          총 {totalElements}권의 책이 등록되어 있습니다. 관심 있는 책을 찾아 내 목록에 추가해보세요.
+          총 {totalElements}권의 책이 등록되어 있습니다. 관심 있는 책을 찾아 내
+          목록에 추가해보세요.
         </p>
       </div>
 
@@ -242,9 +269,9 @@ export default function BooksPage() {
               <SelectValue placeholder="카테고리 선택" />
             </SelectTrigger>
             <SelectContent>
-              {categories.map(category => (
+              {categories.map((category) => (
                 <SelectItem key={category} value={category}>
-                  {category === 'all' ? '모든 카테고리' : category}
+                  {category === "all" ? "모든 카테고리" : category}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -254,7 +281,7 @@ export default function BooksPage() {
               <SelectValue placeholder="정렬 기준" />
             </SelectTrigger>
             <SelectContent>
-              {sortOptions.map(option => (
+              {sortOptions.map((option) => (
                 <SelectItem key={option.value} value={option.value}>
                   {option.label}
                 </SelectItem>
@@ -280,74 +307,104 @@ export default function BooksPage() {
         <div className="text-center py-12">
           <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
           <p className="text-muted-foreground">
-            {isSearching ? `"${searchTerm}"에 대한 검색 결과가 없습니다.` : '책이 없습니다.'}
+            검색 조건에 맞는 책이 없습니다.
           </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {books.map((book) => (
-            <Card key={book.id} className="h-full flex flex-col cursor-pointer hover:shadow-lg transition-shadow">
+          {filteredBooks.map((book) => (
+            <Card
+              key={book.id}
+              className="h-full flex flex-col cursor-pointer hover:shadow-lg transition-shadow"
+            >
               <CardHeader onClick={() => onBookClick(book.id)}>
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <CardTitle className="line-clamp-2">{book.title}</CardTitle>
-                    <CardDescription>{book.authors.join(', ')}</CardDescription>
+                    <CardDescription>{book.authors.join(", ")}</CardDescription>
                     <div className="flex items-center gap-2 mt-2">
                       <Badge variant="secondary">{book.categoryName}</Badge>
                       {userBookStatus[book.id] && (
-                        <Badge className={getStatusColor(userBookStatus[book.id])}>
+                        <Badge
+                          className={getStatusColor(userBookStatus[book.id])}
+                        >
                           {userBookStatus[book.id]}
                         </Badge>
                       )}
                     </div>
                   </div>
                   <ImageWithFallback
-                    src={book.imageUrl || `https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=80&h=120&fit=crop&crop=center&sig=${book.id}`}
+                    src={
+                      book.imageUrl ||
+                      `https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=80&h=120&fit=crop&crop=center&sig=${book.id}`
+                    }
                     alt={book.title}
                     className="w-16 h-24 object-cover rounded ml-4"
                   />
                 </div>
               </CardHeader>
-              <CardContent className="flex-1 flex flex-col" onClick={() => onBookClick(book.id)}>
+              <CardContent
+                className="flex-1 flex flex-col"
+                onClick={() => onBookClick(book.id)}
+              >
                 <div className="flex-1 space-y-3">
                   <div className="flex items-center gap-2 mt-2">
-                    <Badge className={getReadStateText(book.readState) ? getStatusColor(getReadStateText(book.readState)) : 'hidden'}>
+                    <Badge
+                      className={
+                        getReadStateText(book.readState)
+                          ? getStatusColor(getReadStateText(book.readState))
+                          : "hidden"
+                      }
+                    >
                       {getReadStateText(book.readState)}
                     </Badge>
                   </div>
-                  
+
                   <div className="flex items-center justify-between text-sm text-muted-foreground">
                     <span>{book.totalPage}쪽</span>
                     <span>{new Date(book.publishedDate).getFullYear()}년</span>
                   </div>
-                  
+
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-1">
                       {renderStars(book.avgRate)}
-                      <span className="text-sm ml-2">{book.avgRate.toFixed(1)}</span>
-                      <span className="text-xs text-muted-foreground">{book.publisher}</span>
+                      <span className="text-sm ml-2">
+                        {book.avgRate.toFixed(1)}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {book.publisher}
+                      </span>
                     </div>
                   </div>
                 </div>
-                
-                <div className="mt-4 pt-4 border-t" onClick={(e) => e.stopPropagation()}>
+
+                <div
+                  className="mt-4 pt-4 border-t"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   {userBookStatus[book.id] ? (
                     <div className="flex gap-2">
-                      <Select 
-                        value={userBookStatus[book.id]} 
-                        onValueChange={(status) => addToMyBooks(book.id, status)}
+                      <Select
+                        value={userBookStatus[book.id]}
+                        onValueChange={(status) =>
+                          addToMyBooks(book.id, status)
+                        }
                       >
                         <SelectTrigger className="flex-1">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="읽고 싶은 책">읽고 싶은 책</SelectItem>
-                          <SelectItem value="읽고 있는 책">읽고 있는 책</SelectItem>
+                          <SelectItem value="읽고 싶은 책">
+                            읽고 싶은 책
+                          </SelectItem>
+                          <SelectItem value="읽고 있는 책">
+                            읽고 있는 책
+                          </SelectItem>
                           <SelectItem value="읽은 책">읽은 책</SelectItem>
                         </SelectContent>
                       </Select>
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         size="sm"
                         onClick={() => removeFromMyBooks(book.id)}
                       >
@@ -356,17 +413,16 @@ export default function BooksPage() {
                     </div>
                   ) : (
                     <div className="flex gap-2">
-                      <Button 
+                      <Button
                         className="flex-1"
-                        onClick={() => addToMyBooks(book.id, '읽고 싶은 책')}
+                        onClick={() => addToMyBooks(book.id, "읽고 싶은 책")}
                       >
-                        <Plus className="h-4 w-4 mr-2" />
-                        내 목록에 추가
+                        <Plus className="h-4 w-4 mr-2" />내 목록에 추가
                       </Button>
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         size="sm"
-                        onClick={() => addToMyBooks(book.id, '읽고 싶은 책')}
+                        onClick={() => addToMyBooks(book.id, "읽고 싶은 책")}
                       >
                         <Heart className="h-4 w-4" />
                       </Button>
@@ -389,7 +445,7 @@ export default function BooksPage() {
           >
             이전
           </Button>
-          
+
           <div className="flex space-x-1">
             {Array.from({ length: Math.min(totalPages, 5) }, (_, index) => {
               let pageNum;
@@ -402,7 +458,7 @@ export default function BooksPage() {
               } else {
                 pageNum = currentPage - 2 + index;
               }
-              
+
               return (
                 <Button
                   key={pageNum}
@@ -415,7 +471,7 @@ export default function BooksPage() {
               );
             })}
           </div>
-          
+
           <Button
             variant="outline"
             disabled={currentPage === totalPages - 1}
@@ -430,12 +486,12 @@ export default function BooksPage() {
       <div className="mt-4 text-center text-sm text-muted-foreground">
         {totalElements > 0 && (
           <p>
-            페이지 {currentPage + 1} / {totalPages} 
-            (총 {totalElements}개 중 {(currentPage * 9) + 1}-{Math.min((currentPage + 1) * 9, totalElements)}개 표시)
+            페이지 {currentPage + 1} / {totalPages}
+            (총 {totalElements}개 중 {currentPage * 9 + 1}-
+            {Math.min((currentPage + 1) * 9, totalElements)}개 표시)
           </p>
         )}
       </div>
     </div>
   );
-};
-
+}

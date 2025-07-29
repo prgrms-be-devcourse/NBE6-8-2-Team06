@@ -47,8 +47,8 @@ interface MyBookDetailPageProps {
     createdDate: string;
   }
 
-export default function page({params}:{params:Promise<{bookId:string}>}){
-  const {bookId:bookIdStr} = use(params);
+export default function page({params}:{params:Promise<{id:string}>}){
+  const {id:bookIdStr} = use(params);
   const bookId = parseInt(bookIdStr);
     
   const router = useRouter()

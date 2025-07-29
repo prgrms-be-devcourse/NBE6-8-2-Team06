@@ -77,4 +77,15 @@ public class ReviewController {
         reviewRecommendService.modifyRecommendReview(review, member, isRecommend);
         return new RsData<>("200-1", "Review recommendation modified successfully");
     }
+
+    @DeleteMapping("/{review_id}/recommend")
+    public RsData<Void> cancelRecommendReview(@PathVariable("review_id") int reviewId) {
+        Review review = reviewService.findById(reviewId).orElseThrow(() -> new NoSuchElementException("Review not found"));
+        Member member = rq.getActor();
+        if (member == null) {
+            return new RsData<>("401-1", "Unauthorized access");
+        }
+        reviewRecommendService.cancelRecommendReview(review, member);
+        return new RsData<>("200-1", "Review recommendation cancelled successfully");
+    }
 }
