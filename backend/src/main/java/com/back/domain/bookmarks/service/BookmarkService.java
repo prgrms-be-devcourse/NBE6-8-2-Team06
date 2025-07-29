@@ -35,8 +35,8 @@ public class BookmarkService {
         return bookmarkRepository.save(bookmark);
     }
 
-    public List<BookmarkDto> toList(){
-        return bookmarkRepository.findAll().stream().map(bookmark -> {
+    public List<BookmarkDto> toList(Member member){
+        return bookmarkRepository.findByMember(member).stream().map(bookmark -> {
             if(bookmark.getReadState()==ReadState.WISH) return new BookmarkDto(bookmark, null);
             Review review = getReviews(bookmark.getMember()).get(bookmark.getBook());
             return new BookmarkDto(bookmark, review);
@@ -73,8 +73,8 @@ public class BookmarkService {
         });
     }
 
-    public BookmarkDetailDto getBookmarkById(int bookmarkId) {
-        Bookmark bookmark = findById(bookmarkId);
+    public BookmarkDetailDto getBookmarkById(Member member, int bookmarkId) {
+        Bookmark bookmark = bookmarkRepository.findByIdAndMember(bookmarkId, member).orElseThrow(() -> new NoSuchElementException("%d번 데이터가 없습니다.".formatted(bookmarkId)));
         Review review = getReview(bookmark);
         return new BookmarkDetailDto(bookmark, review);
     }

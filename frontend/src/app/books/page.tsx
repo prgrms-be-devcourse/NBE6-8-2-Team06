@@ -140,7 +140,7 @@ export default function BooksPage() {
         return "읽은 책";
       case ReadState.READING:
         return "읽고 있는 책";
-      case ReadState.NOT_READ:
+      case ReadState.WISH:
         return "읽고 싶은 책";
       default:
         return "";

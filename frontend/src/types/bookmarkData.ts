@@ -1,13 +1,15 @@
 export type Bookmark = {
     id: number;
-    memberId: number;
     bookId: number;
     book: BookmarkBookDetail;
     readState: string;
     readPage: number;
     readingRate: number;
-    date: string;
-}
+    createDate: string;
+    startReadDate: string;
+    endReadDate: string;
+    review: BookmarkReviewDetail;
+};
 export type BookmarkBookDetail = {
     id: number;
     isbn13: string;
@@ -19,56 +21,66 @@ export type BookmarkBookDetail = {
     category: string;
     publishDate: string;
     author: string[];
-}
+    description: string;
+};
 
 export type BookmarkDetail = {
-    bookmark: Bookmark;
-    createdAt: string;
+    id: number;
+    bookId: number;
+    book: BookmarkBookDetail;
+    readState: string;
+    readPage: number;
+    readingRate: number;
+    createDate: string;
     startReadDate: string;
     endReadDate: string;
     readingDuration: number;
     review: BookmarkReviewDetail;
     notes: BookmarkNoteDetail[];
-}
+};
 
 export type BookmarkReviewDetail = {
     id: number;
     content: string;
     rate: number;
     date: string;
-}
+};
 
 export type BookmarkNoteDetail = {
     id: number;
     title: string;
     content: string;
+    page: number;
     createDate: string;
     modifiedDate: string;
-}
+};
 
 export type BookmarkPage = {
-    content: Bookmark[];
+    data: Bookmark[];
     pageNumber: number;
     pageSize: number;
     totalElements: number;
     totalPages: number;
     isLast: boolean;
-}
+};
 
-export type BookmarkCreate = {
+export type CreateBookmark = {
     bookId: number;
-}
+};
 
-export type BookmarkUpdate = {
+export type UpdateBookmark = {
     readState: string;
     startReadDate: string;
     endReadDate: string;
     readPage: number;
-}
+};
 
 export type BookmarkReadStates = {
-    totalPages: number;
+    totalCount: number;
     avgRate: number;
+    readState: ReadState;
+};
+export type ReadState = {
     READ: number;
     READING: number;
     WISH: number;

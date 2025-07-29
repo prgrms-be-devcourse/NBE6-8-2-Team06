@@ -28,7 +28,7 @@ public class BookmarkController {
         bookmarkService.save(bookmarkCreateRequestDto.bookId(), member);
         return new RsData<>(
                     "201-1",
-                    "%d 번 책이 내 책 목록에 추가되었습니다.",
+                    "%d 번 책이 내 책 목록에 추가되었습니다.".formatted(bookmarkCreateRequestDto.bookId()),
                     null
                 );
     }
@@ -36,14 +36,16 @@ public class BookmarkController {
     @GetMapping("/{id}")
     @Transactional(readOnly = true)
     public RsData<BookmarkDetailDto> getBookmark(@PathVariable int id) {
-        BookmarkDetailDto bookmark = bookmarkService.getBookmarkById(id);
+        Member member = rq.getActor();
+        BookmarkDetailDto bookmark = bookmarkService.getBookmarkById(member, id);
         return new RsData<>("200-1", "%d번 조회 성공".formatted(id), bookmark);
     }
 
     @GetMapping("/list")
     @Transactional(readOnly = true)
     public RsData<List<BookmarkDto>> getBookmarksToList() {
-        List<BookmarkDto> bookmarks = bookmarkService.toList();
+        Member member = rq.getActor();
+        List<BookmarkDto> bookmarks = bookmarkService.toList(member);
         if(bookmarks.isEmpty()){
             return new RsData<>("404-1", "데이터가 없습니다.", null);
         }
@@ -72,7 +74,7 @@ public class BookmarkController {
         BookmarkModifyResponseDto bookmark = bookmarkService.modifyBookmark(member, id, bookmarkModifyRequestDto.readState(), bookmarkModifyRequestDto.startReadDate(), bookmarkModifyRequestDto.endReadDate(), bookmarkModifyRequestDto.readPage());
         return new RsData<>(
                 "200-1",
-                "%d번 북마크가 수정되었습니다.",
+                "%d번 북마크가 수정되었습니다.".formatted(id),
                 bookmark
         );
     }

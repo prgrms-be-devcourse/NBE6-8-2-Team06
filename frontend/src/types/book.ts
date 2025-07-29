@@ -1,5 +1,5 @@
 export enum ReadState {
-  NOT_READ = 'NOT_READ',
+  WISH = 'WISH',
   READING = 'READING',
   READ = 'READ'
 }

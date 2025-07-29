@@ -5,7 +5,9 @@ import com.back.domain.book.book.repository.BookRepository;
 
 import com.back.domain.member.member.service.MemberService;
 import com.back.domain.review.review.dto.ReviewRequestDto;
+import com.back.domain.review.review.dto.ReviewResponseDto;
 import com.back.domain.review.review.entity.Review;
+import com.back.domain.review.review.service.ReviewDtoService;
 import com.back.domain.review.review.service.ReviewService;
 import com.back.domain.member.member.entity.Member;
 import com.back.domain.review.reviewRecommend.service.ReviewRecommendService;
@@ -22,9 +24,21 @@ import java.util.NoSuchElementException;
 @RequiredArgsConstructor
 public class ReviewController {
     private final ReviewService reviewService;
+    private final ReviewDtoService reviewDtoService;
     private final BookRepository bookRepository;
     private final Rq rq;
     private final ReviewRecommendService reviewRecommendService;
+
+    @GetMapping("/{book_id}")
+    public RsData<ReviewResponseDto> getReview(@PathVariable("book_id") int bookId) {
+        Book book = bookRepository.findById(bookId).orElseThrow(() -> new NoSuchElementException("Book not found"));
+        Member member = rq.getActor();
+        if (member == null) {
+            return new RsData<>("401-1", "Unauthorized access");
+        }
+        Review review = reviewService.findByBookAndMember(book, member).orElseThrow(()->new NoSuchElementException("Review not found"));
+        return new RsData<>("200-1", "Review read successfully", reviewDtoService.reviewToReviewResponseDto(review));
+    }
 
     @PostMapping("/{book_id}")
     public RsData<Void> create(@PathVariable("book_id") int bookId, @RequestBody ReviewRequestDto reviewRequestDto) {
