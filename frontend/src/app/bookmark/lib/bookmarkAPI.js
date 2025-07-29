@@ -1,12 +1,38 @@
 const API_URL = 'http://localhost:8080/api';
 
-const handleResponse = async (response) => {
-    if (!response.ok || !response.created) {
-        const error = await response.json();
-        throw new Error(error.msg || 'API 요청에 실패하였습니다.');
+/**
+ * 
+ * @param {string} URL - api 경로
+ * @param {object} options - method, body 등 
+ * @returns {Promise<any}
+ */
+const apiRequest = async (URL, options = {}) => {
+    const defaultOptions = {
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+    }
+    const mergedOptions = {
+    ...defaultOptions,
+    ...options,
+    headers: {
+        ...defaultOptions.headers,
+        ...options.headers,
+        },
+    };
+
+    const response = await fetch(`${API_URL}${URL}`, mergedOptions);
+    if(!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.msg || 'API 요청에 실패했습니다.');
+    }
+
+    if(response.status ===204 || response.headers.get("content-length") === "0") {
+        return null;
     }
     return response.json();
-}
+};
 
 export const getBookmarks = async ({ page, size, category, readState, keyword }) => {
     const params = new URLSearchParams({
@@ -16,40 +42,29 @@ export const getBookmarks = async ({ page, size, category, readState, keyword })
     if(category && category !== 'all') params.append('category', category);
     if(readState && readState !== 'all') params.append('readState', readState);
     if(keyword) params.append('keyword', keyword);
-    const response = await fetch(`${API_URL}/bookmarks?${params.toString()}`);
-    return handleResponse(response);
+    return apiRequest(`/bookmarks?${params.toString()}`);
 }
 
 export const createBookmark = async (data) => {
-    const response = await fetch(`${API_URL}/bookmarks`, {
+    return apiRequest('/bookmarks', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
         body: JSON.stringify(data),
-    })
-    return handleResponse(response);
+    });
 }
 
 export const updateBookmark = async (id, data) => {
-    const response = await fetch(`${API_URL}/bookmarks/${id}`, {
+    return apiRequest(`/bookmarks/${id}`, {
         method: 'PUT',
-        headers: {
-            'Content-Type': 'application/json',
-        },
         body: JSON.stringify(data),
-    })
-    return handleResponse(response);
+    });
 }
 
 export const deleteBookmark = async (id) => {
-    const response = await fetch(`${API_URL}/bookmarks/${id}`, {
+    return apiRequest(`/bookmarks/${id}`, {
         method: 'DELETE',
-    })
-    return handleResponse(response);
+    });
 }
 
 export const getBookmarkReadStates = async () => {
-    const response = await fetch(`${API_URL}/bookmarks/read-states`);
-    return handleResponse(response);
+    return apiRequest('/bookmarks/read-states');
 }
