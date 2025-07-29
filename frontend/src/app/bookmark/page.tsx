@@ -47,7 +47,7 @@ export default function Page() {
     }
   }, [isAuthLoading, isLoggedIn, onNavigate]);
 
-  const fetchBookmarks = useCallback(async (searchKeyword) => {
+  const fetchBookmarks = useCallback(async (searchKeyword: string) => {
     setIsLoading(true);
     setError('');
     try {

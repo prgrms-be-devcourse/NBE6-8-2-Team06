@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Separator } from "@radix-ui/react-select";
+import { Separator } from '@/components/ui/separator';
 import { ArrowLeft, BookOpen, Calendar, Edit, FileText, PenTool, Star } from "lucide-react";
 import { BookmarkDetail } from "../../../types/bookmarkData";
 import { useAuth } from "../../_hooks/auth-context";
@@ -143,12 +143,12 @@ export default function Page() {
                   className="w-48 h-72 object-cover rounded mx-auto mb-4"
                 />
                 <h1 className="text-2xl mb-2">{bookmark.book.title}</h1>
-                <p className="text-lg text-muted-foreground mb-4">{bookmark.book.author}</p>
+                <p className="text-lg text-muted-foreground mb-4">{bookmark.book?.authors?.join(', ') || '저자 정보 없음'}</p>
 
                 <Badge className={`mb-4 ${getReadStateColor(bookmark?.readState)}`}>
                   {getReadState(bookmark?.readState)}
                 </Badge>
-
+                
                 {bookmark.book.avgRate > 0 && (
                   <div className="flex items-center justify-center space-x-1 mb-4">
                     {renderStars(bookmark?.book.avgRate)}
