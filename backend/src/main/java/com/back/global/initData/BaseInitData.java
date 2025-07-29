@@ -22,8 +22,6 @@ import org.springframework.context.annotation.Lazy;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-
 @Configuration
 @RequiredArgsConstructor
 public class BaseInitData {
@@ -137,7 +135,8 @@ public class BaseInitData {
 
         System.out.println("특정 ISBN 책 초기화 완료. 총 " + addedCount + "권의 책이 추가되었습니다.");
     }
-  
+
+    @Transactional
     public void initNoteData() {
         if (noteService.count() > 0) {
             return;
@@ -148,7 +147,7 @@ public class BaseInitData {
         Bookmark bookmark = bookmarkRepository.save(new Bookmark(book, null));
         int id = bookmark.getId();
 
-        noteService.write(id,"제목1", "내용1", "1");
+        noteService.write(id,"제목1", "내용1", null);
         noteService.write(id,"제목2", "내용2", "2");
         noteService.write(id,"제목3", "내용3", "3");
         noteService.write(id,"제목4", "내용4", "4");
