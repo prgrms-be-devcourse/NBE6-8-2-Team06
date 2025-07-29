@@ -26,8 +26,6 @@ export default function Page() {
 
   const [bookmarkReadStates, setBookmarkReadStates] = useState<BookmarkReadStates>();
   const [currentPage, setCurrentPage] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
-  const [totalElements, setTotalElements] = useState(0);
 
   const [searchKeyword, setSearchKeyword] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -284,6 +282,15 @@ export default function Page() {
     }
   };
 
+  const handlePreviousPage = () => {
+    setCurrentPage(prev => Math.max(prev-1, 0));
+  };
+  const handleNextPage = () =>{
+    if(bookmarks && !bookmarks.isLast) {
+      setCurrentPage(prev => prev +1);
+    }
+  };
+
   if (isAuthLoading) {
     return <div className="flex justify-center items-center h-screen">로딩 중...</div>;
   };
@@ -492,6 +499,27 @@ export default function Page() {
           )}
         </div>
       </Tabs>
+      {/* 페이지  */}
+      {bookmarks && bookmarks.totalPages >1 && (
+        <div className="flex justify-center items-center mt-8 space-x-4">
+          <Button
+            onClick={handlePreviousPage}
+            disabled={currentPage === 0}
+            variant="outline"
+            >
+              이전
+            </Button>
+            <span className="test-sm">
+              {currentPage + 1} / {bookmarks?.totalPages}
+            </span>
+            <Button
+            onClick={handleNextPage}
+            disabled={bookmarks?.isLast}
+            variant="outline"
+            >
+              다음
+            </Button>
+        </div>)}
     </div>
   );
 }
@@ -533,6 +561,31 @@ function BookmarkEditForm({ bookmark, onSave, onCancel }: BookmarkEditFormProps)
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  const handlePageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const totalPage = bookmark.book.totalPage;
+    let newPage = parseInt(e.target.value.trim()) || 0;
+    if(newPage > totalPage) {
+      newPage = totalPage;
+    }
+    if(newPage <0) {
+      newPage = 0;
+    }
+
+    if(newPage === totalPage) {
+      setFormData(prev => ({
+        ...prev,
+        readState: 'READ',
+        readPage: newPage,
+        endReadDate: new Date().toISOString().split('T')[0],
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        readPage: newPage,
+      }));
+    }
+  };
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
@@ -557,7 +610,7 @@ function BookmarkEditForm({ bookmark, onSave, onCancel }: BookmarkEditFormProps)
               id="currentPage"
               type="number"
               value={formData.readPage || ''}
-              onChange={(e) => handleValueChange('readPage', parseInt(e.target.value.trim()) || 0)}
+              onChange={handlePageChange}
               placeholder="현재 읽고 있는 페이지"
             />
           </div>
