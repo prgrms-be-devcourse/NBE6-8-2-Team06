@@ -123,3 +123,45 @@ export async function searchBooks(query: string, page: number = 0, size: number 
     throw error;
   }
 }
+
+export async function searchBookByIsbn(isbn: string): Promise<BooksResponse> {
+  const { apiFetch } = await import('@/lib/apiFetch');
+  
+  try {
+    console.log(`📖 ISBN 검색 API 호출 시작: /api/books/isbn/${isbn}`);
+    const response = await apiFetch<ApiResponse<BookSearchDto>>(`/api/books/isbn/${isbn}`);
+    
+    console.log('📦 ISBN 검색 API 응답 원본:', response);
+    
+    if (response && typeof response === 'object' && 'data' in response) {
+      const book = response.data;
+      console.log('📚 ISBN 검색 결과:', book);
+      
+      if (book) {
+        return {
+          books: [book],
+          pageInfo: {
+            currentPage: 0,
+            totalPages: 1,
+            totalElements: 1,
+            isLast: true
+          }
+        };
+      }
+    }
+    
+    console.warn('⚠️ ISBN 검색 결과 없음:', response);
+    return {
+      books: [],
+      pageInfo: {
+        currentPage: 0,
+        totalPages: 0,
+        totalElements: 0,
+        isLast: true
+      }
+    };
+  } catch (error) {
+    console.error('❌ ISBN 검색 API 호출 에러:', error);
+    throw error;
+  }
+}

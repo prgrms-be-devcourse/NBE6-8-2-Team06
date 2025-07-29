@@ -30,6 +30,7 @@ import {
   ReadState,
   fetchBooks,
   searchBooks,
+  searchBookByIsbn,
   BooksResponse,
 } from "@/types/book";
 
@@ -40,6 +41,7 @@ interface BooksPageProps {
 
 export default function BooksPage() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [searchType, setSearchType] = useState<"title" | "isbn">("title");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [sortBy, setSortBy] = useState("title");
   const [books, setBooks] = useState<BookSearchDto[]>([]);
@@ -62,14 +64,18 @@ export default function BooksPage() {
     router.push(`${pathName}/${id}`);
   };
 
-  const loadBooks = async (page: number = 0, query?: string) => {
+  const loadBooks = async (page: number = 0, query?: string, type?: "title" | "isbn") => {
     try {
       setLoading(true);
-      console.log(`🚀 books 페이지에서 API 호출 시작 - 페이지: ${page}, 검색어: ${query}`);
+      console.log(`🚀 books 페이지에서 API 호출 시작 - 페이지: ${page}, 검색어: ${query}, 타입: ${type}`);
       
       let response: BooksResponse;
       if (query && query.trim()) {
-        response = await searchBooks(query, page);
+        if (type === "isbn") {
+          response = await searchBookByIsbn(query);
+        } else {
+          response = await searchBooks(query, page);
+        }
       } else {
         response = await fetchBooks(page);
       }
@@ -93,7 +99,7 @@ export default function BooksPage() {
   const handleSearch = () => {
     setCurrentPage(0); // 검색 시 첫 페이지로 이동
     setIsSearching(true);
-    loadBooks(0, searchTerm);
+    loadBooks(0, searchTerm, searchType);
   };
 
   // 검색어 초기화 함수
@@ -108,7 +114,10 @@ export default function BooksPage() {
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
     if (isSearching && searchTerm.trim()) {
-      loadBooks(page, searchTerm);
+      // ISBN 검색은 페이징이 없으므로 제목/저자 검색만 페이징 적용
+      if (searchType === "title") {
+        loadBooks(page, searchTerm, searchType);
+      }
     } else {
       loadBooks(page);
     }
@@ -246,10 +255,19 @@ export default function BooksPage() {
       {/* 검색 및 필터 */}
       <div className="mb-8 space-y-4">
         <div className="flex flex-col sm:flex-row gap-4">
+          <Select value={searchType} onValueChange={(value: "title" | "isbn") => setSearchType(value)}>
+            <SelectTrigger className="w-full sm:w-32">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="title">제목/저자</SelectItem>
+              <SelectItem value="isbn">ISBN</SelectItem>
+            </SelectContent>
+          </Select>
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input
-              placeholder="책 제목, 저자로 검색..."
+              placeholder={searchType === "isbn" ? "ISBN을 입력하세요..." : "책 제목, 저자로 검색..."}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               onKeyDown={(e) => {
@@ -440,7 +458,7 @@ export default function BooksPage() {
       )}
 
       {/* 페이징 버튼 */}
-      {totalPages > 1 && (
+      {totalPages > 1 && searchType !== "isbn" && (
         <div className="mt-8 flex justify-center items-center space-x-2">
           <Button
             variant="outline"

@@ -64,7 +64,7 @@ public class BookService {
         log.info("DB에 없어서 알라딘 API에서 검색: {}", query);
 
         // 2. API에서 검색 (더 많은 결과를 가져와서 페이징 처리)
-        int apiLimit = Math.max(100, (pageable.getPageNumber() + 1) * pageable.getPageSize());
+        int apiLimit = Math.max(30, (pageable.getPageNumber() + 1) * pageable.getPageSize());
         List<AladinBookDto> apiBooks = aladinApiClient.searchBooks(query, apiLimit);
 
         // 3. API 결과를 엔티티로 변환하고 저장
