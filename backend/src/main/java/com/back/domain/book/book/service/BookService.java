@@ -484,7 +484,7 @@ public class BookService {
     }
 
     /**
-     * mallType 기반 기본 카테고리
+     * mallType 기반 기본 카테고리 (eBook 제거)
      */
     private String getFallbackCategory(String mallType) {
         if (mallType == null) {
@@ -496,8 +496,6 @@ public class BookService {
                 return "국내도서";
             case "FOREIGN":
                 return "외국도서";
-            case "EBOOK":
-                return "전자책";
             default:
                 return "기타";
         }
