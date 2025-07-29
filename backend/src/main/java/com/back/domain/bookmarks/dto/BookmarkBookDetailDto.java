@@ -13,7 +13,7 @@ public record BookmarkBookDetailDto(
         String publisher,
         int totalPage,
         double avgRate,
-        String categoryName,
+        String category,
         List<String> authors,
         LocalDateTime publishDate
 ) {
@@ -27,7 +27,7 @@ public record BookmarkBookDetailDto(
                 book.getTotalPage(),
                 book.getAvgRate(),
                 book.getCategory().getName(),
-                book.getAuthors().stream().map(a -> a.getAuthor().getName()).toList(),
+                book.getAuthors() !=null ? book.getAuthors().stream().map(a -> a.getAuthor().getName()).toList() : List.of(),
                 book.getPublishedDate()
         );
     }

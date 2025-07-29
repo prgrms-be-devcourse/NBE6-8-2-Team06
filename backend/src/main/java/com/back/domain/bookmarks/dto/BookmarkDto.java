@@ -7,26 +7,28 @@ import java.time.LocalDateTime;
 
 public record BookmarkDto(
         int id,
-        int memberId,
         int bookId,
         BookmarkBookDetailDto book,
         String readState,
         int readPage,
-        LocalDateTime date,
+        LocalDateTime createDate,
+        LocalDateTime startReadDate,
+        LocalDateTime endReadDate,
         double readingRate,
         BookmarkReviewDetailDto review
 ) {
     public BookmarkDto(Bookmark bookmark, Review review) {
         this(
                 bookmark.getId(),
-                bookmark.getMember().getId(),
                 bookmark.getBook().getId(),
                 new BookmarkBookDetailDto(bookmark.getBook()),
                 bookmark.getReadState().toString(),
                 bookmark.getReadPage(),
-                bookmark.getDisplayDate(),
+                bookmark.getCreateDate(),
+                bookmark.getStartReadDate(),
+                bookmark.getEndReadDate(),
                 bookmark.calculateReadingRate(),
-                new BookmarkReviewDetailDto(review)
+                review != null ? new BookmarkReviewDetailDto(review):null
         );
     }
 }

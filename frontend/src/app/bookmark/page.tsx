@@ -2,24 +2,30 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { getBookmarks, createBookmark, updateBookmark, deleteBookmark } from './lib/bookmarkAPI';
-import { BookmarkPage, Bookmark } from './lib/bookmarkData';
-import { BookOpen, Plus, Search } from 'lucide-react';
+import { getBookmarks, updateBookmark, deleteBookmark, getBookmarkReadStates } from '../../types/bookmarkAPI';
+import { BookmarkPage, Bookmark, BookmarkReadStates, UpdateBookmark } from '../../types/bookmarkData';
+import { BookOpen, Plus, Search, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ImageWithFallback } from '@/components/ImageWithFallback';
 import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
+import { Edit } from 'lucide-react';
+import { useAuth } from "../_hooks/auth-context";
 
 
 export default function Page() {
   const router = useRouter();
-  const [bookmarks, setBookmarks] = useState<BookmarkPage>();
+  const { isLoggedIn, isLoading: isAuthLoading } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
+  const [bookmarks, setBookmarks] = useState<BookmarkPage>();
   const [error, setError] = useState<string | null>(null);
 
+  const [bookmarkReadStates, setBookmarkReadStates] = useState<BookmarkReadStates>();
   const [currentPage, setCurrentPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
@@ -31,7 +37,19 @@ export default function Page() {
   const [categories, setCategories] = useState<string[]>([]);
   const [readStates, setReadStates] = useState<string[]>(['READ', 'READING', 'WISH']);
 
-  /*
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editBookmark, setEditBookmark] = useState<Bookmark | null>(null);
+
+  const onNavigate = (path: string) => {
+    router.push(path);
+  };
+
+  useEffect(() => {
+    if (!isAuthLoading && !isLoggedIn) {
+      onNavigate('/login');
+    }
+  }, [isAuthLoading, isLoggedIn, onNavigate]);
+
   const fetchBookmarks = useCallback(async () => {
     setIsLoading(true);
     setError('');
@@ -44,22 +62,49 @@ export default function Page() {
         keyword: searchKeyword,
       });
       setBookmarks(response.data);
-      setTotalPages(response.totalPages);
-      setTotalElements(response.totalElements);
     } catch (error) {
-      setError(error instanceof Error ? error.message : '북마크 목록을 가져올 수 없습니다.');
+      if (error instanceof Error && error.message.includes("데이터가 없습니다")) {
+        setBookmarks({
+          data: [],
+          totalPages: 0,
+          totalElements: 0,
+          pageNumber: 0,
+          pageSize: 0,
+          isLast: true
+        });
+      } else {
+        setError(error instanceof Error ? error.message : '북마크 목록을 가져올 수 없습니다.');
+      }
     } finally {
       setIsLoading(false);
     }
   }, [currentPage, selectedCategory, selectedReadState, searchKeyword]);
 
+  const fetchBookmarkReadStates = useCallback(async () => {
+    setIsLoading(true);
+    setError('');
+    try {
+      const response = await getBookmarkReadStates();
+      setBookmarkReadStates(response.data);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : '북마크 읽기 상태 데이터를 가져올 수 없습니다.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
-    fetchBookmarks();
-  }, [fetchBookmarks]);
-*/
+    if (!isAuthLoading && isLoggedIn) {
+      fetchBookmarkReadStates();
+      fetchBookmarks();
+    }
+  }, [isAuthLoading, isLoggedIn, fetchBookmarks, fetchBookmarkReadStates]);
+
+
   // Page.tsx 파일 상단 (import 다음, Page 컴포넌트 이전)
 
   // 임시 북마크 데이터
+  /*
   const mockBookmarkPage = {
     content: [
       {
@@ -166,14 +211,9 @@ export default function Page() {
       setIsLoading(false);
     }, 500);
 
-    /*
-    // <<<< 실제 API 연동 시 이 부분을 다시 활성화하세요 >>>>
-    // fetchBookmarks();
-    */
+
   }, []); // [] 로 변경하여 컴포넌트가 처음 마운트될 때 한 번만 실행되도록 합니다.
-  const onNavigate = (path: string) => {
-    router.push(path);
-  }
+*/
 
   const getReadState = (readState: string) => {
     switch (readState) {
@@ -186,13 +226,6 @@ export default function Page() {
       default:
         return '모든 상태';
     }
-  };
-
-  const getReadStateCount = (readState: string) => {
-    if (readState === '모든 상태') {
-      return bookmarks?.totalElements || 0;
-    }
-    return bookmarks?.content.filter(bookmark => bookmark.readState === readState).length || 0;
   };
 
   const getReadStateColor = (readState: string) => {
@@ -209,10 +242,39 @@ export default function Page() {
   };
 
   const filteredBookmarks = useMemo(() => {
-    if (!bookmarks?.content) return [];
-    if (selectedReadState === 'all') return bookmarks.content;
-    return bookmarks.content.filter(bookmark => bookmark.readState === selectedReadState);
+    if (!bookmarks?.data) return [];
+    if (selectedReadState === 'all') return bookmarks.data;
+    return bookmarks.data.filter(bookmark => bookmark.readState === selectedReadState);
   }, [bookmarks, selectedReadState]);
+
+  const handleSaveBookmark = async (updateData: UpdateBookmark) => {
+    if (!editBookmark) return;
+    try {
+      await updateBookmark(editBookmark.id, updateData);
+      setIsEditDialogOpen(false);
+      setEditBookmark(null);
+      await fetchBookmarkReadStates();
+      await fetchBookmarks();
+    } catch (error) {
+      setError(error instanceof Error ? error.message : '북마크 업데이트가 실패했습니다.');
+    }
+  };
+
+  const handleDeleteBookmark = async (bookmarkId: number) => {
+    if (window.confirm("이 북마크를 삭제하시겠습니까?")) {
+      try {
+        await deleteBookmark(bookmarkId);
+        await fetchBookmarkReadStates();
+        await fetchBookmarks();
+      } catch (error) {
+        setError(error instanceof Error ? error.message : '북마크 삭제에 실패했습니다.');
+      }
+    }
+  };
+
+  if (isAuthLoading) {
+    return <div className="flex justify-center items-center h-screen">로딩 중...</div>;
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -220,7 +282,7 @@ export default function Page() {
         <div>
           <h1 className="text-3xl mb-2">내 책 목록</h1>
           <p className="text-muted-foreground">
-            {totalElements}권의 책을 등록했습니다.
+            {bookmarkReadStates?.totalCount || 0} 권의 책을 등록했습니다.
           </p>
         </div>
 
@@ -231,29 +293,35 @@ export default function Page() {
       </div>
 
       {/* 내 책 목록 통계 */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
         <Card>
           <CardContent className="p-4">
-            <div className="text-2xl">{getReadStateCount('모든 상태')}</div>
+            <div className="text-2xl">{bookmarkReadStates?.totalCount || 0}</div>
             <p className="text-sm text-muted-foreground">총 책 수</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="text-2xl text-green-600">{getReadStateCount('READ')}</div>
+            <div className="text-2xl text-green-600">{bookmarkReadStates?.readState.READ || 0}</div>
             <p className="text-sm text-muted-foreground">읽은 책</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="text-2xl text-blue-600">{getReadStateCount('READING')}</div>
+            <div className="text-2xl text-blue-600">{bookmarkReadStates?.readState.READING || 0}</div>
             <p className="text-sm text-muted-foreground">읽고 있는 책</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="text-2xl text-gray-600">{getReadStateCount('WISH')}</div>
+            <div className="text-2xl text-gray-600">{bookmarkReadStates?.readState.WISH || 0}</div>
             <p className="text-sm text-muted-foreground">읽고 싶은 책</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-2xl text-yellow-600">{(bookmarkReadStates?.avgRate ?? 0).toFixed(1)}</div>
+            <p className="text-sm text-muted-foreground">평균 평점</p>
           </CardContent>
         </Card>
       </div>
@@ -294,10 +362,10 @@ export default function Page() {
       {/* 책 목록 테이블 */}
       <Tabs defaultValue={selectedReadState} onValueChange={setSelectedReadState} className="w-full">
         <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="all">모든 상태 ({bookmarks?.totalElements})</TabsTrigger>
-          <TabsTrigger value="READ">읽은 책 ({getReadStateCount('READ')})</TabsTrigger>
-          <TabsTrigger value="READING">읽고 있는 책 ({getReadStateCount('READING')})</TabsTrigger>
-          <TabsTrigger value="WISH">읽고 싶은 책 ({getReadStateCount('WISH')})</TabsTrigger>
+          <TabsTrigger value="all">모든 상태 ({bookmarkReadStates?.totalCount})</TabsTrigger>
+          <TabsTrigger value="READ">읽은 책 ({bookmarkReadStates?.readState.READ || 0})</TabsTrigger>
+          <TabsTrigger value="READING">읽고 있는 책 ({bookmarkReadStates?.readState.READING || 0})</TabsTrigger>
+          <TabsTrigger value="WISH">읽고 싶은 책 ({bookmarkReadStates?.readState.WISH || 0})</TabsTrigger>
         </TabsList>
         <div className="mt-6">
           {isLoading ? (
@@ -318,7 +386,7 @@ export default function Page() {
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <CardTitle className="line-clamp-2">{bookmark.book.title}</CardTitle>
-                        <CardDescription>{bookmark.book.author.join(', ')}</CardDescription>
+                        <CardDescription>{bookmark.book?.author?.join(', ') || '저자 정보 없음'}</CardDescription>
                         <Badge className={`mt-2 ${getReadStateColor(bookmark.readState)}`}>
                           {getReadState(bookmark.readState)}
                         </Badge>
@@ -352,7 +420,49 @@ export default function Page() {
 
                     {/* 날짜 정보 */}
                     <div className="text-xs text-muted-foreground">
-                      {bookmark.readState === 'READ' ? '완독' : bookmark.readState === 'READING' ? '시작' : '추가'} : {bookmark.date}
+                      {bookmark.readState === 'READ' ? `완독 : ${bookmark.endReadDate?.substring(0,10)}` : bookmark.readState === 'READING' ? `시작 : ${bookmark.startReadDate?.substring(0,10)}` : `추가 : ${bookmark.createDate?.substring(0,10)}`}
+                    </div>
+
+                    {/* 북마크 편집 버튼 */}
+                    <div className="flex justify-between items-center pt-2">
+                      <div className="flex space-x-2" onClick={(e) => e.stopPropagation()}>
+                        <Dialog open={isEditDialogOpen && editBookmark?.id === bookmark.id} onOpenChange={setIsEditDialogOpen}>
+                          <DialogTrigger asChild>
+                            <Button variant="ghost" size="sm" onClick={(e) => {
+                              e.stopPropagation();
+                              setEditBookmark(bookmark);
+                              setIsEditDialogOpen(true);
+                            }}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-2xl">
+                            <DialogHeader>
+                              <DialogTitle>북마크 편집</DialogTitle>
+                              <DialogDescription>{bookmark.book.title}의 정보를 수정하세요.</DialogDescription>
+                            </DialogHeader>
+                            {editBookmark && (
+                              <BookmarkEditForm
+                                bookmark={editBookmark} onSave={handleSaveBookmark} onCancel={() => {
+                                  setEditBookmark(null);
+                                  setIsEditDialogOpen(false);
+                                }}
+                              />
+                            )}
+                          </DialogContent>
+                        </Dialog>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteBookmark(bookmark.id);
+                          }}
+                        >
+                          <Trash2 className='h-4 w-4' />
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -362,5 +472,111 @@ export default function Page() {
         </div>
       </Tabs>
     </div>
+  );
+}
+// 책 편집 폼 컴포넌트
+interface BookmarkEditFormProps {
+  bookmark: Bookmark;
+  onSave: (updateData: UpdateBookmark) => void;
+  onCancel: () => void;
+}
+
+function BookmarkEditForm({ bookmark, onSave, onCancel }: BookmarkEditFormProps) {
+  const [formData, setFormData] = useState({
+    readState: bookmark.readState,
+    startReadDate: bookmark.startReadDate?.substring(0,10) || '',
+    endReadDate: bookmark.endReadDate?.substring(0,10) || '',
+    readPage: bookmark.readPage || 0,
+  });
+
+  useEffect(() => {
+    setFormData({
+      readState: bookmark.readState,
+      startReadDate: bookmark.startReadDate?.substring(0,10) || '',
+      endReadDate: bookmark.endReadDate?.substring(0,10) || '',
+      readPage: bookmark.readPage || 0,
+    });
+  }, [bookmark]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const dataToSend = {
+      ...formData,
+      startReadDate : formData.startReadDate? `${formData.startReadDate}T00:00:00` : null,
+      endReadDate : formData.endReadDate? `${formData.endReadDate}T00:00:00` : null,
+    };
+    onSave(dataToSend);
+  };
+
+  const handleValueChange = (field: keyof typeof formData, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="status">읽기 상태</Label>
+          <Select value={formData.readState} onValueChange={(value) => handleValueChange('readState', value)}>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="WISH">읽고 싶은 책</SelectItem>
+              <SelectItem value="READING">읽고 있는 책</SelectItem>
+              <SelectItem value="READ">읽은 책</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        {formData.readState === 'READING' && (
+          <div className="space-y-2">
+            <Label htmlFor="currentPage">현재 페이지</Label>
+            <Input
+              id="currentPage"
+              type="number"
+              value={formData.readPage || ''}
+              onChange={(e) => handleValueChange('readPage', parseInt(e.target.value.trim()) || 0)}
+              placeholder="현재 읽고 있는 페이지"
+            />
+          </div>
+        )}
+
+        {formData.readState === 'READ' && (
+          <>
+            <div className="space-y-2">
+              <Label htmlFor="dateFinished">완독일</Label>
+              <Input
+                id="endReadDate"
+                type="date"
+                value={formData.endReadDate || ''}
+                onChange={(e) => handleValueChange('endReadDate', e.target.value)}
+              />
+            </div>
+          </>
+        )}
+      </div>
+
+      {(formData.readState === 'READING' || formData.readState === 'READ') && (
+        <div className="space-y-2">
+          <Label htmlFor="dateStarted">시작일</Label>
+          <Input
+            id="startReadDate"
+            type="date"
+            value={formData.startReadDate || ''}
+            onChange={(e) => handleValueChange('startReadDate', e.target.value)}
+          />
+        </div>
+      )}
+
+      <div className="flex justify-end space-x-2 pt-4">
+        <Button type="button" variant="outline" onClick={onCancel}>
+          취소
+        </Button>
+        <Button type="submit">
+          저장
+        </Button>
+      </div>
+    </form>
   );
 }
