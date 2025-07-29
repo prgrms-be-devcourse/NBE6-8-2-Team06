@@ -73,21 +73,21 @@ public class ReviewRecommendControllerTest {
 
     ResultActions createRecommendReview(int reviewId, boolean isRecommend, String accessToken) throws Exception{
         return mvc.perform(
-                post("/reviewRecommend/{review_id}/recommend/{isRecommend}", reviewId, isRecommend)
+                post("/reviewRecommend/{review_id}/{isRecommend}", reviewId, isRecommend)
                         .cookie(new Cookie("accessToken", accessToken))
         ).andDo(print());
     }
 
     ResultActions updateRecommendReview(int reviewId, boolean isRecommend, String accessToken) throws Exception{
         return mvc.perform(
-                put("/reviewRecommend/{review_id}/recommend/{isRecommend}", reviewId, isRecommend)
+                put("/reviewRecommend/{review_id}/{isRecommend}", reviewId, isRecommend)
                         .cookie(new Cookie("accessToken", accessToken))
         ).andDo(print());
     }
 
     ResultActions deleteRecommendReview(int reviewId, String accessToken) throws Exception{
         return mvc.perform(
-                delete("/reviewRecommend/{review_id}/recommend", reviewId)
+                delete("/reviewRecommend/{review_id}", reviewId)
                         .cookie(new Cookie("accessToken", accessToken))
         ).andDo(print());
     }
@@ -103,7 +103,7 @@ public class ReviewRecommendControllerTest {
 
 
         ResultActions resultActions = mvc.perform(
-                post("/reviewRecommend/{review_id}/recommend/{isRecommend}", review.getId(), true)
+                post("/reviewRecommend/{review_id}/{isRecommend}", review.getId(), true)
                         .cookie(new Cookie("accessToken", accessToken))
         ).andDo(print());
         resultActions
@@ -133,22 +133,22 @@ public class ReviewRecommendControllerTest {
 
         Review review = reviewService.findLatest().orElseThrow(()-> new RuntimeException("리뷰가 없습니다."));
         mvc.perform(
-                post("/reviewRecommend/{review_id}/recommend/{isRecommend}", review.getId(), true)
+                post("/reviewRecommend/{review_id}/{isRecommend}", review.getId(), true)
                         .cookie(new Cookie("accessToken", accessToken))
         ).andDo(print());
 
         ResultActions resultActions = mvc.perform(
-                post("/reviewRecommend/{review_id}/recommend/{isRecommend}", review.getId(), false)
+                post("/reviewRecommend/{review_id}/{isRecommend}", review.getId(), false)
                         .cookie(new Cookie("accessToken", accessToken2))
         ).andDo(print());
 
         mvc.perform(
-                post("/reviewRecommend/{review_id}/recommend/{isRecommend}", review.getId(), true)
+                post("/reviewRecommend/{review_id}/{isRecommend}", review.getId(), true)
                         .cookie(new Cookie("accessToken", accessToken3))
         ).andDo(print());
 
         mvc.perform(
-                post("/reviewRecommend/{review_id}/recommend/{isRecommend}", review.getId(), false)
+                post("/reviewRecommend/{review_id}/{isRecommend}", review.getId(), false)
                         .cookie(new Cookie("accessToken", accessToken4))
         ).andDo(print());
         resultActions
@@ -172,11 +172,11 @@ public class ReviewRecommendControllerTest {
 
         Review review = reviewService.findLatest().orElseThrow(()-> new RuntimeException("리뷰가 없습니다."));
         mvc.perform(
-                post("/reviewRecommend/{review_id}/recommend/{isRecommend}", review.getId(), true)
+                post("/reviewRecommend/{review_id}/{isRecommend}", review.getId(), true)
                         .cookie(new Cookie("accessToken", accessToken))
         ).andDo(print());
         ResultActions resultActions = mvc.perform(
-                post("/reviewRecommend/{review_id}/recommend/{isRecommend}", review.getId(), true)
+                post("/reviewRecommend/{review_id}/{isRecommend}", review.getId(), true)
                         .cookie(new Cookie("accessToken", accessToken))
         ).andDo(print());
         resultActions
