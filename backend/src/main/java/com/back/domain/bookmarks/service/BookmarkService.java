@@ -45,7 +45,11 @@ public class BookmarkService {
 
     public Page<BookmarkDto> toPage(Member member, int pageNumber, int pageSize, String category, String state, String keyword){
         Pageable pageable = PageRequest.of(pageNumber, pageSize);
-        Specification<Bookmark> spec = ((root, query, criteriaBuilder) -> criteriaBuilder.equal(root.get("member"), member));
+        Specification<Bookmark> spec = (root, query, criteriaBuilder) -> {
+            query.distinct(true);
+            return criteriaBuilder.equal(root.get("member"), member);
+        };
+
         if(category != null){
             spec = spec.and((root, query, builder) -> {
                 Join<Bookmark, Book> bookJoin = root.join("book");
