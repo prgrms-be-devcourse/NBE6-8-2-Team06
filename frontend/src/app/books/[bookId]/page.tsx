@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@radix-ui/react-select";
-import { ArrowLeft, BookOpen, Building, Calendar, Globe, Heart, Plus, Star } from "lucide-react";
+import { ArrowLeft, BookOpen, Building, Calendar, Globe, Heart, Plus, Star, ThumbsDown, ThumbsUp } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { use, useState } from "react";
 
@@ -507,8 +507,12 @@ interface BookDetailPageProps {
                           </p>
                           <div className="flex items-center space-x-4">
                             <Button variant="ghost" size="sm">
-                              <Heart className="h-4 w-4 mr-1" />
-                              도움됨 {review.likes}
+                              <ThumbsUp className="h-4 w-4 mr-1" />
+                              좋아요 {review.likes}
+                            </Button>
+                            <Button variant="ghost" size="sm">
+                              <ThumbsDown className="h-4 w-4 mr-1" />
+                              싫어요 {review.likes}
                             </Button>
                           </div>
                         </div>
