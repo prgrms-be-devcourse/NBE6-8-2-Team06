@@ -74,7 +74,7 @@ public class Bookmark extends BaseEntity {
     }
 
     public void checkActor(Member actor){
-        if(!actor.equals(member)){
+        if(actor.getId() != member.getId()){
             throw new ServiceException("403-1", "권한이 없습니다.");
         }
     }

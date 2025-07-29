@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { getBookmarks, updateBookmark, deleteBookmark, getBookmarkReadStates } from './lib/bookmarkAPI';
-import { BookmarkPage, Bookmark, BookmarkReadStates, UpdateBookmark } from './lib/bookmarkData';
+import { getBookmarks, updateBookmark, deleteBookmark, getBookmarkReadStates } from '../../types/bookmarkAPI';
+import { BookmarkPage, Bookmark, BookmarkReadStates, UpdateBookmark } from '../../types/bookmarkData';
 import { BookOpen, Plus, Search, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -62,12 +62,10 @@ export default function Page() {
         keyword: searchKeyword,
       });
       setBookmarks(response.data);
-      setTotalPages(response.totalPages);
-      setTotalElements(response.totalElements);
     } catch (error) {
       if (error instanceof Error && error.message.includes("데이터가 없습니다")) {
         setBookmarks({
-          content: [],
+          data: [],
           totalPages: 0,
           totalElements: 0,
           pageNumber: 0,
@@ -244,9 +242,9 @@ export default function Page() {
   };
 
   const filteredBookmarks = useMemo(() => {
-    if (!bookmarks?.content) return [];
-    if (selectedReadState === 'all') return bookmarks.content;
-    return bookmarks.content.filter(bookmark => bookmark.readState === selectedReadState);
+    if (!bookmarks?.data) return [];
+    if (selectedReadState === 'all') return bookmarks.data;
+    return bookmarks.data.filter(bookmark => bookmark.readState === selectedReadState);
   }, [bookmarks, selectedReadState]);
 
   const handleSaveBookmark = async (updateData: UpdateBookmark) => {
@@ -304,25 +302,25 @@ export default function Page() {
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="text-2xl text-green-600">{bookmarkReadStates?.READ || 0}</div>
+            <div className="text-2xl text-green-600">{bookmarkReadStates?.readState.READ || 0}</div>
             <p className="text-sm text-muted-foreground">읽은 책</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="text-2xl text-blue-600">{bookmarkReadStates?.READING || 0}</div>
+            <div className="text-2xl text-blue-600">{bookmarkReadStates?.readState.READING || 0}</div>
             <p className="text-sm text-muted-foreground">읽고 있는 책</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="text-2xl text-gray-600">{bookmarkReadStates?.WISH || 0}</div>
+            <div className="text-2xl text-gray-600">{bookmarkReadStates?.readState.WISH || 0}</div>
             <p className="text-sm text-muted-foreground">읽고 싶은 책</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="text-2xl text-yellow-600">{bookmarkReadStates?.avgRate || 0.0}</div>
+            <div className="text-2xl text-yellow-600">{(bookmarkReadStates?.avgRate ?? 0).toFixed(1)}</div>
             <p className="text-sm text-muted-foreground">평균 평점</p>
           </CardContent>
         </Card>
@@ -364,10 +362,10 @@ export default function Page() {
       {/* 책 목록 테이블 */}
       <Tabs defaultValue={selectedReadState} onValueChange={setSelectedReadState} className="w-full">
         <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="all">모든 상태 ({bookmarks?.totalElements})</TabsTrigger>
-          <TabsTrigger value="READ">읽은 책 ({bookmarkReadStates?.READ || 0})</TabsTrigger>
-          <TabsTrigger value="READING">읽고 있는 책 ({bookmarkReadStates?.READING || 0})</TabsTrigger>
-          <TabsTrigger value="WISH">읽고 싶은 책 ({bookmarkReadStates?.WISH || 0})</TabsTrigger>
+          <TabsTrigger value="all">모든 상태 ({bookmarkReadStates?.totalCount})</TabsTrigger>
+          <TabsTrigger value="READ">읽은 책 ({bookmarkReadStates?.readState.READ || 0})</TabsTrigger>
+          <TabsTrigger value="READING">읽고 있는 책 ({bookmarkReadStates?.readState.READING || 0})</TabsTrigger>
+          <TabsTrigger value="WISH">읽고 싶은 책 ({bookmarkReadStates?.readState.WISH || 0})</TabsTrigger>
         </TabsList>
         <div className="mt-6">
           {isLoading ? (
@@ -388,7 +386,7 @@ export default function Page() {
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <CardTitle className="line-clamp-2">{bookmark.book.title}</CardTitle>
-                        <CardDescription>{bookmark.book.author.join(', ')}</CardDescription>
+                        <CardDescription>{bookmark.book?.author?.join(', ') || '저자 정보 없음'}</CardDescription>
                         <Badge className={`mt-2 ${getReadStateColor(bookmark.readState)}`}>
                           {getReadState(bookmark.readState)}
                         </Badge>
@@ -422,7 +420,7 @@ export default function Page() {
 
                     {/* 날짜 정보 */}
                     <div className="text-xs text-muted-foreground">
-                      {bookmark.readState === 'READ' ? `완독 : $[bookmark.endReadDate}` : bookmark.readState === 'READING' ? `시작 : ${bookmark.startReadDate}` : `추가 : ${bookmark.createDate}`}
+                      {bookmark.readState === 'READ' ? `완독 : ${bookmark.endReadDate?.substring(0,10)}` : bookmark.readState === 'READING' ? `시작 : ${bookmark.startReadDate?.substring(0,10)}` : `추가 : ${bookmark.createDate?.substring(0,10)}`}
                     </div>
 
                     {/* 북마크 편집 버튼 */}
@@ -486,23 +484,28 @@ interface BookmarkEditFormProps {
 function BookmarkEditForm({ bookmark, onSave, onCancel }: BookmarkEditFormProps) {
   const [formData, setFormData] = useState({
     readState: bookmark.readState,
-    startReadDate: bookmark.startReadDate || '',
-    endReadDate: bookmark.endReadDate || '',
+    startReadDate: bookmark.startReadDate?.substring(0,10) || '',
+    endReadDate: bookmark.endReadDate?.substring(0,10) || '',
     readPage: bookmark.readPage || 0,
   });
 
   useEffect(() => {
     setFormData({
       readState: bookmark.readState,
-      startReadDate: bookmark.startReadDate || '',
-      endReadDate: bookmark.endReadDate || '',
+      startReadDate: bookmark.startReadDate?.substring(0,10) || '',
+      endReadDate: bookmark.endReadDate?.substring(0,10) || '',
       readPage: bookmark.readPage || 0,
     });
   }, [bookmark]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
+    const dataToSend = {
+      ...formData,
+      startReadDate : formData.startReadDate? `${formData.startReadDate}T00:00:00` : null,
+      endReadDate : formData.endReadDate? `${formData.endReadDate}T00:00:00` : null,
+    };
+    onSave(dataToSend);
   };
 
   const handleValueChange = (field: keyof typeof formData, value: any) => {
