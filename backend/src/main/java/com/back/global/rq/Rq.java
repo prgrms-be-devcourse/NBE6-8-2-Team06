@@ -50,4 +50,9 @@ public class Rq {
         resp.addCookie(cookie);
     }
 
+    public void clearAuthCookies() {
+        setCookie("accessToken", "");
+        setCookie("refreshToken", "");
+    }
+
 }

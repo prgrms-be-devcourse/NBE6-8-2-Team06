@@ -1,5 +1,7 @@
 package com.back.domain.member.member.controller;
 
+import com.back.domain.member.member.dto.MemberJoinReqDto;
+import com.back.domain.member.member.dto.MemberLoginReqDto;
 import com.back.domain.member.member.entity.Member;
 import com.back.domain.member.member.repository.MemberRepository;
 import com.back.domain.member.member.service.MemberService;
@@ -66,7 +68,7 @@ class MemberControllerTest {
         String password = "password123";
         String encodedPassword = "encodedPassword123";
 
-        MemberController.MemberJoinReqBody reqBody = new MemberController.MemberJoinReqBody(email, name, password);
+        MemberJoinReqDto reqBody = new MemberJoinReqDto(email, name, password);
         Member newMember = new Member(name, email, encodedPassword);
 
         when(memberService.findByEmail(email)).thenReturn(Optional.empty());
@@ -97,7 +99,7 @@ class MemberControllerTest {
         String encodedPassword = "encodedPassword123";
         String accessToken = "mockAccessToken";
 
-        MemberController.MemberLoginReqBody reqBody = new MemberController.MemberLoginReqBody(email, password);
+        MemberLoginReqDto reqBody = new MemberLoginReqDto(email, password);
         Member existingMember = new Member("TestUser", email, encodedPassword);
 
         when(memberService.findByEmail(email)).thenReturn(Optional.of(existingMember));
