@@ -116,55 +116,8 @@ export async function searchBooks(query: string, page: number = 0, size: number 
   
   try {
     console.log(`🔍 검색 API 호출 시작: /api/books/search?query=${encodeURIComponent(query)}&page=${page}&size=${size}`);
-    const response = await apiFetch<ApiResponse<BookSearchDto[]>>(`/api/books/search?query=${encodeURIComponent(query)}&page=${page}&size=${size}`);
-    
-    console.log('📦 검색 API 응답 원본:', response);
-    console.log('📊 응답 타입:', typeof response);
-    
-    if (response) {
-      console.log('📋 응답 키들:', Object.keys(response));
-      console.log('✅ resultCode:', response.resultCode);
-      console.log('💬 msg:', response.msg);
-    }
-    
-    // 검색 API는 data 필드에 직접 배열이 들어있음
-    if (response && typeof response === 'object' && 'data' in response) {
-      const booksArray = response.data;
-      console.log('📚 검색 결과 배열:', booksArray);
-      
-      if (Array.isArray(booksArray)) {
-        console.log('✅ 검색 결과 추출 성공 - 첫 번째 책:', booksArray[0]);
-        console.log('📊 검색된 책 개수:', booksArray.length);
-        
-        // 검색 API는 페이징 정보가 없으므로 계산해서 생성
-        const totalElements = booksArray.length;
-        const totalPages = Math.ceil(totalElements / size);
-        const startIndex = page * size;
-        const endIndex = startIndex + size;
-        const pageBooks = booksArray.slice(startIndex, endIndex);
-        
-        return {
-          books: pageBooks,
-          pageInfo: {
-            currentPage: page,
-            totalPages: totalPages,
-            totalElements: totalElements,
-            isLast: page >= totalPages - 1
-          }
-        };
-      }
-    }
-    
-    console.warn('⚠️ 예상하지 못한 검색 응답 구조:', response);
-    return {
-      books: [],
-      pageInfo: {
-        currentPage: 0,
-        totalPages: 0,
-        totalElements: 0,
-        isLast: true
-      }
-    };
+    const response = await apiFetch<ApiResponse<PageResponseDto<BookSearchDto>>>(`/api/books/search?query=${encodeURIComponent(query)}&page=${page}&size=${size}`);
+    return await processApiResponse(response);
   } catch (error) {
     console.error('❌ 검색 API 호출 에러:', error);
     throw error;

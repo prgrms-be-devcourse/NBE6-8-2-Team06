@@ -29,6 +29,7 @@ import {
   BookSearchDto,
   ReadState,
   fetchBooks,
+  searchBooks,
   BooksResponse,
 } from "@/types/book";
 
@@ -47,6 +48,7 @@ export default function BooksPage() {
   const [currentPage, setCurrentPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
+  const [isSearching, setIsSearching] = useState(false);
   const [userBookStatus, setUserBookStatus] = useState<{
     [key: number]: string;
   }>({
@@ -63,8 +65,15 @@ export default function BooksPage() {
   const loadBooks = async (page: number = 0, query?: string) => {
     try {
       setLoading(true);
-      console.log(`🚀 books 페이지에서 API 호출 시작 - 페이지: ${page}`);
-      const response = await fetchBooks(page);
+      console.log(`🚀 books 페이지에서 API 호출 시작 - 페이지: ${page}, 검색어: ${query}`);
+      
+      let response: BooksResponse;
+      if (query && query.trim()) {
+        response = await searchBooks(query, page);
+      } else {
+        response = await fetchBooks(page);
+      }
+      
       console.log("📚 받아온 응답:", response);
       setBooks(response.books);
       setCurrentPage(response.pageInfo.currentPage);
@@ -83,6 +92,7 @@ export default function BooksPage() {
   // 검색 처리 함수
   const handleSearch = () => {
     setCurrentPage(0); // 검색 시 첫 페이지로 이동
+    setIsSearching(true);
     loadBooks(0, searchTerm);
   };
 
@@ -90,11 +100,13 @@ export default function BooksPage() {
   const handleClearSearch = () => {
     setSearchTerm('');
     setCurrentPage(0);
+    setIsSearching(false);
     loadBooks(0); // 전체 목록 다시 로드
   };
 
   // 페이지 로드 함수 (검색 상태 유지)
   const handlePageChange = (page: number) => {
+    setCurrentPage(page);
     if (isSearching && searchTerm.trim()) {
       loadBooks(page, searchTerm);
     } else {
@@ -128,14 +140,9 @@ export default function BooksPage() {
 
   const filteredBooks = books
     .filter((book) => {
-      const matchesSearch =
-        book.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        book.authors.some((author) =>
-          author.toLowerCase().includes(searchTerm.toLowerCase())
-        );
       const matchesCategory =
         selectedCategory === "all" || book.categoryName === selectedCategory;
-      return matchesSearch && matchesCategory;
+      return matchesCategory;
     })
     .sort((a, b) => {
       switch (sortBy) {
@@ -150,8 +157,6 @@ export default function BooksPage() {
             new Date(b.publishedDate).getTime() -
             new Date(a.publishedDate).getTime()
           );
-        case "popularity":
-          return b.avgRate - a.avgRate; // Using avgRate as popularity metric
         default:
           return 0;
       }
@@ -185,7 +190,6 @@ export default function BooksPage() {
     { value: "author", label: "저자순" },
     { value: "rating", label: "평점순" },
     { value: "published", label: "출간일순" },
-    { value: "popularity", label: "인기순" },
   ];
 
   const renderStars = (rating: number) => {
