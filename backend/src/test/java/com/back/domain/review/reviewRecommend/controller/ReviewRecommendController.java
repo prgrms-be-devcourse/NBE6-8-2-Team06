@@ -1,5 +1,7 @@
 package com.back.domain.review.reviewRecommend.controller;
 
+import com.back.domain.book.book.entity.Book;
+import com.back.domain.book.book.repository.BookRepository;
 import com.back.domain.member.member.entity.Member;
 import com.back.domain.member.member.repository.MemberRepository;
 import com.back.domain.member.member.service.MemberService;
@@ -44,6 +46,9 @@ public class ReviewRecommendController {
 
     @Autowired
     private MemberRepository memberRepository;
+
+    @Autowired
+    private BookRepository bookRepository;
 
     List<String> makeAccessTokens(int count){
         return memberRepository.findAll().stream()
@@ -90,9 +95,10 @@ public class ReviewRecommendController {
     @Test
     @DisplayName("리뷰 추천하기 - 성공")
     void t1() throws Exception{
-        Member member = memberService.findByEmail("email1").get();
+        Member member = memberService.findByEmail("email1@a.a").get();
         String accessToken = memberService.geneAccessToken(member);
-        createReview(1, "이 책 정말 좋았어요!", 5, accessToken);
+        Book book = bookRepository.findAll().get(0);
+        createReview(book.getId(), "이 책 정말 좋았어요!", 5, accessToken);
         Review review = reviewService.findLatest().orElseThrow(()-> new RuntimeException("리뷰가 없습니다."));
 
 
@@ -113,15 +119,16 @@ public class ReviewRecommendController {
     @Test
     @DisplayName("리뷰 여러명이 추천하기 - 성공")
     void t2() throws Exception{
-        Member member = memberService.findByEmail("email1").get();
-        Member member2 = memberService.findByEmail("email2").get();
-        Member member3 = memberService.findByEmail("email3").get();
-        Member member4 = memberService.findByEmail("email4").get();
+        Member member = memberService.findByEmail("email1@a.a").get();
+        Member member2 = memberService.findByEmail("email2@a.a").get();
+        Member member3 = memberService.findByEmail("email3@a.a").get();
+        Member member4 = memberService.findByEmail("email4@a.a").get();
         String accessToken = memberService.geneAccessToken(member);
         String accessToken2 = memberService.geneAccessToken(member2);
         String accessToken3 = memberService.geneAccessToken(member3);
         String accessToken4 = memberService.geneAccessToken(member4);
-        createReview(1, "이 책 정말 좋았어요!", 5, accessToken);
+        Book book = bookRepository.findAll().get(0);
+        createReview(book.getId(), "이 책 정말 좋았어요!", 5, accessToken);
 
 
         Review review = reviewService.findLatest().orElseThrow(()-> new RuntimeException("리뷰가 없습니다."));
@@ -158,9 +165,10 @@ public class ReviewRecommendController {
     @Test
     @DisplayName("리뷰 추천하기 - 실패 (이미 추천한 리뷰)")
     void t3() throws Exception{
-        Member member = memberService.findByEmail("email1").get();
+        Member member = memberService.findByEmail("email1@a.a").get();
         String accessToken = memberService.geneAccessToken(member);
-        createReview(1, "이 책 정말 좋았어요!", 5, accessToken);
+        Book book = bookRepository.findAll().get(0);
+        createReview(book.getId(), "이 책 정말 좋았어요!", 5, accessToken);
 
         Review review = reviewService.findLatest().orElseThrow(()-> new RuntimeException("리뷰가 없습니다."));
         mvc.perform(
@@ -183,9 +191,10 @@ public class ReviewRecommendController {
     @Test
     @DisplayName("없는 리뷰 추천하기 - 실패")
     void t4()throws Exception{
-        Member member = memberService.findByEmail("email1").get();
+        Member member = memberService.findByEmail("email1@a.a").get();
         String accessToken = memberService.geneAccessToken(member);
-        createReview(1, "이 책 정말 좋았어요!", 5, accessToken);
+        Book book = bookRepository.findAll().get(0);
+        createReview(book.getId(), "이 책 정말 좋았어요!", 5, accessToken);
         Review review = reviewService.findLatest().orElseThrow(()-> new RuntimeException("리뷰가 없습니다."));
         ResultActions resultActions = createRecommendReview(-1, true, accessToken);
         resultActions
@@ -201,7 +210,8 @@ public class ReviewRecommendController {
     @DisplayName("리뷰 추천 업데이트 - 성공")
     void t5() throws Exception{
         List<String> accessTokens = makeAccessTokens(10);
-        createReview(1, "이 책 정말 좋았어요!", 5, accessTokens.get(0));
+        Book book = bookRepository.findAll().get(0);
+        createReview(book.getId(), "이 책 정말 좋았어요!", 5, accessTokens.get(0));
 
 
         Review review = reviewService.findLatest().orElseThrow(()-> new RuntimeException("리뷰가 없습니다."));
@@ -224,7 +234,8 @@ public class ReviewRecommendController {
     @DisplayName("리뷰 추천 업데이트 - 실패")
     void t6() throws Exception{
         List<String> accessTokens = makeAccessTokens(10);
-        createReview(1, "이 책 정말 좋았어요!", 5, accessTokens.get(0));
+        Book book = bookRepository.findAll().get(0);
+        createReview(book.getId(), "이 책 정말 좋았어요!", 5, accessTokens.get(0));
         Review review = reviewService.findLatest().orElseThrow(()-> new RuntimeException("리뷰가 없습니다."));
 
         for (int i = 0; i < accessTokens.size(); i++) {
@@ -246,7 +257,8 @@ public class ReviewRecommendController {
     @DisplayName("리뷰 추천 업데이트 - 실패 (이미 추천한 리뷰)")
     void t7() throws Exception{
         List<String> accessTokens = makeAccessTokens(1);
-        createReview(1, "이 책 정말 좋았어요!", 5, accessTokens.get(0));
+        Book book = bookRepository.findAll().get(0);
+        createReview(book.getId(), "이 책 정말 좋았어요!", 5, accessTokens.get(0));
         Review review = reviewService.findLatest().orElseThrow(()-> new RuntimeException("리뷰가 없습니다."));
 
         createRecommendReview(review.getId(), true, accessTokens.get(0)).andDo(print());
@@ -265,7 +277,8 @@ public class ReviewRecommendController {
     @DisplayName("리뷰 추천 업데이트 - 실패 (추천하지 않은 리뷰)")
     void t8() throws Exception{
         List<String> accessTokens = makeAccessTokens(1);
-        createReview(1, "이 책 정말 좋았어요!", 5, accessTokens.get(0));
+        Book book = bookRepository.findAll().get(0);
+        createReview(book.getId(), "이 책 정말 좋았어요!", 5, accessTokens.get(0));
         Review review = reviewService.findLatest().orElseThrow(()-> new RuntimeException("리뷰가 없습니다."));
 
         ResultActions resultActions = updateRecommendReview(review.getId(), true, accessTokens.get(0));
@@ -282,7 +295,8 @@ public class ReviewRecommendController {
     @DisplayName("리뷰 추천 취소 - 성공")
     void t9() throws Exception{
         List<String> accessTokens = makeAccessTokens(1);
-        createReview(1, "이 책 정말 좋았어요!", 5, accessTokens.get(0));
+        Book book = bookRepository.findAll().get(0);
+        createReview(book.getId(), "이 책 정말 좋았어요!", 5, accessTokens.get(0));
         Review review = reviewService.findLatest().orElseThrow(()-> new RuntimeException("리뷰가 없습니다."));
 
         createRecommendReview(review.getId(), true, accessTokens.get(0)).andDo(print());
@@ -301,7 +315,8 @@ public class ReviewRecommendController {
     @DisplayName("리뷰 추천 취소 - 실패 (추천하지 않은 리뷰)")
     void t10() throws Exception{
         List<String> accessTokens = makeAccessTokens(1);
-        createReview(1, "이 책 정말 좋았어요!", 5, accessTokens.get(0));
+        Book book = bookRepository.findAll().get(0);
+        createReview(book.getId(), "이 책 정말 좋았어요!", 5, accessTokens.get(0));
         Review review = reviewService.findLatest().orElseThrow(()-> new RuntimeException("리뷰가 없습니다."));
 
         ResultActions resultActions = deleteRecommendReview(review.getId(), accessTokens.get(0));
@@ -318,7 +333,8 @@ public class ReviewRecommendController {
     @DisplayName("리뷰 추천 취소 - 실패 (없는 리뷰)")
     void t11() throws Exception{
         List<String> accessTokens = makeAccessTokens(1);
-        createReview(1, "이 책 정말 좋았어요!", 5, accessTokens.get(0));
+        Book book = bookRepository.findAll().get(0);
+        createReview(book.getId(), "이 책 정말 좋았어요!", 5, accessTokens.get(0));
         Review review = reviewService.findLatest().orElseThrow(()-> new RuntimeException("리뷰가 없습니다."));
 
         ResultActions resultActions = deleteRecommendReview(-1, accessTokens.get(0));
@@ -335,7 +351,8 @@ public class ReviewRecommendController {
     @DisplayName("리뷰 추천 취소 - 취소한 리뷰 취소")
     void t12() throws Exception{
         List<String> accessTokens = makeAccessTokens(1);
-        createReview(1, "이 책 정말 좋았어요!", 5, accessTokens.get(0));
+        Book book = bookRepository.findAll().get(0);
+        createReview(book.getId(), "이 책 정말 좋았어요!", 5, accessTokens.get(0));
         Review review = reviewService.findLatest().orElseThrow(()-> new RuntimeException("리뷰가 없습니다."));
 
         createRecommendReview(review.getId(), true, accessTokens.get(0)).andDo(print());

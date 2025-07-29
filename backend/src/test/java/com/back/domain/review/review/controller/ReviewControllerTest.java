@@ -1,5 +1,7 @@
 package com.back.domain.review.review.controller;
 
+import com.back.domain.book.book.entity.Book;
+import com.back.domain.book.book.repository.BookRepository;
 import com.back.domain.member.member.entity.Member;
 import com.back.domain.member.member.service.AuthTokenService;
 import com.back.domain.member.member.service.MemberService;
@@ -38,9 +40,12 @@ public class ReviewControllerTest {
     @Autowired
     private AuthTokenService authTokenService;
 
-    ResultActions addReview(String accessToken) throws Exception {
+    @Autowired
+    private BookRepository bookRepository;
+
+    ResultActions addReview(int bookId, String accessToken) throws Exception {
         return mvc.perform(
-                post("/reviews/{book_id}", 1)
+                post("/reviews/{book_id}", bookId)
                         .contentType("application/json")
                         .content("""
 {
@@ -54,9 +59,10 @@ public class ReviewControllerTest {
     @Test
     @DisplayName("리뷰 작성")
     void t1() throws Exception {
-        Member member = memberService.findByEmail("email").get();
+        Member member = memberService.findByEmail("email1@a.a").get();
         String accessToken = authTokenService.genAccessToken(member);
-        ResultActions resultActions = addReview(accessToken);
+        Book book = bookRepository.findAll().get(0);
+        ResultActions resultActions = addReview(book.getId(),accessToken);
         Review review = reviewService.findLatest().orElseThrow(()-> new RuntimeException("리뷰가 없습니다."));
         resultActions
                 .andExpect(handler().handlerType(ReviewController.class))
@@ -74,10 +80,11 @@ public class ReviewControllerTest {
     @Test
     @DisplayName("리뷰 작성 여러번 - 실패")
     void t1_2() throws Exception {
-        Member member = memberService.findByEmail("email").get();
+        Member member = memberService.findByEmail("email1@a.a").get();
         String accessToken = authTokenService.genAccessToken(member);
-        addReview(accessToken);
-        ResultActions resultActions = addReview(accessToken);
+        Book book = bookRepository.findAll().get(0);
+        addReview(book.getId(),accessToken);
+        ResultActions resultActions = addReview(book.getId(),accessToken);
         resultActions
                 .andExpect(handler().handlerType(ReviewController.class))
                 .andExpect(handler().methodName("create"))
@@ -90,9 +97,10 @@ public class ReviewControllerTest {
     @Test
     @DisplayName("리뷰 삭제")
     void t2() throws Exception {
-        Member member = memberService.findByEmail("email").get();
+        Member member = memberService.findByEmail("email1@a.a").get();
         String accessToken = authTokenService.genAccessToken(member);
-        addReview(accessToken);
+        Book book = bookRepository.findAll().get(0);
+        addReview(book.getId(),accessToken);
         Review review = reviewService.findLatest().orElseThrow(()-> new RuntimeException("리뷰가 없습니다."));
         assertThat(review.getId()).isGreaterThan(0);
 
@@ -115,9 +123,10 @@ public class ReviewControllerTest {
     @Test
     @DisplayName("리뷰 수정")
     void t3() throws Exception {
-        Member member = memberService.findByEmail("email").get();
+        Member member = memberService.findByEmail("email1@a.a").get();
         String accessToken = authTokenService.genAccessToken(member);
-        addReview(accessToken);
+        Book book = bookRepository.findAll().get(0);
+        addReview(book.getId(),accessToken);
         Review review = reviewService.findLatest().orElseThrow(()-> new RuntimeException("리뷰가 없습니다."));
         assertThat(review.getId()).isGreaterThan(0);
         ResultActions resultActions = mvc.perform(
