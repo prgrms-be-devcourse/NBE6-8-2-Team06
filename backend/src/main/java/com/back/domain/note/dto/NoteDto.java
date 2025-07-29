@@ -3,10 +3,12 @@ package com.back.domain.note.dto;
 import com.back.domain.note.entity.Note;
 import org.springframework.lang.NonNull;
 
+import java.time.LocalDateTime;
+
 public record NoteDto(
         @NonNull int id,
-        @NonNull String createDate,
-        @NonNull String modifyDate,
+        @NonNull LocalDateTime createDate,
+        @NonNull LocalDateTime modifyDate,
         @NonNull String title,
         @NonNull String content,
         String page
@@ -14,8 +16,8 @@ public record NoteDto(
     public NoteDto(Note note) {
         this(
                 note.getId(),
-                note.CreateDateParsing(note.getCreateDate()),
-                note.UpdateDateParsing(note.getModifyDate()),
+                note.getCreateDate(),
+                note.getModifyDate(),
                 note.getTitle(),
                 note.getContent(),
                 note.getPage()

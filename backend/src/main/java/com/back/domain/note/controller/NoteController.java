@@ -10,8 +10,8 @@ import com.back.global.rsData.RsData;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
+import org.hibernate.validator.constraints.Length;
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
@@ -58,10 +58,10 @@ public class NoteController {
 
     record NoteWriteReqBody(
             @NotBlank
-            @Size(min = 2, max = 100)
+            @Length(min = 1, max = 100)
             String title,
             @NotBlank
-            @Size(min = 2, max = 1000)
+            @Length(min = 1, max = 1000)
             String content,
             String page
     ) {
@@ -90,10 +90,10 @@ public class NoteController {
 
     record NoteModifyReqBody(
             @NotBlank
-            @Size(min = 2, max = 100)
+            @Length(min = 1, max = 100)
             String title,
             @NotBlank
-            @Size(min = 2, max = 1000)
+            @Length(min = 1, max = 1000)
             String content,
             String page
     ) {
