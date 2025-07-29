@@ -152,4 +152,50 @@ public class ReviewControllerTest {
         assertThat(review.getRate()).isEqualTo(4);
     }
 
+    @Test
+    @DisplayName("리뷰 조회")
+    void t4() throws Exception{
+        Member member = memberService.findByEmail("email1@a.a").get();
+        String accessToken = authTokenService.genAccessToken(member);
+        Book book = bookRepository.findAll().get(0);
+        addReview(book.getId(),accessToken);
+        Review review = reviewService.findLatest().orElseThrow(()-> new RuntimeException("리뷰가 없습니다."));
+        assertThat(review.getId()).isGreaterThan(0);
+
+        ResultActions resultActions = mvc.perform(
+                get("/reviews/{book_id}", 1)
+                        .cookie(new Cookie("accessToken", accessToken))
+        ).andDo(print());
+
+        resultActions
+                .andExpect(handler().handlerType(ReviewController.class))
+                .andExpect(handler().methodName("getReview"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resultCode").value("200-1"))
+                .andExpect(jsonPath("$.msg").value("Review read successfully"))
+                .andExpect(jsonPath("$.data.content").value(review.getContent()))
+                .andExpect(jsonPath("$.data.rate").value(review.getRate()))
+        ;
+    }
+
+    @Test
+    @DisplayName("리뷰 조회 - 실패 (리뷰 없음)")
+    void t4_2() throws Exception{
+        Member member = memberService.findByEmail("email1@a.a").get();
+        String accessToken = authTokenService.genAccessToken(member);
+        Book book = bookRepository.findAll().get(0);
+
+        ResultActions resultActions = mvc.perform(
+                get("/reviews/{book_id}", book.getId())
+                        .cookie(new Cookie("accessToken", accessToken))
+        ).andDo(print());
+
+        resultActions
+                .andExpect(handler().handlerType(ReviewController.class))
+                .andExpect(handler().methodName("getReview"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.resultCode").value("404-1"))
+                .andExpect(jsonPath("$.msg").value("Review not found"))
+        ;
+    }
 }
