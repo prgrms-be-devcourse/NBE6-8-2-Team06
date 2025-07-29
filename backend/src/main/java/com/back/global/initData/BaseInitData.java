@@ -49,10 +49,10 @@ public class BaseInitData {
             return; // 이미 데이터가 존재하면 초기화하지 않음
         }
         for (int i = 1; i <= 10; i++) {
-            memberService.join("testUser" + i, "email" + i, "password" + i);
+            memberService.join("testUser" + i, "email" + i + "@a.a", ("password" + i));
         }
-        Category category = categoryRepository.save(new Category("Test Category"));
-        bookRepository.save(new Book("Text Book", "Publisher", category));
+//        Category category = categoryRepository.save(new Category("Test Category"));
+//        bookRepository.save(new Book("Text Book", "Publisher", category));
 
     }
 
