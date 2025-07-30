@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, BookOpen, Calendar, Edit, FileText, PenTool, Star } from "lucide-react";
+import { ArrowLeft, BookOpen, Calendar, Delete, Edit, FileText, PenTool, Star, Trash } from "lucide-react";
 import { BookmarkDetail } from "../../../types/bookmarkData";
 import { useAuth } from "../../_hooks/auth-context";
 
@@ -317,14 +317,20 @@ export default function Page() {
                   <div className="flex justify-between items-center">
                     <CardTitle>내 리뷰</CardTitle>
                     {bookmark?.readState === 'READ' && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => onNavigate(`/bookmark/${bookmarkId}/review`)}
-                      >
-                        <Edit className="h-4 w-4 mr-2" />
-                        {bookmark.review ? '수정' : '작성'}
-                      </Button>
+                      <div className="flex">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => onNavigate(`/bookmark/${bookmarkId}/review`)}
+                        >
+                          <Edit className="h-4 w-4 mr-2" />
+                          {bookmark.review ? '수정' : '작성'}
+                        </Button>
+                        {bookmark.review && <Button variant="destructive" size="sm" onClick={()=>{}} className="ml-2">
+                          <Trash className="h-4 w-4 mr-2"></Trash>
+                          삭제
+                        </Button>}
+                      </div>
                     )}
                   </div>
                 </CardHeader>

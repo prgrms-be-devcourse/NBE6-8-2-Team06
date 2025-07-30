@@ -6,61 +6,57 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Save, Star, X } from "lucide-react";
+import { getBookmark } from "@/types/bookmarkAPI";
+import { BookmarkDetail } from "@/types/bookmarkData";
+import { ArrowLeft, Save, Star, UndoIcon, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { use, useState } from "react";
+import { use, useCallback, useEffect, useState } from "react";
 
-interface WriteReviewPageProps {
-    bookId: number | null;
-    onNavigate: (page: string) => void;
+
+export default 
+withLogin(
+  function page({params}:{params:Promise<{id:string}>}){
+  const {id:bookmarkIdStr} = use(params);
+  const bookmarkId = parseInt(bookmarkIdStr);
+  const router = useRouter();
+  const [hoveredRating, setHoveredRating] = useState(0);
+  const [bookmark, setBookmark] = useState<BookmarkDetail | null>(null);
+  const [review, setReview] = useState(bookmark?.review||null);
+  const [rating, setRating] = useState(review?.rate|| 0);
+  const [content, setContent] = useState(review?.content||'');
+  const [book, setBook] = useState(bookmark?.book||null);
+  const [bookId, setBookId] = useState(book?.id || null);
+  const reviewApi = useReview(bookId||0);
+
+  const fetchBookmark = async () => {
+    const response = await getBookmark(bookmarkId);
+    setBookmark(response.data);
   }
   
-  interface MyBook {
-    id: number;
-    title: string;
-    author: string;
-    category: string;
-    status: '읽은 책' | '읽고 있는 책' | '읽고 싶은 책';
-    rating?: number;
-    review?: string;
-    totalPages: number;
+  useEffect(()=>{
+    if (!bookmark){
+      fetchBookmark();
+    }
+  },[])
+
+  useEffect(()=>{
+    setReview(bookmark?.review||null);
+    setBook(bookmark?.book||null);
+  }, [bookmark])
+
+  useEffect(()=>{
+    setRating(review?.rate||0);
+    setContent(review?.content||"");
+  }, [review])
+
+  useEffect(()=>{
+    setBookId(book?.id||0);
+    reviewApi.setBookId(book?.id||0);
+  }, [book])
+  
+  const onNavigate = (e:string)=>{
+    router.push(e);
   }
-
-  export default withLogin(function page({params}:{params:Promise<{id:string}>}){
-    const {id:bookIdStr} = use(params);
-    const bookId = parseInt(bookIdStr);
-      
-    const router = useRouter();
-    const onNavigate = (e:string)=>{
-      router.push(e);
-    }
-
-    // 내 책 데이터
-  const myBooks: MyBook[] = [
-    {
-      id: 1,
-      title: "클린 코드",
-      author: "로버트 C. 마틴",
-      category: "프로그래밍",
-      status: "읽은 책",
-      rating: 4.5,
-      review: "코드 품질에 대한 훌륭한 인사이트를 제공합니다. 특히 변수명과 함수명의 중요성에 대해 깊이 깨달았습니다.",
-      totalPages: 464
-    },
-    {
-      id: 2,
-      title: "리팩터링",
-      author: "마틴 파울러",
-      category: "프로그래밍",
-      status: "읽은 책",
-      totalPages: 550
-    }
-  ];
-
-  const book = myBooks.find(b => b.id === bookId);
-  const [rating, setRating] = useState(book?.rating || 0);
-  const [review, setReview] = useState(book?.review || '');
-  const [hoveredRating, setHoveredRating] = useState(0);
 
   if (!book) {
     return (
@@ -74,6 +70,7 @@ interface WriteReviewPageProps {
       </div>
     );
   }
+  
 
   const handleStarClick = (starRating: number) => {
     setRating(starRating === rating ? 0 : starRating);
@@ -87,17 +84,18 @@ interface WriteReviewPageProps {
     setHoveredRating(0);
   };
 
-  const reviewApi = useReview(bookId);
-
   const handleSave = () => {
     // 여기서 실제로는 API 호출을 통해 리뷰를 저장
-    console.log('리뷰 저장:', { bookId, rating, review });
-    reviewApi.createReview({rating, review});
-    onNavigate(`/bookmark/${bookId}`);
+    if (!review){
+      reviewApi.createReview({rating,  content});
+    }else{
+      reviewApi.editReview({rating, content})
+    }
+    onNavigate(`/bookmark/${bookmarkId}`);
   };
 
   const handleCancel = () => {
-    onNavigate(`/bookmark/${bookId}`);
+    onNavigate(`/bookmark/${bookmarkId}`);
   };
 
   const renderStars = () => {
@@ -156,13 +154,13 @@ interface WriteReviewPageProps {
             <CardContent className="p-6">
               <div className="text-center">
                 <ImageWithFallback
-                  src={`https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=200&h=300&fit=crop&crop=center&sig=${book.id}`}
-                  alt={book.title}
+                  src={`https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=200&h=300&fit=crop&crop=center&sig=${book!.id}`}
+                  alt={book!.title}
                   className="w-40 h-60 object-cover rounded mx-auto mb-4"
                 />
-                <h2 className="text-xl mb-2">{book.title}</h2>
-                <p className="text-muted-foreground mb-2">{book.author}</p>
-                <p className="text-sm text-muted-foreground">{book.category}</p>
+                <h2 className="text-xl mb-2">{book!.title}</h2>
+                <p className="text-muted-foreground mb-2">{book!.authors}</p>
+                <p className="text-sm text-muted-foreground">{book!.category}</p>
               </div>
             </CardContent>
           </Card>
@@ -197,14 +195,14 @@ interface WriteReviewPageProps {
                 <Textarea
                   id="review"
                   placeholder="이 책에 대한 생각을 자유롭게 작성해주세요. 어떤 점이 좋았는지, 아쉬웠는지, 누구에게 추천하고 싶은지 등을 포함하면 더욱 도움이 됩니다."
-                  value={review}
-                  onChange={(e) => setReview(e.target.value)}
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
                   rows={10}
                   className="resize-none"
                 />
                 <div className="flex justify-between text-sm text-muted-foreground">
                   <span>최소 10자 이상 작성해주세요</span>
-                  <span>{review.length}자</span>
+                  <span>{content.length}자</span>
                 </div>
               </div>
 
@@ -223,7 +221,7 @@ interface WriteReviewPageProps {
               <div className="flex space-x-3 pt-4">
                 <Button 
                   onClick={handleSave}
-                  disabled={rating === 0 || review.trim().length < 10}
+                  disabled={rating === 0 || content.trim().length < 10}
                   className="flex-1"
                 >
                   <Save className="h-4 w-4 mr-2" />
@@ -243,4 +241,5 @@ interface WriteReviewPageProps {
       </div>
     </div>
   );
-})
+}
+)
