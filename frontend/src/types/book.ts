@@ -12,6 +12,7 @@ export interface ReviewResponseDto {
   memberId: number;
   likeCount: number;
   dislikeCount: number;
+  isRecommended: boolean | null;
   createdDate: string;
   modifiedDate: string;
 }
