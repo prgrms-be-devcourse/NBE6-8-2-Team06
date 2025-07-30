@@ -29,14 +29,12 @@ withLogin(
   const reviewApi = useReview(bookId||0);
 
   const fetchBookmark = async () => {
-    if (bookmarkId){
-      const response = await getBookmark(bookmarkId);
-      setBookmark(response.data);
-    }
+    const response = await getBookmark(bookmarkId);
+    setBookmark(response.data);
   }
   
   useEffect(()=>{
-    if (bookmark === null){
+    if (!bookmark){
       fetchBookmark();
     }
   },[])
