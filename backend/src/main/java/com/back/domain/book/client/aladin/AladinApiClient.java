@@ -43,11 +43,10 @@ public class AladinApiClient {
         }
     }
 
-    // 검색 대상 enum
+    // 검색 대상 enum (eBook 제거)
     public enum SearchTarget {
         BOOK("Book", "국내도서"),
-        FOREIGN("Foreign", "외국도서"),
-        EBOOK("eBook", "전자책");
+        FOREIGN("Foreign", "외국도서");
 
         private final String target;
         private final String displayName;
@@ -71,7 +70,7 @@ public class AladinApiClient {
      */
     public List<AladinBookDto> searchBooks(String query, int limit) {
         List<AladinBookDto> allBooks = new ArrayList<>();
-        int limitPerCategory = Math.max(1, limit / 3);
+        int limitPerCategory = Math.max(1, limit / 2); // 2개 카테고리로 변경
 
         try {
             for (SearchTarget searchTarget : SearchTarget.values()) {
@@ -191,7 +190,7 @@ public class AladinApiClient {
             // mallType 체크 - 도서 관련 타입이 아니면 null 반환
             String mallType = getJsonValue(itemNode, "mallType");
             if (mallType != null && !isBookRelatedType(mallType)) {
-                log.debug("도서가 아닌 타입이므로 건너뜸: {}", mallType);
+                log.debug("도서가 아닌 타입이므로 건너뜀: {}", mallType);
                 return null;
             }
 
@@ -297,12 +296,11 @@ public class AladinApiClient {
     }
 
     /**
-     * 도서 관련 타입인지 확인
+     * 도서 관련 타입인지 확인 (eBook 제거)
      */
     private boolean isBookRelatedType(String mallType) {
         return "BOOK".equals(mallType) ||
-                "FOREIGN".equals(mallType) ||
-                "EBOOK".equals(mallType);
+                "FOREIGN".equals(mallType);
     }
 
     /**
