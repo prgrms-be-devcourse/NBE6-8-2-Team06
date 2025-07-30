@@ -10,9 +10,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, BookOpen, Calendar, Edit, FileText, PenTool, Star } from "lucide-react";
+import { ArrowLeft, BookOpen, Calendar, Edit, FileText, PenTool } from "lucide-react";
 import { BookmarkDetail } from "../../../types/bookmarkData";
 import { useAuth } from "../../_hooks/auth-context";
+import { getReadState, getReadStateColor, renderStars } from '@/lib/bookmarkUtils';
 
 
 export default function Page() {
@@ -54,45 +55,6 @@ export default function Page() {
       fetchBookmark();
     }
   }, [isAuthLoading, isLoggedIn, bookmarkId, fetchBookmark]);
-
-  const getReadState = (readState: string) => {
-    switch (readState) {
-      case 'READ':
-        return '읽은 책';
-      case 'READING':
-        return '읽고 있는 책';
-      case 'WISH':
-        return '읽고 싶은 책';
-      default:
-        return '모든 상태';
-    }
-  };
-
-  const getReadStateColor = (readState: string) => {
-    switch (readState) {
-      case 'READ':
-        return 'bg-green-100 text-green-800';
-      case 'READING':
-        return 'bg-blue-100 text-blue-800';
-      case 'WISH':
-        return 'bg-gray-100 text-gray-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const renderStars = (rating?: number) => {
-    if (!rating) return null;
-    return [...Array(5)].map((_, i) => (
-      <Star
-        key={i}
-        className={`h-4 w-4 ${i < Math.floor(rating)
-            ? 'fill-yellow-400 text-yellow-400'
-            : 'text-gray-300'
-          }`}
-      />
-    ));
-  };
 
   if (isAuthLoading) {
     return <div className="flex justify-center items-center h-screen">로딩 중...</div>;

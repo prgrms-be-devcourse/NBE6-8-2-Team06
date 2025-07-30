@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { getBookmarks, updateBookmark, deleteBookmark, getBookmarkReadStates } from '../../types/bookmarkAPI';
 import { BookmarkPage, Bookmark, BookmarkReadStates, UpdateBookmark } from '../../types/bookmarkData';
-import { BookOpen, Plus, Search, Trash2, Edit, Star } from 'lucide-react';
+import { BookOpen, Plus, Search, Trash2, Edit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -16,6 +16,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import { useAuth } from "../_hooks/auth-context";
 import { getCategories, Category } from '@/types/category';
+import { getReadState, getReadStateColor, renderStars } from '@/lib/bookmarkUtils';
 
 
 export default function Page() {
@@ -116,44 +117,6 @@ export default function Page() {
     }
   }, [isAuthLoading, isLoggedIn, fetchBookmarkReadStates]);
 
-  const renderStars = (rating?: number) => {
-    if (!rating) return null;
-    return [...Array(5)].map((_, i) => (
-      <Star
-        key={i}
-        className={`h-4 w-4 ${i < Math.floor(rating)
-            ? 'fill-yellow-400 text-yellow-400'
-            : 'text-gray-300'
-          }`}
-      />
-    ));
-  };
-
-  const getReadState = (readState: string) => {
-    switch (readState) {
-      case 'READ':
-        return '읽은 책';
-      case 'READING':
-        return '읽고 있는 책';
-      case 'WISH':
-        return '읽고 싶은 책';
-      default:
-        return '모든 상태';
-    }
-  };
-
-  const getReadStateColor = (readState: string) => {
-    switch (readState) {
-      case 'READ':
-        return 'bg-green-100 text-green-800';
-      case 'READING':
-        return 'bg-blue-100 text-blue-800';
-      case 'WISH':
-        return 'bg-gray-100 text-gray-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
 
   const filteredBookmarks = useMemo(() => {
     if (!bookmarks?.data) return [];
