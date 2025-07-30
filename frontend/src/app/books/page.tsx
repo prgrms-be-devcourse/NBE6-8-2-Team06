@@ -35,6 +35,7 @@ import {
 } from "@/types/book";
 import { useAuth } from "@/app/_hooks/auth-context";
 import { toast } from "@/lib/toast";
+import { createBookmark } from "@/types/bookmarkAPI.js";
 
 interface BooksPageProps {
   onNavigate: (page: string) => void;
@@ -213,16 +214,46 @@ export default function BooksPage() {
     ));
   };
 
-  const addToMyBooks = (bookId: number, status: string) => {
+  const addToMyBooks = async (bookId: number, status: string) => {
     if (!isLoggedIn) {
       toast.info("로그인을 해 주세요");
       return;
     }
     
-    setUserBookStatus((prev) => ({
-      ...prev,
-      [bookId]: status,
-    }));
+    try {
+      // 상태 텍스트를 ReadState enum으로 변환
+      let readState: ReadState;
+      switch (status) {
+        case "읽고 싶은 책":
+          readState = ReadState.WISH;
+          break;
+        case "읽고 있는 책":
+          readState = ReadState.READING;
+          break;
+        case "읽은 책":
+          readState = ReadState.READ;
+          break;
+        default:
+          readState = ReadState.WISH;
+      }
+      
+      // API 호출
+      await createBookmark({
+        bookId: bookId,
+        readState: readState
+      });
+      
+      // 성공 시 로컬 상태 업데이트
+      setUserBookStatus((prev) => ({
+        ...prev,
+        [bookId]: status,
+      }));
+      
+      toast.success("내 목록에 추가되었습니다");
+    } catch (error) {
+      console.error("북마크 추가 실패:", error);
+      toast.error("목록 추가에 실패했습니다");
+    }
   };
 
   const removeFromMyBooks = (bookId: number) => {
