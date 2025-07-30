@@ -14,8 +14,9 @@ export interface ReviewResponseDto{
   modifiedDate:string
 };
 
-export const useReviewRecommend = (reviewId:number) =>{
-  const createReviewRecommend = async (isRecommend:boolean) => {
+export const useReviewRecommend = () =>{
+
+  const createReviewRecommend = async (reviewId:number, isRecommend:boolean) => {
     const res = await apiFetch<ApiResponse>(`/reviewRecommend/${reviewId}/${isRecommend}`,{
       method:"POST",
       headers:{
@@ -23,7 +24,7 @@ export const useReviewRecommend = (reviewId:number) =>{
       }});
   }
 
-  const modifyReviewRecomend = async (isRecommend:boolean) => {
+  const modifyReviewRecomend = async (reviewId:number, isRecommend:boolean) => {
     const res = await apiFetch<ApiResponse>(`/reviewRecommend/${reviewId}/${isRecommend}`,{
       method:"PUT",
       headers:{
@@ -32,7 +33,7 @@ export const useReviewRecommend = (reviewId:number) =>{
     });
   }
 
-  const deleteReviewRecommend = async () => {
+  const deleteReviewRecommend = async (reviewId:number) => {
     const res = await apiFetch<ApiResponse>(`/reviewRecommend/${reviewId}`, {
       method:"DELETE",
       headers:{
