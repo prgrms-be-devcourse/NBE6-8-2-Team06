@@ -18,6 +18,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class ReviewService {
     private final ReviewRepository reviewRepository;
+    private final ReviewDtoService reviewDtoService;
     private final BookService bookService;
 
     public Optional<Review> findLatest(){
@@ -26,7 +27,7 @@ public class ReviewService {
 
     @Transactional
     public void addReview(Book book, Member member, ReviewRequestDto reviewRequestDto){
-        Review review = new Review(reviewRequestDto.content(), reviewRequestDto.rate(), member, book);
+        Review review = reviewDtoService.reviewRequestDtoToReview(reviewRequestDto, member, book);
         if (reviewRepository.findByBookAndMember(book, member).isPresent()) {
             throw new ServiceException("400-1", "Review already exists");
         }
@@ -46,8 +47,7 @@ public class ReviewService {
     public void modifyReview(Book book, Member member, ReviewRequestDto reviewRequestDto) {
         Review review = reviewRepository.findByBookAndMember(book, member)
                 .orElseThrow(() -> new NoSuchElementException("review not found"));
-        review.setContent(reviewRequestDto.content());
-        review.setRate(reviewRequestDto.rate());
+        reviewDtoService.updateReviewFromRequest(review, reviewRequestDto);
         reviewRepository.save(review);
         bookService.updateBookAvgRate(book);
     }
