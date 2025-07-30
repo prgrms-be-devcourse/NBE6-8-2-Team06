@@ -10,6 +10,7 @@ import com.back.domain.bookmarks.entity.Bookmark;
 import com.back.domain.bookmarks.repository.BookmarkRepository;
 import com.back.domain.bookmarks.service.BookmarkService;
 import com.back.domain.member.member.entity.Member;
+import com.back.domain.member.member.repository.MemberRepository;
 import com.back.domain.member.member.service.MemberService;
 import com.back.domain.note.repository.NoteRepository;
 import com.back.domain.note.service.NoteService;
@@ -37,6 +38,8 @@ public class BaseInitData {
     private final BookmarkService bookmarkService;
     private final BookmarkRepository bookmarkRepository;
     private final PasswordEncoder passwordEncoder;
+    @Autowired
+    private MemberRepository memberRepository;
 
 
     @Bean
@@ -155,7 +158,11 @@ public class BaseInitData {
 
     public void initBookmarkData(){
         if (bookmarkRepository.count() > 0) return;
-        Member member = memberService.join("testUser", "email@test.com", passwordEncoder.encode("password"));
+        Member member;
+        if(memberRepository.findByEmail("email@test.com").isEmpty()) {
+            member = memberService.join("testUser", "email@test.com", passwordEncoder.encode("password"));
+        }
+        member = memberRepository.findByEmail("email@test.com").get();
         Book book1 = bookRepository.findById(1).get();
         Book book2 = bookRepository.findById(2).get();
         Book book3 = bookRepository.findById(3).get();

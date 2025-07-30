@@ -4,9 +4,9 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { getBookmarks, updateBookmark, deleteBookmark, getBookmarkReadStates } from '../../types/bookmarkAPI';
 import { BookmarkPage, Bookmark, BookmarkReadStates, UpdateBookmark } from '../../types/bookmarkData';
-import { BookOpen, Plus, Search, Trash2 } from 'lucide-react';
+import { BookOpen, Plus, Search, Trash2, Edit, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -14,7 +14,6 @@ import { ImageWithFallback } from '@/components/ImageWithFallback';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
-import { Edit } from 'lucide-react';
 import { useAuth } from "../_hooks/auth-context";
 
 
@@ -27,8 +26,6 @@ export default function Page() {
 
   const [bookmarkReadStates, setBookmarkReadStates] = useState<BookmarkReadStates>();
   const [currentPage, setCurrentPage] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
-  const [totalElements, setTotalElements] = useState(0);
 
   const [searchKeyword, setSearchKeyword] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -50,7 +47,7 @@ export default function Page() {
     }
   }, [isAuthLoading, isLoggedIn, onNavigate]);
 
-  const fetchBookmarks = useCallback(async () => {
+  const fetchBookmarks = useCallback(async (searchKeyword: string) => {
     setIsLoading(true);
     setError('');
     try {
@@ -78,7 +75,7 @@ export default function Page() {
     } finally {
       setIsLoading(false);
     }
-  }, [currentPage, selectedCategory, selectedReadState, searchKeyword]);
+  }, [currentPage, selectedCategory, selectedReadState]);
 
   const fetchBookmarkReadStates = useCallback(async () => {
     setIsLoading(true);
@@ -94,126 +91,31 @@ export default function Page() {
   }, []);
 
   useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchBookmarks(searchKeyword);
+    }, 500);
+    return () => {
+      clearTimeout(timer);
+    };
+  },[searchKeyword, fetchBookmarks]);
+  useEffect(() => {
     if (!isAuthLoading && isLoggedIn) {
       fetchBookmarkReadStates();
-      fetchBookmarks();
     }
-  }, [isAuthLoading, isLoggedIn, fetchBookmarks, fetchBookmarkReadStates]);
+  }, [isAuthLoading, isLoggedIn, fetchBookmarkReadStates]);
 
-
-  // Page.tsx 파일 상단 (import 다음, Page 컴포넌트 이전)
-
-  // 임시 북마크 데이터
-  /*
-  const mockBookmarkPage = {
-    content: [
-      {
-        id: 1,
-        memberId: 1,
-        bookId: 1,
-        readState: 'READ',
-        readPage: 464,
-        readingRate: 100,
-        date: '2024-07-20',
-        book: {
-          id: 1,
-          isbn13: "9788960777330",
-          publisher: "프로그래밍 인사이트",
-          avgRate: 4.5,
-          publishDate: "2013-01-01",
-          title: "클린 코드(Clean Code)",
-          author: ["로버트 C. 마틴"],
-          imageUrl: "https://image.aladin.co.kr/product/19/24/cover/8966262130_1.jpg",
-          category: "프로그래밍",
-          totalPage: 464,
-        }
-      },
-      {
-        id: 2,
-        memberId: 1,
-        bookId: 2,
-        readState: 'READING',
-        readPage: 150,
-        readingRate: 27,
-        date: '2025-07-10',
-        book: {
-          id: 2,
-          isbn13: "9788960777330",
-          publisher: "프로그래밍 인사이트",
-          avgRate: 4.5,
-          publishDate: "2013-01-01",
-          title: "리팩터링 2판",
-          author: ["마틴 파울러"],
-          imageUrl: "https://image.aladin.co.kr/product/216/23/cover/8966262378_1.jpg",
-          category: "프로그래밍",
-          totalPage: 550,
-        }
-      },
-      {
-        id: 3,
-        memberId: 1,
-        bookId: 1,
-        readState: 'WISH',
-        readPage: 0,
-        readingRate: 0,
-        date: '2025-06-30',
-        book: {
-          id: 3,
-          isbn13: "9788960777330",
-          publisher: "프로그래밍 인사이트",
-          avgRate: 4.5,
-          publishDate: "2013-01-01",
-          title: "Sapiens: A Brief History of Humankind",
-          author: ["유발 하라리"],
-          imageUrl: "https://image.aladin.co.kr/product/74/26/cover/8934910911_2.jpg",
-          category: "역사",
-          totalPage: 512,
-        }
-      },
-      {
-        id: 4,
-        memberId: 1,
-        bookId: 4,
-        readState: 'READ',
-        readPage: 396,
-        readingRate: 100,
-        date: '2025-05-15',
-        book: {
-          id: 4,
-          isbn13: "9788960777330",
-          publisher: "프로그래밍 인사이트",
-          avgRate: 4.5,
-          publishDate: "2013-01-01",
-          title: "코스모스",
-          author: ["칼 세이건"],
-          imageUrl: "https://image.aladin.co.kr/product/21/11/cover/8983719213_2.jpg",
-          category: "과학",
-          totalPage: 396,
-        }
-      },
-    ],
-    totalPages: 1,
-    totalElements: 4,
-    pageNumber: 0,
-    pageSize: 10,
-    isLast: true,
+  const renderStars = (rating?: number) => {
+    if (!rating) return null;
+    return [...Array(5)].map((_, i) => (
+      <Star
+        key={i}
+        className={`h-4 w-4 ${i < Math.floor(rating)
+            ? 'fill-yellow-400 text-yellow-400'
+            : 'text-gray-300'
+          }`}
+      />
+    ));
   };
-  useEffect(() => {
-    // <<<< API 연동 대신 임시 데이터를 사용하도록 수정 >>>>
-    console.log("임시 데이터로 렌더링합니다.");
-    setIsLoading(true);
-
-    // 실제 로딩처럼 보이게 0.5초 딜레이를 줍니다.
-    setTimeout(() => {
-      setBookmarks(mockBookmarkPage);
-      setTotalPages(mockBookmarkPage.totalPages);
-      setTotalElements(mockBookmarkPage.totalElements);
-      setIsLoading(false);
-    }, 500);
-
-
-  }, []); // [] 로 변경하여 컴포넌트가 처음 마운트될 때 한 번만 실행되도록 합니다.
-*/
 
   const getReadState = (readState: string) => {
     switch (readState) {
@@ -254,7 +156,7 @@ export default function Page() {
       setIsEditDialogOpen(false);
       setEditBookmark(null);
       await fetchBookmarkReadStates();
-      await fetchBookmarks();
+      await fetchBookmarks(searchKeyword);
     } catch (error) {
       setError(error instanceof Error ? error.message : '북마크 업데이트가 실패했습니다.');
     }
@@ -265,10 +167,19 @@ export default function Page() {
       try {
         await deleteBookmark(bookmarkId);
         await fetchBookmarkReadStates();
-        await fetchBookmarks();
+        await fetchBookmarks(searchKeyword);
       } catch (error) {
         setError(error instanceof Error ? error.message : '북마크 삭제에 실패했습니다.');
       }
+    }
+  };
+
+  const handlePreviousPage = () => {
+    setCurrentPage(prev => Math.max(prev-1, 0));
+  };
+  const handleNextPage = () =>{
+    if(bookmarks && !bookmarks.isLast) {
+      setCurrentPage(prev => prev +1);
     }
   };
 
@@ -379,14 +290,14 @@ export default function Page() {
               <Button onClick={() => onNavigate('books')}>새 책 추가하기</Button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredBookmarks.map((bookmark) => (
                 <Card key={bookmark.id} className="h-full cursor-pointer hover:shadow-lg transition-shadow overflow-hidden" onClick={() => onNavigate(`/bookmark/${bookmark.id}`)}>
                   <CardHeader>
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <CardTitle className="line-clamp-2">{bookmark.book.title}</CardTitle>
-                        <CardDescription>{bookmark.book?.author?.join(', ') || '저자 정보 없음'}</CardDescription>
+                        <CardDescription>{bookmark.book?.authors?.join(', ') || '저자 정보 없음'}</CardDescription>
                         <Badge className={`mt-2 ${getReadStateColor(bookmark.readState)}`}>
                           {getReadState(bookmark.readState)}
                         </Badge>
@@ -398,7 +309,7 @@ export default function Page() {
                       />
                     </div>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="flex-grow">
                     <div className="space-y-4">
                       <div className="flex justify-between text-sm text-muted-foreground">
                         <span>카테고리: {bookmark.book.category}</span>
@@ -417,14 +328,24 @@ export default function Page() {
                       )}
                     </div>
                     {/* 카드 평점 */}
-
+                    {bookmark.review?.rate > 0 && (
+                      <p className="flex items-center space-x-1 py-2">
+                        {renderStars(bookmark.review.rate)}
+                        <span className="text-sm ml-2">{bookmark.review.rate}</span>
+                      </p>
+                    )}
+                    {bookmark.review?.content && (
+                      <p className="text-sm text-muted-foreground line-clamp-2 gap-2 py-2">
+                        {bookmark.review.content}
+                      </p>
+                    )}
                     {/* 날짜 정보 */}
-                    <div className="text-xs text-muted-foreground">
-                      {bookmark.readState === 'READ' ? `완독 : ${bookmark.endReadDate?.substring(0,10)}` : bookmark.readState === 'READING' ? `시작 : ${bookmark.startReadDate?.substring(0,10)}` : `추가 : ${bookmark.createDate?.substring(0,10)}`}
+                    <div className="text-xs text-muted-foreground gap-2 py-2">
+                      {bookmark.readState === 'READ' ? `완독 : ${bookmark.endReadDate?.substring(0, 10)}` : bookmark.readState === 'READING' ? `시작 : ${bookmark.startReadDate?.substring(0, 10)}` : `추가 : ${bookmark.createDate?.substring(0, 10)}`}
                     </div>
-
+                  </CardContent>
+                  <CardFooter className="flex justify-end space-x-2 py-3">
                     {/* 북마크 편집 버튼 */}
-                    <div className="flex justify-between items-center pt-2">
                       <div className="flex space-x-2" onClick={(e) => e.stopPropagation()}>
                         <Dialog open={isEditDialogOpen && editBookmark?.id === bookmark.id} onOpenChange={setIsEditDialogOpen}>
                           <DialogTrigger asChild>
@@ -463,14 +384,34 @@ export default function Page() {
                           <Trash2 className='h-4 w-4' />
                         </Button>
                       </div>
-                    </div>
-                  </CardContent>
+                  </CardFooter>
                 </Card>
               ))}
             </div>
           )}
         </div>
       </Tabs>
+      {/* 페이지  */}
+      {bookmarks && bookmarks.totalPages >1 && (
+        <div className="flex justify-center items-center mt-8 space-x-4">
+          <Button
+            onClick={handlePreviousPage}
+            disabled={currentPage === 0}
+            variant="outline"
+            >
+              이전
+            </Button>
+            <span className="test-sm">
+              {currentPage + 1} / {bookmarks?.totalPages}
+            </span>
+            <Button
+            onClick={handleNextPage}
+            disabled={bookmarks?.isLast}
+            variant="outline"
+            >
+              다음
+            </Button>
+        </div>)}
     </div>
   );
 }
@@ -484,16 +425,16 @@ interface BookmarkEditFormProps {
 function BookmarkEditForm({ bookmark, onSave, onCancel }: BookmarkEditFormProps) {
   const [formData, setFormData] = useState({
     readState: bookmark.readState,
-    startReadDate: bookmark.startReadDate?.substring(0,10) || '',
-    endReadDate: bookmark.endReadDate?.substring(0,10) || '',
+    startReadDate: bookmark.startReadDate?.substring(0, 10) || '',
+    endReadDate: bookmark.endReadDate?.substring(0, 10) || '',
     readPage: bookmark.readPage || 0,
   });
 
   useEffect(() => {
     setFormData({
       readState: bookmark.readState,
-      startReadDate: bookmark.startReadDate?.substring(0,10) || '',
-      endReadDate: bookmark.endReadDate?.substring(0,10) || '',
+      startReadDate: bookmark.startReadDate?.substring(0, 10) || '',
+      endReadDate: bookmark.endReadDate?.substring(0, 10) || '',
       readPage: bookmark.readPage || 0,
     });
   }, [bookmark]);
@@ -502,14 +443,39 @@ function BookmarkEditForm({ bookmark, onSave, onCancel }: BookmarkEditFormProps)
     e.preventDefault();
     const dataToSend = {
       ...formData,
-      startReadDate : formData.startReadDate? `${formData.startReadDate}T00:00:00` : null,
-      endReadDate : formData.endReadDate? `${formData.endReadDate}T00:00:00` : null,
+      startReadDate: formData.startReadDate ? `${formData.startReadDate}T00:00:00` : null,
+      endReadDate: formData.endReadDate ? `${formData.endReadDate}T00:00:00` : null,
     };
     onSave(dataToSend);
   };
 
   const handleValueChange = (field: keyof typeof formData, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handlePageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const totalPage = bookmark.book.totalPage;
+    let newPage = parseInt(e.target.value.trim()) || 0;
+    if(newPage > totalPage) {
+      newPage = totalPage;
+    }
+    if(newPage <0) {
+      newPage = 0;
+    }
+
+    if(newPage === totalPage) {
+      setFormData(prev => ({
+        ...prev,
+        readState: 'READ',
+        readPage: newPage,
+        endReadDate: new Date().toISOString().split('T')[0],
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        readPage: newPage,
+      }));
+    }
   };
 
   return (
@@ -536,7 +502,7 @@ function BookmarkEditForm({ bookmark, onSave, onCancel }: BookmarkEditFormProps)
               id="currentPage"
               type="number"
               value={formData.readPage || ''}
-              onChange={(e) => handleValueChange('readPage', parseInt(e.target.value.trim()) || 0)}
+              onChange={handlePageChange}
               placeholder="현재 읽고 있는 페이지"
             />
           </div>
@@ -551,6 +517,7 @@ function BookmarkEditForm({ bookmark, onSave, onCancel }: BookmarkEditFormProps)
                 type="date"
                 value={formData.endReadDate || ''}
                 onChange={(e) => handleValueChange('endReadDate', e.target.value)}
+                min={formData.startReadDate || undefined}
               />
             </div>
           </>
@@ -565,6 +532,7 @@ function BookmarkEditForm({ bookmark, onSave, onCancel }: BookmarkEditFormProps)
             type="date"
             value={formData.startReadDate || ''}
             onChange={(e) => handleValueChange('startReadDate', e.target.value)}
+            max={formData.endReadDate || undefined}
           />
         </div>
       )}
