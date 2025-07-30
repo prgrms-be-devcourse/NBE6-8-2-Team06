@@ -54,9 +54,6 @@ export default function BooksPage() {
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
   const [isSearching, setIsSearching] = useState(false);
-  const [userBookStatus, setUserBookStatus] = useState<{
-    [key: number]: string;
-  }>({});
   const router = useRouter();
   const pathName = usePathname();
   const { isLoggedIn } = useAuth();
@@ -243,11 +240,16 @@ export default function BooksPage() {
         readState: readState
       });
       
-      // 성공 시 로컬 상태 업데이트
-      setUserBookStatus((prev) => ({
-        ...prev,
-        [bookId]: status,
-      }));
+      // 성공 시 책 목록 새로고침 (readState 업데이트를 위해)
+      if (isSearching && searchTerm.trim()) {
+        if (searchType === "title") {
+          await loadBooks(currentPage, searchTerm, searchType);
+        } else {
+          await loadBooks(currentPage, searchTerm, searchType);
+        }
+      } else {
+        await loadBooks(currentPage);
+      }
       
       toast.success("내 목록에 추가되었습니다");
     } catch (error) {
@@ -256,13 +258,6 @@ export default function BooksPage() {
     }
   };
 
-  const removeFromMyBooks = (bookId: number) => {
-    setUserBookStatus((prev) => {
-      const newStatus = { ...prev };
-      delete newStatus[bookId];
-      return newStatus;
-    });
-  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -428,36 +423,11 @@ export default function BooksPage() {
                   className="mt-4 pt-4 border-t"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  {book.readState || userBookStatus[book.id] ? (
-                    <div className="flex gap-2">
-                      <Select
-                        value={userBookStatus[book.id] || getReadStateText(book.readState)}
-                        onValueChange={(status) =>
-                          addToMyBooks(book.id, status)
-                        }
-                      >
-                        <SelectTrigger className="flex-1">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="읽고 싶은 책">
-                            읽고 싶은 책
-                          </SelectItem>
-                          <SelectItem value="읽고 있는 책">
-                            읽고 있는 책
-                          </SelectItem>
-                          <SelectItem value="읽은 책">읽은 책</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      {userBookStatus[book.id] && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => removeFromMyBooks(book.id)}
-                        >
-                          제거
-                        </Button>
-                      )}
+                  {book.readState ? (
+                    <div className="text-center py-2">
+                      <span className="text-sm text-muted-foreground">
+                        이미 내 목록에 있는 책입니다
+                      </span>
                     </div>
                   ) : (
                     <Button
