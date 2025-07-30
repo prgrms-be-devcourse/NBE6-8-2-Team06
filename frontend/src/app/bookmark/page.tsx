@@ -6,14 +6,17 @@ import { getBookmarks, updateBookmark, deleteBookmark, getBookmarkReadStates } f
 import { BookmarkPage, Bookmark, BookmarkReadStates, UpdateBookmark } from '../../types/bookmarkData';
 import { BookOpen, Plus, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
 import { useAuth } from "../_hooks/auth-context";
 import { getCategories, Category } from '@/types/category';
-import { getReadState } from '@/lib/bookmarkUtils';
+import { BookmarkCard } from './_components/bookmarkCard';
+import { BookmarkStats } from './_components/bookmarkStats';
+import { BookmarkFilters } from './_components/bookmarkFilters';
+import { PaginationControls } from './_components/paginationControls';
 
 
 export default function Page() {
@@ -30,7 +33,6 @@ export default function Page() {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedReadState, setSelectedReadState] = useState('all');
   const [categories, setCategories] = useState<Category[]>([]);
-  const [readStates, setReadStates] = useState<string[]>(['READ', 'READING', 'WISH']);
 
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editBookmark, setEditBookmark] = useState<Bookmark | null>(null);
@@ -89,11 +91,11 @@ export default function Page() {
   }, []);
 
   const fetchCategories = useCallback(async () => {
-    try{
+    try {
       const response = await getCategories();
       setCategories(response.data);
-    } catch(error) {
-      setError(error instanceof Error ? error.message: '카테고리 목록을 가져오는 데 실패했습니다.');
+    } catch (error) {
+      setError(error instanceof Error ? error.message : '카테고리 목록을 가져오는 데 실패했습니다.');
       setCategories([]);
     }
   }, []);
@@ -105,7 +107,7 @@ export default function Page() {
     return () => {
       clearTimeout(timer);
     };
-  },[searchKeyword, fetchBookmarks]);
+  }, [searchKeyword, fetchBookmarks]);
 
   useEffect(() => {
     fetchCategories();
@@ -121,6 +123,14 @@ export default function Page() {
     return bookmarks.data.filter(bookmark => bookmark.readState === selectedReadState);
   }, [bookmarks, selectedReadState]);
 
+  const handleEditClick = (bookmark: Bookmark) => {
+    setEditBookmark(bookmark);
+    setIsEditDialogOpen(true);
+  };
+  const handleCancelEdit = () => {
+    setEditBookmark(null);
+    setIsEditDialogOpen(false);
+  };
   const handleSaveBookmark = async (updateData: UpdateBookmark) => {
     if (!editBookmark) return;
     try {
@@ -147,11 +157,11 @@ export default function Page() {
   };
 
   const handlePreviousPage = () => {
-    setCurrentPage(prev => Math.max(prev-1, 0));
+    setCurrentPage(prev => Math.max(prev - 1, 0));
   };
-  const handleNextPage = () =>{
-    if(bookmarks && !bookmarks.isLast) {
-      setCurrentPage(prev => prev +1);
+  const handleNextPage = () => {
+    if (bookmarks && !bookmarks.isLast) {
+      setCurrentPage(prev => prev + 1);
     }
   };
 
@@ -176,72 +186,14 @@ export default function Page() {
       </div>
 
       {/* 내 책 목록 통계 */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl">{bookmarkReadStates?.totalCount || 0}</div>
-            <p className="text-sm text-muted-foreground">총 책 수</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl text-green-600">{bookmarkReadStates?.readState.READ || 0}</div>
-            <p className="text-sm text-muted-foreground">읽은 책</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl text-blue-600">{bookmarkReadStates?.readState.READING || 0}</div>
-            <p className="text-sm text-muted-foreground">읽고 있는 책</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl text-gray-600">{bookmarkReadStates?.readState.WISH || 0}</div>
-            <p className="text-sm text-muted-foreground">읽고 싶은 책</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-2xl text-yellow-600">{(bookmarkReadStates?.avgRate ?? 0).toFixed(1)}</div>
-            <p className="text-sm text-muted-foreground">평균 평점</p>
-          </CardContent>
-        </Card>
-      </div>
+      <BookmarkStats stats={bookmarkReadStates} />
       {/* 책 목록 검색 필터 */}
-      <div className="mb-8 space-y-4">
-        <div className="flex flex-col sm:flex-row gap-4">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-          <Input
-            placeholder="책 제목 또는 저자 검색..."
-            value={searchKeyword}
-            onChange={(e) => setSearchKeyword(e.target.value)}
-            className="pl-10"
-          />
-          <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-            <SelectTrigger className="w-full sm:w-48">
-              <SelectValue placeholder="카테고리 선택" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">모든 카테고리</SelectItem>
-              {categories.map((category) => (
-                <SelectItem key={category.name} value={category.name}>{category.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={selectedReadState} onValueChange={setSelectedReadState}>
-            <SelectTrigger className="w-full sm:w-48">
-              <SelectValue placeholder="읽기 상태 선택" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">모든 상태</SelectItem>
-              {readStates.map((readState) => (
-                <SelectItem key={readState} value={readState}>{getReadState(readState)}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
+      <BookmarkFilters searchKeyword={searchKeyword} onSearchKeywordChange={setSearchKeyword}
+      selectedCategory={selectedCategory} onCategoryChange={setSelectedCategory}
+      categories={categories} selectedReadState={selectedReadState}
+      onReadStateChange={setSelectedReadState} readStates={['READ', 'READING', 'WISH']}
+      />
+
       {/* 책 목록 테이블 */}
       <Tabs defaultValue={selectedReadState} onValueChange={setSelectedReadState} className="w-full">
         <TabsList className="grid w-full grid-cols-4">
@@ -264,33 +216,39 @@ export default function Page() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredBookmarks.map((bookmark) => (
-
+                <BookmarkCard
+                  key={bookmark.id}
+                  bookmark={bookmark}
+                  onNavigate={onNavigate}
+                  onEditClick={handleEditClick}
+                  onDeleteClick={handleDeleteBookmark}
+                />
               ))}
             </div>
-          )}
+          )};
         </div>
       </Tabs>
       {/* 페이지  */}
-      {bookmarks && bookmarks.totalPages >1 && (
-        <div className="flex justify-center items-center mt-8 space-x-4">
-          <Button
-            onClick={handlePreviousPage}
-            disabled={currentPage === 0}
-            variant="outline"
-            >
-              이전
-            </Button>
-            <span className="test-sm">
-              {currentPage + 1} / {bookmarks?.totalPages}
-            </span>
-            <Button
-            onClick={handleNextPage}
-            disabled={bookmarks?.isLast}
-            variant="outline"
-            >
-              다음
-            </Button>
-        </div>)}
+      <PaginationControls currentPage={currentPage} totalPages={bookmarks?.totalPages || 0}
+      isLast={bookmarks?.isLast || true} onPrevious={() => setCurrentPage(p => Math.max(p -1, 0))}
+      onNext={() => setCurrentPage(p => p+1)}
+      />
+      
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>북마크 편집</DialogTitle>
+            <DialogDescription>{editBookmark?.book.title}의 정보를 수정합니다.</DialogDescription>
+          </DialogHeader>
+          {editBookmark && (
+            <BookmarkEditForm
+              bookmark={editBookmark}
+              onSave={handleSaveBookmark}
+              onCancel={handleCancelEdit}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -335,14 +293,14 @@ function BookmarkEditForm({ bookmark, onSave, onCancel }: BookmarkEditFormProps)
   const handlePageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const totalPage = bookmark.book.totalPage;
     let newPage = parseInt(e.target.value.trim()) || 0;
-    if(newPage > totalPage) {
+    if (newPage > totalPage) {
       newPage = totalPage;
     }
-    if(newPage <0) {
+    if (newPage < 0) {
       newPage = 0;
     }
 
-    if(newPage === totalPage) {
+    if (newPage === totalPage) {
       setFormData(prev => ({
         ...prev,
         readState: 'READ',
