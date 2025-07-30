@@ -15,6 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 import { useAuth } from "../_hooks/auth-context";
+import { getCategories, Category } from '@/types/category';
 
 
 export default function Page() {
@@ -30,8 +31,7 @@ export default function Page() {
   const [searchKeyword, setSearchKeyword] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedReadState, setSelectedReadState] = useState('all');
-
-  const [categories, setCategories] = useState<string[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [readStates, setReadStates] = useState<string[]>(['READ', 'READING', 'WISH']);
 
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -90,6 +90,16 @@ export default function Page() {
     }
   }, []);
 
+  const fetchCategories = useCallback(async () => {
+    try{
+      const response = await getCategories();
+      setCategories(response.data);
+    } catch(error) {
+      setError(error instanceof Error ? error.message: '카테고리 목록을 가져오는 데 실패했습니다.');
+      setCategories([]);
+    }
+  }, []);
+
   useEffect(() => {
     const timer = setTimeout(() => {
       fetchBookmarks(searchKeyword);
@@ -98,7 +108,9 @@ export default function Page() {
       clearTimeout(timer);
     };
   },[searchKeyword, fetchBookmarks]);
+
   useEffect(() => {
+    fetchCategories();
     if (!isAuthLoading && isLoggedIn) {
       fetchBookmarkReadStates();
     }
@@ -253,7 +265,7 @@ export default function Page() {
             <SelectContent>
               <SelectItem value="all">모든 카테고리</SelectItem>
               {categories.map((category) => (
-                <SelectItem key={category} value={category}>{category}</SelectItem>
+                <SelectItem key={category.name} value={category.name}>{category.name}</SelectItem>
               ))}
             </SelectContent>
           </Select>
