@@ -14,6 +14,8 @@ import com.back.domain.member.member.repository.MemberRepository;
 import com.back.domain.member.member.service.MemberService;
 import com.back.domain.note.repository.NoteRepository;
 import com.back.domain.note.service.NoteService;
+import com.back.domain.review.review.entity.Review;
+import com.back.domain.review.review.repository.ReviewRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.ApplicationRunner;
@@ -22,6 +24,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.NoSuchElementException;
 
 @Configuration
 @RequiredArgsConstructor
@@ -107,6 +111,10 @@ public class BaseInitData {
 
             System.out.println("초기 데이터 로딩 완료. 총 " + bookRepository.count() + "권의 책이 저장되었습니다.");
 
+
+            memberRepository.save(new Member("리뷰쓰는놈", "asdf@asdf.com", "asdfasdfasdf"));
+            reviewRepository.save(new Review("리뷰리뷰", 5,memberRepository.findByEmail("asdf@asdf.com").orElseThrow(() -> new NoSuchElementException("멤버 못찾겠다요")), bookRepository.findById(1).orElseThrow(() -> new NoSuchElementException("책 못찾겠다요"))));
+
         } catch (Exception e) {
             System.out.println("초기 데이터 로딩 중 오류 발생: " + e.getMessage());
         }
@@ -172,4 +180,7 @@ public class BaseInitData {
         //bookmarkService.modifyBookmark(member, bookmark1.getId(), "READ", LocalDateTime.of(2025,07,22,12,20), LocalDateTime.now(),book1.getTotalPage());
         //bookmarkService.modifyBookmark(member, bookmark2.getId(), "READING", LocalDateTime.now(), null, 101);
     }
+
+    @Autowired
+    private ReviewRepository reviewRepository;
 }

@@ -4,6 +4,33 @@ export enum ReadState {
   READ = 'READ'
 }
 
+export interface ReviewResponseDto {
+  id: number;
+  content: string;
+  rate: number;
+  memberName: string;
+  memberId: number;
+  likeCount: number;
+  dislikeCount: number;
+  createdDate: string;
+  modifiedDate: string;
+}
+
+export interface BookDetailDto {
+  id: number;
+  title: string;
+  imageUrl: string;
+  publisher: string;
+  isbn13: string;
+  totalPage: number;
+  publishedDate: string;
+  avgRate: number;
+  categoryName: string;
+  authors: string[];
+  readState: ReadState;
+  reviews: PageResponseDto<ReviewResponseDto>;
+}
+
 export interface BookSearchDto {
   id: number;
   title: string;
@@ -162,6 +189,31 @@ export async function searchBookByIsbn(isbn: string): Promise<BooksResponse> {
     };
   } catch (error) {
     console.error('❌ ISBN 검색 API 호출 에러:', error);
+    throw error;
+  }
+}
+
+export async function fetchBookDetail(bookId: number): Promise<BookDetailDto> {
+  const { apiFetch } = await import('@/lib/apiFetch');
+  
+  try {
+    console.log(`📖 책 상세 정보 API 호출 시작: /api/books/${bookId}`);
+    const response = await apiFetch<ApiResponse<BookDetailDto>>(`/api/books/${bookId}`);
+    
+    console.log('📦 책 상세 정보 API 응답 원본:', response);
+    
+    if (response && typeof response === 'object' && 'data' in response) {
+      const bookDetail = response.data;
+      console.log('📚 책 상세 정보 결과:', bookDetail);
+      
+      if (bookDetail) {
+        return bookDetail;
+      }
+    }
+    
+    throw new Error('책 상세 정보를 찾을 수 없습니다.');
+  } catch (error) {
+    console.error('❌ 책 상세 정보 API 호출 에러:', error);
     throw error;
   }
 }

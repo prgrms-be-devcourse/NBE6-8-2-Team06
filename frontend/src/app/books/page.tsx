@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import BookCard from "@/components/BookCard";
-import { Search, Heart, BookOpen, Star, Filter, Plus } from "lucide-react";
+import { Search, BookOpen, Star, Filter, Plus } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -33,6 +33,8 @@ import {
   searchBookByIsbn,
   BooksResponse,
 } from "@/types/book";
+import { useAuth } from "@/app/_hooks/auth-context";
+import { toast } from "@/lib/toast";
 
 interface BooksPageProps {
   onNavigate: (page: string) => void;
@@ -53,13 +55,10 @@ export default function BooksPage() {
   const [isSearching, setIsSearching] = useState(false);
   const [userBookStatus, setUserBookStatus] = useState<{
     [key: number]: string;
-  }>({
-    1: "읽은 책",
-    2: "읽고 있는 책",
-    5: "읽고 싶은 책",
-  });
+  }>({});
   const router = useRouter();
   const pathName = usePathname();
+  const { isLoggedIn } = useAuth();
   const onBookClick = (id: number) => {
     router.push(`${pathName}/${id}`);
   };
@@ -215,6 +214,11 @@ export default function BooksPage() {
   };
 
   const addToMyBooks = (bookId: number, status: string) => {
+    if (!isLoggedIn) {
+      toast.info("로그인을 해 주세요");
+      return;
+    }
+    
     setUserBookStatus((prev) => ({
       ...prev,
       [bookId]: status,
@@ -346,11 +350,11 @@ export default function BooksPage() {
                     <CardDescription>{book.authors.join(", ")}</CardDescription>
                     <div className="flex items-center gap-2 mt-2">
                       <Badge variant="secondary">{book.categoryName}</Badge>
-                      {userBookStatus[book.id] && (
+                      {book.readState && (
                         <Badge
-                          className={getStatusColor(userBookStatus[book.id])}
+                          className={getStatusColor(getReadStateText(book.readState))}
                         >
-                          {userBookStatus[book.id]}
+                          {getReadStateText(book.readState)}
                         </Badge>
                       )}
                     </div>
@@ -370,17 +374,6 @@ export default function BooksPage() {
                 onClick={() => onBookClick(book.id)}
               >
                 <div className="flex-1 space-y-3">
-                  <div className="flex items-center gap-2 mt-2">
-                    <Badge
-                      className={
-                        getReadStateText(book.readState)
-                          ? getStatusColor(getReadStateText(book.readState))
-                          : "hidden"
-                      }
-                    >
-                      {getReadStateText(book.readState)}
-                    </Badge>
-                  </div>
 
                   <div className="flex items-center justify-between text-sm text-muted-foreground">
                     <span>{book.totalPage}쪽</span>
@@ -404,10 +397,10 @@ export default function BooksPage() {
                   className="mt-4 pt-4 border-t"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  {userBookStatus[book.id] ? (
+                  {book.readState || userBookStatus[book.id] ? (
                     <div className="flex gap-2">
                       <Select
-                        value={userBookStatus[book.id]}
+                        value={userBookStatus[book.id] || getReadStateText(book.readState)}
                         onValueChange={(status) =>
                           addToMyBooks(book.id, status)
                         }
@@ -425,30 +418,23 @@ export default function BooksPage() {
                           <SelectItem value="읽은 책">읽은 책</SelectItem>
                         </SelectContent>
                       </Select>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => removeFromMyBooks(book.id)}
-                      >
-                        제거
-                      </Button>
+                      {userBookStatus[book.id] && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => removeFromMyBooks(book.id)}
+                        >
+                          제거
+                        </Button>
+                      )}
                     </div>
                   ) : (
-                    <div className="flex gap-2">
-                      <Button
-                        className="flex-1"
-                        onClick={() => addToMyBooks(book.id, "읽고 싶은 책")}
-                      >
-                        <Plus className="h-4 w-4 mr-2" />내 목록에 추가
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => addToMyBooks(book.id, "읽고 싶은 책")}
-                      >
-                        <Heart className="h-4 w-4" />
-                      </Button>
-                    </div>
+                    <Button
+                      className="w-full"
+                      onClick={() => addToMyBooks(book.id, "읽고 싶은 책")}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />내 목록에 추가
+                    </Button>
                   )}
                 </div>
               </CardContent>
