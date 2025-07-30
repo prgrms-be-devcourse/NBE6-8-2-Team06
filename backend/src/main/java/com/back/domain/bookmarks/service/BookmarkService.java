@@ -112,7 +112,9 @@ public class BookmarkService {
         Bookmark bookmark = findById(bookmarkId);
         bookmark.checkActor(member);
         bookmarkRepository.delete(bookmark);
-        reviewService.deleteReview(bookmark.getBook(), member);
+        if(getReview(bookmark) != null) {
+            reviewService.deleteReview(bookmark.getBook(), member);
+        }
     }
 
     public BookmarkReadStatesDto getReadStatesCount(Member member) {
