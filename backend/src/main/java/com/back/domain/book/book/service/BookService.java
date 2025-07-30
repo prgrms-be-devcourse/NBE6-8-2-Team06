@@ -30,6 +30,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -53,15 +54,15 @@ public class BookService {
      */
     @Transactional
     public Page<BookSearchDto> searchBooks(String query, Pageable pageable, Member member) {
-        // 1. DB에서 먼저 확인
-        List<Book> booksFromDb = bookRepository.findByTitleOrAuthorContaining(query);
+        // 1. DB에서 유효한 책들만 먼저 확인 (페이지 수 > 0)
+        List<Book> validBooksFromDb = bookRepository.findValidBooksByTitleOrAuthorContaining(query);
 
-        if (!booksFromDb.isEmpty()) {
-            log.info("DB에서 찾은 책: {} 권", booksFromDb.size());
-            return createPageFromList(booksFromDb, pageable, member);
+        if (!validBooksFromDb.isEmpty()) {
+            log.info("DB에서 찾은 유효한 책: {} 권", validBooksFromDb.size());
+            return createPageFromList(validBooksFromDb, pageable, member);
         }
 
-        log.info("DB에 없어서 알라딘 API에서 검색: {}", query);
+        log.info("DB에 유효한 책이 없어서 알라딘 API에서 검색: {}", query);
 
         // 2. API에서 검색 (더 많은 결과를 가져와서 페이징 처리)
         int apiLimit = Math.max(30, (pageable.getPageNumber() + 1) * pageable.getPageSize());
@@ -73,7 +74,7 @@ public class BookService {
                 .filter(book -> book != null)
                 .collect(Collectors.toList());
 
-        // 4. 상세 정보 보완
+        // 4. 상세 정보 보완 (페이지 수 0인 책들은 여기서 필터링됨)
         savedBooks = enrichMissingDetails(savedBooks);
 
         // 5. 페이징 처리하여 반환
@@ -85,14 +86,14 @@ public class BookService {
      */
     @Transactional
     public List<BookSearchDto> searchBooks(String query, int limit, Member member) {
-        // 1. DB에서 먼저 확인
-        List<Book> booksFromDb = bookRepository.findByTitleOrAuthorContaining(query);
-        if (!booksFromDb.isEmpty()) {
-            log.info("DB에서 찾은 책: {} 권", booksFromDb.size());
-            return convertToDto(booksFromDb.stream().limit(limit).toList(), member);
+        // 1. DB에서 유효한 책들만 먼저 확인
+        List<Book> validBooksFromDb = bookRepository.findValidBooksByTitleOrAuthorContaining(query);
+        if (!validBooksFromDb.isEmpty()) {
+            log.info("DB에서 찾은 유효한 책: {} 권", validBooksFromDb.size());
+            return convertToDto(validBooksFromDb.stream().limit(limit).toList(), member);
         }
 
-        log.info("DB에 없어서 알라딘 API에서 검색: {}", query);
+        log.info("DB에 유효한 책이 없어서 알라딘 API에서 검색: {}", query);
 
         // 2. API에서 검색
         List<AladinBookDto> apiBooks = aladinApiClient.searchBooks(query, limit);
@@ -187,20 +188,55 @@ public class BookService {
      */
     @Transactional
     public BookSearchDto getBookByIsbn(String isbn, Member member) {
-        Optional<Book> bookFromDb = bookRepository.findByIsbn13(isbn);
+        // 먼저 유효한 책(페이지 수 > 0)이 있는지 확인
+        Optional<Book> validBookFromDb = bookRepository.findValidBookByIsbn13(isbn);
 
-        if (bookFromDb.isPresent()) {
-            return convertToDto(bookFromDb.get(), member);
+        if (validBookFromDb.isPresent()) {
+            log.info("DB에서 유효한 책 발견: {}", validBookFromDb.get().getTitle());
+            return convertToDto(validBookFromDb.get(), member);
+        }
+
+        // 유효한 책이 없다면 기존 책(페이지 수 0 포함)이 있는지 확인
+        Optional<Book> existingBookFromDb = bookRepository.findByIsbn13(isbn);
+
+        if (existingBookFromDb.isPresent()) {
+            Book existingBook = existingBookFromDb.get();
+            log.info("DB에 페이지 수 0인 책이 있어서 상세 정보 보완 시도: {}", existingBook.getTitle());
+
+            // 상세 정보 보완 시도
+            enrichBookWithDetailInfo(existingBook);
+
+            // 보완 후에도 페이지 수가 0이면 null 반환
+            if (existingBook.getTotalPage() == 0) {
+                log.warn("상세 정보 보완 후에도 페이지 수가 0인 책: {}", existingBook.getTitle());
+                return null;
+            }
+
+            return convertToDto(existingBook, member);
         }
 
         // API에서 검색
+        log.info("DB에 없어서 API에서 검색: {}", isbn);
         AladinBookDto apiBook = aladinApiClient.getBookByIsbn(isbn);
         if (apiBook == null) {
             return null;
         }
 
         Book savedBook = convertAndSaveBook(apiBook);
-        return savedBook != null ? convertToDto(savedBook, member) : null;
+        if (savedBook == null) {
+            return null;
+        }
+
+        // 상세 정보 보완
+        enrichBookWithDetailInfo(savedBook);
+
+        // 페이지 수가 0이면 null 반환
+        if (savedBook.getTotalPage() == 0) {
+            log.warn("새로 저장한 책의 페이지 수가 0: {}", savedBook.getTitle());
+            return null;
+        }
+
+        return convertToDto(savedBook, member);
     }
 
     /**
@@ -212,16 +248,17 @@ public class BookService {
     }
 
     /**
-     * 전체 책 조회 (페이징, Member 정보 포함)
+     * 전체 책 조회 (페이징, Member 정보 포함) - 유효한 책들만
      */
     public Page<BookSearchDto> getAllBooks(Pageable pageable, Member member) {
-        log.info("전체 책 조회: page={}, size={}, sort={}, member={}",
+        log.info("전체 유효한 책 조회: page={}, size={}, sort={}, member={}",
                 pageable.getPageNumber(), pageable.getPageSize(), pageable.getSort(),
                 member != null ? member.getId() : "null");
 
         try {
-            Page<Book> bookPage = bookRepository.findAll(pageable);
-            return bookPage.map(book -> {
+            // 페이지 수가 0보다 큰 유효한 책들만 조회
+            Page<Book> validBookPage = bookRepository.findAllValidBooks(pageable);
+            return validBookPage.map(book -> {
                 BookSearchDto dto = convertToDto(book, member);
                 log.debug("Book {} converted with readState: {}", book.getId(), dto.getReadState());
                 return dto;
@@ -249,7 +286,7 @@ public class BookService {
                 member != null ? member.getId() : "null");
 
         try {
-            // 책 조회
+            // 책 조회 (페이지 수 0인 책도 상세 조회는 가능)
             Optional<Book> bookOptional = bookRepository.findById(id);
             if (bookOptional.isEmpty()) {
                 return null;
@@ -333,7 +370,7 @@ public class BookService {
      */
     private Book convertAndSaveBook(AladinBookDto apiBook) {
         try {
-            // 이미 존재하는 책인지 확인
+            // 이미 존재하는 책인지 확인 (페이지 수와 관계없이)
             if (apiBook.getIsbn13() != null) {
                 Optional<Book> existingBook = bookRepository.findByIsbn13(apiBook.getIsbn13());
                 if (existingBook.isPresent()) {
@@ -363,7 +400,7 @@ public class BookService {
 
             // 책 저장
             Book savedBook = bookRepository.save(book);
-            log.info("책 저장 완료: {}", savedBook.getTitle());
+            log.info("책 저장 완료: {} (페이지: {})", savedBook.getTitle(), savedBook.getTotalPage());
 
             // 작가 정보 저장
             saveAuthors(apiBook.getAuthors(), savedBook);
@@ -404,17 +441,40 @@ public class BookService {
     }
 
     /**
-     * 부족한 상세 정보 보완
+     * 부족한 상세 정보 보완 및 불완전한 데이터 필터링
      */
     private List<Book> enrichMissingDetails(List<Book> books) {
-        return books.stream()
+        List<Book> incompleteBooks = new ArrayList<>();
+
+        List<Book> enrichedBooks = books.stream()
                 .peek(book -> {
                     if (needsDetailEnrichment(book)) {
                         log.info("상세 정보 보완 시도: {} (ISBN: {})", book.getTitle(), book.getIsbn13());
                         enrichBookWithDetailInfo(book);
                     }
                 })
+                .filter(book -> {
+                    // 상세 정보 보완 후에도 페이지 수가 0인 책은 제외
+                    if (book.getTotalPage() == 0) {
+                        log.warn("페이지 수가 0인 책을 목록에서 제외: {} (ISBN: {})",
+                                book.getTitle(), book.getIsbn13());
+                        incompleteBooks.add(book);
+                        return false;
+                    }
+                    return true;
+                })
                 .collect(Collectors.toList());
+
+        // 불완전한 책들의 정보를 로그로 남김 (나중에 배치 처리 가능)
+        if (!incompleteBooks.isEmpty()) {
+            log.info("불완전한 책 {}권이 발견되어 검색 결과에서 제외됨", incompleteBooks.size());
+            for (Book book : incompleteBooks) {
+                log.warn("정리 대상 책 ID: {} - {} (페이지: {})",
+                        book.getId(), book.getTitle(), book.getTotalPage());
+            }
+        }
+
+        return enrichedBooks;
     }
 
     /**
@@ -431,6 +491,7 @@ public class BookService {
     private void enrichBookWithDetailInfo(Book book) {
         AladinBookDto detailBook = aladinApiClient.getBookDetails(book.getIsbn13());
         if (detailBook == null) {
+            log.warn("상세 정보 조회 실패: {} (ISBN: {})", book.getTitle(), book.getIsbn13());
             return;
         }
 
@@ -440,12 +501,14 @@ public class BookService {
         if (book.getTotalPage() == 0 && detailBook.getTotalPage() > 0) {
             book.setTotalPage(detailBook.getTotalPage());
             updated = true;
+            log.info("페이지 수 보완: {} -> {}", book.getTitle(), detailBook.getTotalPage());
         }
 
         // 저자 정보 보완
-        if (book.getAuthors().isEmpty() && detailBook.getAuthors() != null) {
+        if (book.getAuthors().isEmpty() && detailBook.getAuthors() != null && !detailBook.getAuthors().isEmpty()) {
             saveAuthors(detailBook.getAuthors(), book);
             updated = true;
+            log.info("저자 정보 보완: {} -> {}", book.getTitle(), detailBook.getAuthors());
         }
 
         if (updated) {
