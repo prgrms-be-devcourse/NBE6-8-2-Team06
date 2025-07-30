@@ -1,5 +1,6 @@
 import { apiFetch } from "@/lib/apiFetch";
 import { ApiResponse } from "@/types/auth";
+import { useState } from "react";
 
 export interface ReviewResponseDto{
   id:number,
@@ -46,7 +47,8 @@ export const useReviewRecommend = (reviewId:number) =>{
   }
 }
 
-export const useReview = (bookId:number) =>{
+export const useReview = (initBookId:number) =>{
+  const [bookId,setBookId] = useState<number>(initBookId);
   
   const getReview = async () =>{
     const res = await apiFetch<ApiResponse>(`/reviews/${bookId}`, {
@@ -58,23 +60,23 @@ export const useReview = (bookId:number) =>{
     return data;
   }
 
-  const createReview = async ({ rating, review } : {rating:number, review:string}) => {
+  const createReview = async ({ rating, content } : {rating:number, content:string}) => {
       await apiFetch<ApiResponse>(`/reviews/${bookId}`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-          body:JSON.stringify({"content":review, "rate":rating})
+          body:JSON.stringify({"content":content, "rate":rating})
         });
   }
 
-  const editReview = async({rating, review}:{rating:Number, review:string}) => {
+  const editReview = async({rating, content}:{rating:Number, content:string}) => {
     await apiFetch<ApiResponse>(`/reviews/${bookId}`, {
       method:"PUT",
       headers:{
         "Content-Type":"application/json",
       },
-      body:JSON.stringify({"content":review, "rate":rating})
+      body:JSON.stringify({"content":content, "rate":rating})
     });
   }
 
@@ -91,6 +93,7 @@ export const useReview = (bookId:number) =>{
       createReview,
       editReview,
       deleteReview,
-      getReview
+      getReview,
+      setBookId
   }
 }
