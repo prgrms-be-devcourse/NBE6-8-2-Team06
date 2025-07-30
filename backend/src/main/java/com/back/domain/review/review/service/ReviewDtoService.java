@@ -20,6 +20,7 @@ public class ReviewDtoService {
                 .memberId(review.getMember().getId())
                 .likeCount(review.getLikeCount())
                 .dislikeCount(review.getDislikeCount())
+                .isRecommended(null)
                 .createdDate(review.getCreateDate())
                 .modifiedDate(review.getModifyDate())
                 .build();
