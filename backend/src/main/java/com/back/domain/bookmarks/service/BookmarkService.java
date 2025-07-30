@@ -8,6 +8,7 @@ import com.back.domain.bookmarks.repository.BookmarkRepository;
 import com.back.domain.member.member.entity.Member;
 import com.back.domain.review.review.entity.Review;
 import com.back.domain.review.review.repository.ReviewRepository;
+import com.back.domain.review.review.service.ReviewService;
 import jakarta.persistence.criteria.Join;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -27,6 +28,7 @@ import java.util.stream.Collectors;
 public class BookmarkService {
     private final BookmarkRepository bookmarkRepository;
     private final BookRepository bookRepository;
+    private final ReviewService reviewService;
     private final ReviewRepository reviewRepository;
 
     public Bookmark save(int bookId, Member member) {
@@ -90,18 +92,18 @@ public class BookmarkService {
     public BookmarkModifyResponseDto modifyBookmark(Member member, int id, String state, LocalDateTime startReadDate, LocalDateTime endReadDate, int readPage) {
         Bookmark bookmark = findById(id);
         bookmark.checkActor(member);
-        if(state != null){
-            ReadState readState = ReadState.valueOf(state.toUpperCase());
-            bookmark.updateReadState(readState);
+        if(endReadDate != null){
+            bookmark.updateEndReadDate(endReadDate);
         }
         if(startReadDate != null){
             bookmark.updateStartReadDate(startReadDate);
         }
-        if(endReadDate != null){
-            bookmark.updateEndReadDate(endReadDate);
-        }
         if(readPage > 0){
             bookmark.updateReadPage(readPage);
+        }
+        if(state != null){
+            ReadState readState = ReadState.valueOf(state.toUpperCase());
+            bookmark.updateReadState(readState);
         }
         return new BookmarkModifyResponseDto(bookmarkRepository.save(bookmark));
     }
@@ -110,6 +112,7 @@ public class BookmarkService {
         Bookmark bookmark = findById(bookmarkId);
         bookmark.checkActor(member);
         bookmarkRepository.delete(bookmark);
+        reviewService.deleteReview(bookmark.getBook(), member);
     }
 
     public BookmarkReadStatesDto getReadStatesCount(Member member) {
@@ -125,7 +128,7 @@ public class BookmarkService {
     }
 
     private Review getReview(Bookmark bookmark) {
-        return reviewRepository.findByBookAndMember(bookmark.getBook(), bookmark.getMember()).orElse(null);
+        return reviewService.findByBookAndMember(bookmark.getBook(), bookmark.getMember()).orElse(null);
     }
     private Map<Book, Review> getReviews(Member member) {
         List<Review> reviews = reviewRepository.findAllByMember(member);

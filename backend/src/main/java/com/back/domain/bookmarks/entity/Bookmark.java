@@ -33,6 +33,14 @@ public class Bookmark extends BaseEntity {
     }
 
     public void updateReadState(ReadState readState) {
+        if(readState == ReadState.WISH){
+            this.startReadDate = null;
+            this.endReadDate = null;
+            this.readPage = 0;
+        }
+        if(readState == ReadState.READING){
+            this.endReadDate = null;
+        }
         this.readState = readState;
     }
 
