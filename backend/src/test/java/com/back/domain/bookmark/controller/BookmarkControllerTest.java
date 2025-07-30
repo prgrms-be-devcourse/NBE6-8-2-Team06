@@ -1,13 +1,7 @@
 package com.back.domain.bookmark.controller;
 
-import com.back.domain.book.author.entity.Author;
-import com.back.domain.book.author.repository.AuthorRepository;
 import com.back.domain.book.book.entity.Book;
 import com.back.domain.book.book.repository.BookRepository;
-import com.back.domain.book.category.entity.Category;
-import com.back.domain.book.category.repository.CategoryRepository;
-import com.back.domain.book.wrote.entity.Wrote;
-import com.back.domain.book.wrote.repository.WroteRepository;
 import com.back.domain.bookmarks.controller.BookmarkController;
 import com.back.domain.bookmarks.dto.BookmarkDto;
 import com.back.domain.bookmarks.dto.BookmarkDetailDto;
@@ -31,7 +25,6 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -50,43 +43,22 @@ public class BookmarkControllerTest {
     @Autowired
     private BookmarkService bookmarkService;
     @Autowired
-    private CategoryRepository categoryRepository;
-    @Autowired
     private MemberService memberService;
-    @Autowired
-    private AuthorRepository authorRepository;
-    @Autowired
-    private WroteRepository wroteRepository;
 
     @BeforeEach
     void setup() {
-        Category category = new Category("테스트");
-        categoryRepository.save(category);
 
-        Author author = new Author("가나다");
-        author = authorRepository.save(author);
-
-        Book book = new Book();
-        book.setTitle("테스트 도서 제목");
-        book.setImageUrl("http://example.com/image.jpg");     // imageUrl
-        book.setAvgRate(4.0f);                               // avgRate
-        book.setTotalPage(300);                                // totalPage (nullable=false일 가능성 높음)
-        book.setPublishedDate(LocalDateTime.of(2023, 1, 1, 0, 0)); // publishedDate
-        book.setPublisher("테스트 출판사");                       // publisher
-        book.setCategory(category);
-        // DB에 저장하면 @GeneratedValue 전략에 따라 ID가 할당됩니다.
-        book = bookRepository.save(book);
-        Wrote wrote = new Wrote(author, book);
-        wrote = wroteRepository.save(wrote);
-        Member member = memberService.join("testUser1", "testUser1", "password");
-
-        bookmarkService.save(book.getId(), member);
+        Member member = memberService.findByEmail("email@email.com").get();
+        bookmarkService.save(1, member);
+        bookmarkService.save(2, member);
+        bookmarkService.save(3, member);
+        bookmarkService.save(4, member);
     }
 
     @Test
     @DisplayName("북마크 추가")
     void t1() throws Exception {
-        Member member = memberService.findByEmail("testUser1").get();
+        Member member = memberService.findByEmail("email@email.com").get();
         String accessToken = memberService.geneAccessToken(member);
         Book book = bookRepository.findById(1).get();
         ResultActions resultActions = mvc.perform(
