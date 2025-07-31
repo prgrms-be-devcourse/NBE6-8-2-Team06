@@ -35,6 +35,18 @@ export default function page({params}:{params:Promise<{bookId:string}>}){
         setLoading(false);
       }
     };
+
+    const loadReviews = async () => {
+      try {
+        
+        const detail = await fetchBookDetail(bookId);
+        const reviewData = detail.reviews.data;
+        setBookDetail({...bookDetail!, reviews: {...bookDetail!.reviews, data:detail.reviews.data }});
+      } catch (err) {
+        
+      } 
+    }
+
     useEffect(() => {
       loadBookDetail();
     }, [bookId]);
@@ -134,8 +146,8 @@ export default function page({params}:{params:Promise<{bookId:string}>}){
       }
       return r;
     });
-    // 백엔드에서 업데이트
     setBookDetail({...bookDetail, reviews: {...bookDetail.reviews, data:  reviews}});
+    // 백엔드에서 업데이트
     if (review.isRecommended === null){
       await reviewRecommend.createReviewRecommend(review.id, recommend);
     }else if (review.isRecommended === recommend){
@@ -143,7 +155,7 @@ export default function page({params}:{params:Promise<{bookId:string}>}){
     }else{
       await reviewRecommend.modifyReviewRecomend(review.id, recommend);
     }
-    await loadBookDetail();
+    await loadReviews();
   }
 
   return (
@@ -294,12 +306,12 @@ export default function page({params}:{params:Promise<{bookId:string}>}){
                             {review.content}
                           </p>
                           <div className="flex items-center space-x-4">
-                            <Button variant={review.isRecommended === true ?"outline":"ghost"} size="sm" onClick={()=>{handleRecommend(review, true)}}>
-                              <ThumbsUp className="h-4 w-4 mr-1" />
+                            <Button variant={"ghost"} size="sm" onClick={()=>{handleRecommend(review, true)}}>
+                              <ThumbsUp fill={review.isRecommended === true ? "#000" : "none"} strokeWidth={review.isRecommended===true?1:2} className="h-4 w-4 mr-1" />
                               좋아요 {review.likeCount}
                             </Button>
-                            <Button variant={review.isRecommended === false?"outline":"ghost"} size="sm" onClick={()=>{handleRecommend(review, false)}}>
-                              <ThumbsDown className="h-4 w-4 mr-1" />
+                            <Button variant={"ghost"} size="sm" onClick={()=>{handleRecommend(review, false)}}>
+                              <ThumbsDown fill={review.isRecommended === false ? "#000" : "none"} strokeWidth={review.isRecommended===false?1:2} className="h-4 w-4 mr-1" />
                               싫어요 {review.dislikeCount}
                             </Button>
                           </div>
