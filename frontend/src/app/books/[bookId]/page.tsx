@@ -308,11 +308,11 @@ export default function page({params}:{params:Promise<{bookId:string}>}){
                           <div className="flex items-center space-x-4">
                             <Button variant={"ghost"} size="sm" onClick={()=>{handleRecommend(review, true)}}>
                               <ThumbsUp fill={review.isRecommended === true ? "#000" : "none"} strokeWidth={review.isRecommended===true?1:2} className="h-4 w-4 mr-1" />
-                              좋아요 {review.likeCount}
+                              좋아요 {reviewRecommend.formatLikes(review.likeCount)}
                             </Button>
                             <Button variant={"ghost"} size="sm" onClick={()=>{handleRecommend(review, false)}}>
                               <ThumbsDown fill={review.isRecommended === false ? "#000" : "none"} strokeWidth={review.isRecommended===false?1:2} className="h-4 w-4 mr-1" />
-                              싫어요 {review.dislikeCount}
+                              싫어요 {reviewRecommend.formatLikes(review.dislikeCount)}
                             </Button>
                           </div>
                         </div>
