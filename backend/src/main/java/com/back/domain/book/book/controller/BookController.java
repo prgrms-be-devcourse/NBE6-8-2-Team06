@@ -8,6 +8,8 @@ import com.back.global.dto.PageResponseDto;
 import com.back.global.exception.ServiceException;
 import com.back.global.rq.Rq;
 import com.back.global.rsData.RsData;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,12 +23,14 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/books")
 @RequiredArgsConstructor
 @Slf4j
+@Tag(name = "도서 관리")
 public class BookController {
     private final BookService bookService;
     private final Rq rq;
 
     //전체 책 조회(DB내부만) - 로그인 선택사항
     @GetMapping
+    @Operation(summary = "전체 책 조회")
     public RsData<PageResponseDto<BookSearchDto>> getAllBooks(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "9") int size,
@@ -70,6 +74,7 @@ public class BookController {
     }
 
     @GetMapping("/search")
+    @Operation(summary = "책 검색")
     public RsData<PageResponseDto<BookSearchDto>> searchBooks(
             @RequestParam String query,
             @RequestParam(defaultValue = "0") int page,
@@ -116,6 +121,7 @@ public class BookController {
     }
 
     @GetMapping("/isbn/{isbn}")
+    @Operation(summary = "ISBN으로 책 검색")
     public RsData<BookSearchDto> getBookByIsbn(@PathVariable String isbn, HttpServletRequest request) {
 
         if (isbn == null || isbn.trim().isEmpty()) {
@@ -141,6 +147,7 @@ public class BookController {
     }
 
     @GetMapping("/{id}")
+    @Operation(summary = "id로 책 검색 (상세 정보 포함))")
     public RsData<BookDetailDto> getBookById(
             @PathVariable int id,
             @RequestParam(defaultValue = "0") int page,
