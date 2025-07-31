@@ -5,13 +5,16 @@ import com.back.domain.member.member.entity.Member;
 import com.back.domain.review.review.dto.ReviewRequestDto;
 import com.back.domain.review.review.dto.ReviewResponseDto;
 import com.back.domain.review.review.entity.Review;
+import com.back.domain.review.reviewRecommend.service.ReviewRecommendService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
 public class ReviewDtoService {
-    public ReviewResponseDto reviewToReviewResponseDto(Review review) {
+    private final ReviewRecommendService reviewRecommendService;
+
+    public ReviewResponseDto reviewToReviewResponseDto(Review review, Member member) {
         return ReviewResponseDto.builder()
                 .id(review.getId())
                 .content(review.getContent())
@@ -20,7 +23,7 @@ public class ReviewDtoService {
                 .memberId(review.getMember().getId())
                 .likeCount(review.getLikeCount())
                 .dislikeCount(review.getDislikeCount())
-                .isRecommended(null)
+                .isRecommended(reviewRecommendService.isRecommended(review, member))
                 .createdDate(review.getCreateDate())
                 .modifiedDate(review.getModifyDate())
                 .build();

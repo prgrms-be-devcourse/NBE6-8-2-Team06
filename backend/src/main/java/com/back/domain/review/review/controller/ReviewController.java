@@ -37,7 +37,7 @@ public class ReviewController {
             return new RsData<>("401-1", "Unauthorized access");
         }
         Review review = reviewService.findByBookAndMember(book, member).orElseThrow(()->new NoSuchElementException("Review not found"));
-        return new RsData<>("200-1", "Review read successfully", reviewDtoService.reviewToReviewResponseDto(review));
+        return new RsData<>("200-1", "Review read successfully", reviewDtoService.reviewToReviewResponseDto(review, member));
     }
 
     @PostMapping("/{book_id}")
