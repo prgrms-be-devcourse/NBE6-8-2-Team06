@@ -9,7 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { ArrowLeft, BookOpen, Building, Calendar, Globe, Heart, Plus, Star, ThumbsDown, ThumbsUp } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { use, useEffect, useState } from "react";
-import { BookDetailDto, fetchBookDetail, ReviewResponseDto } from "@/types/book";
+import { BookDetailDto, fetchBookDetail, ReviewResponseDto, addToMyBooks, ReadState } from "@/types/book";
 import { useReviewRecommend } from "@/app/_hooks/useReview";
 
 export default function page({params}:{params:Promise<{bookId:string}>}){
@@ -55,8 +55,14 @@ export default function page({params}:{params:Promise<{bookId:string}>}){
       router.push(path);
     };
     
-    const onAddToMyBooks = (bookId: number) => {
-      // TODO: 내 목록에 추가 API 호출
+    const onAddToMyBooks = async (bookId: number) => {
+      try {
+        await addToMyBooks(bookId);
+        setBookDetail(prev => prev ? { ...prev, readState: ReadState.WISH } : null);
+        setIsInMyBooks(true);
+      } catch (error) {
+        console.error('내 목록에 추가 실패:', error);
+      }
     };
     
     if (loading) {
@@ -109,7 +115,6 @@ export default function page({params}:{params:Promise<{bookId:string}>}){
   };
 
   const handleAddToMyBooks = () => {
-    setIsInMyBooks(true);
     onAddToMyBooks(bookDetail.id);
   };
 
@@ -223,16 +228,12 @@ export default function page({params}:{params:Promise<{bookId:string}>}){
                   <span className="text-sm text-muted-foreground">ISBN</span>
                   <span className="text-sm">{bookDetail.isbn13}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">읽기 상태</span>
-                  <span className="text-sm">{bookDetail.readState}</span>
-                </div>
               </div>
 
               <Separator className="my-6" />
 
               <div className="space-y-3">
-                {isInMyBooks ? (
+                {bookDetail.readState === ReadState.WISH || bookDetail.readState === ReadState.READING || bookDetail.readState === ReadState.READ || isInMyBooks ? (
                   <Button className="w-full" disabled>
                     내 목록에 추가됨
                   </Button>
@@ -242,10 +243,6 @@ export default function page({params}:{params:Promise<{bookId:string}>}){
                     내 목록에 추가
                   </Button>
                 )}
-                <Button variant="outline" className="w-full">
-                  <Heart className="h-4 w-4 mr-2" />
-                  관심 목록
-                </Button>
               </div>
             </CardContent>
           </Card>

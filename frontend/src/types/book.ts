@@ -28,7 +28,7 @@ export interface BookDetailDto {
   avgRate: number;
   categoryName: string;
   authors: string[];
-  readState: ReadState;
+  readState?: ReadState;
   reviews: PageResponseDto<ReviewResponseDto>;
 }
 
@@ -221,6 +221,25 @@ export async function fetchBookDetail(bookId: number): Promise<BookDetailDto> {
     throw new Error('책 상세 정보를 찾을 수 없습니다.');
   } catch (error) {
     console.error('❌ 책 상세 정보 API 호출 에러:', error);
+    throw error;
+  }
+}
+
+export async function addToMyBooks(bookId: number): Promise<void> {
+  const { apiFetch } = await import('@/lib/apiFetch');
+  
+  try {
+    console.log(`📚 내 목록에 추가 API 호출 시작: /api/bookmarks`);
+    await apiFetch('/api/bookmarks', {
+      method: 'POST',
+      body: JSON.stringify({ 
+        bookId: bookId,
+        readState: ReadState.WISH 
+      })
+    });
+    console.log('✅ 내 목록에 추가 완료');
+  } catch (error) {
+    console.error('❌ 내 목록에 추가 API 호출 에러:', error);
     throw error;
   }
 }
