@@ -40,6 +40,7 @@ export default function Page() {
       const response = await getBookmark(bookmarkId);
       setBookmark(response.data);
     } catch (error) {
+      console.error('❌ 에러 데이터:', (error as any).data);
       setError(error instanceof Error ? error.message : '내 책 정보를 불러올 수 없습니다.');
     } finally {
       setIsLoading(false);
