@@ -50,9 +50,9 @@ public class BaseInitData {
     ApplicationRunner baseInitDataApplicationRunner(){
         return args->{
 //            self.initReviewData(); // 리뷰 테스트 시 주석 해제
-            self.initBookData(); // 책 데이터 초기화
+//            self.initBookData(); // 책 데이터 초기화
             self.initNoteData(); // Note 관련 데이터
-            self.initBookmarkData(); // Bookmark 데이터 초기화
+//            self.initBookmarkData(); // Bookmark 데이터 초기화
         };
     }
 
@@ -156,11 +156,11 @@ public class BaseInitData {
         Book book = new Book("Text Book", "Publisher", categoryRepository.save(new Category("Test Category")));
         bookRepository.save(book);
 
-        Member member1 = memberService.join("유저1", "이메일1", "1234");
+        Member member1 = memberService.join("유저1", "email1@naver.com", passwordEncoder.encode("12341234"));
         member1.updateRefreshToken("key1");
-        Member member2 = memberService.join("유저2", "이메일2", "1234");
+        Member member2 = memberService.join("유저2", "email2@naver.com", passwordEncoder.encode("12341234"));
         member2.updateRefreshToken("key2");
-        Member member3 = memberService.join("유저3", "이메일3", "1234");
+        Member member3 = memberService.join("유저3", "email3@naver.com", passwordEncoder.encode("12341234"));
 
         Bookmark bookmark1 = bookmarkRepository.save(new Bookmark(book, member1));
         Bookmark bookmark2 = bookmarkRepository.save(new Bookmark(book, member2));

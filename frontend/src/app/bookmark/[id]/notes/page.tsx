@@ -9,8 +9,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ArrowLeft, Edit, FileText, Plus, Save, Search, Trash2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { use, useState } from "react";
+import { use, useState, useEffect } from "react";
 import { useNote } from "./_hook/useNote";
+import { useAuth } from "@/app/_hooks/auth-context";
 
 
 interface BookNotesPageProps {
@@ -35,10 +36,22 @@ interface Note {
   modifyDate: string;
 }
 
-export default function page({ params }: { params: Promise<{ bookId: string }> }) {
+export default function page({ params }: { params: Promise<{ id: string }> }) {
+  const { isLoggedIn, isLoading: isAuthLoading } = useAuth();
+  const router = useRouter();
+  const onNavigate = (e: string) => {
+    router.push(e);
+  }
 
-  const { bookId: bookmarkIdStr } = use(params);
-  const bookmarkId = parseInt(bookmarkIdStr);
+  useEffect(() => {
+    if (!isAuthLoading && !isLoggedIn) {
+      onNavigate('/login');
+    }
+  }, [isAuthLoading, isLoggedIn, onNavigate]);
+
+  const { id: idStr } = use(params);
+  const bookmarkId = parseInt(idStr);
+  
   const {
     notes, // 노트 데이터
     bookInfo, // 내 책 데이터
@@ -55,12 +68,6 @@ export default function page({ params }: { params: Promise<{ bookId: string }> }
     content: '',
     page: ''
   }); // 노트 폼
-
-
-  const router = useRouter();
-  const onNavigate = (e: string) => {
-    router.push(e);
-  }
 
   const filteredNotes = (notes ?? []).filter(note =>
     note.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
