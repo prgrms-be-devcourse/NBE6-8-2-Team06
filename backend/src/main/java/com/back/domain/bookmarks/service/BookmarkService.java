@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
@@ -45,7 +46,18 @@ public class BookmarkService {
         }).toList();
     }
 
-    public Page<BookmarkDto> toPage(Member member, int pageNumber, int pageSize, String category, String state, String keyword){
+    public Page<BookmarkDto> toPage(Member member, int page, int size, String category, String state, String keyword) {
+        Pageable pageable = PageRequest.of(page, size);
+
+        Page<Bookmark> bookmarks = bookmarkRepository.search(member, category, state, keyword, pageable);
+
+        return bookmarks.map(bookmark -> {
+            if(ReadState.READ != bookmark.getReadState()) return new BookmarkDto(bookmark, null);
+            Review review = getReviews(bookmark.getMember()).get(bookmark.getBook());
+            return new BookmarkDto(bookmark, review);
+        });
+    }
+    public Page<BookmarkDto> toPageSpec(Member member, int pageNumber, int pageSize, String category, String state, String keyword){
         Pageable pageable = PageRequest.of(pageNumber, pageSize);
         Specification<Bookmark> spec = (root, query, criteriaBuilder) -> {
             query.distinct(true);

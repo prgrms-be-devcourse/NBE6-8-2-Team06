@@ -11,7 +11,7 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 import java.util.Optional;
 
-public interface BookmarkRepository extends JpaRepository<Bookmark, Integer>, JpaSpecificationExecutor<Bookmark> {
+public interface BookmarkRepository extends JpaRepository<Bookmark, Integer>, JpaSpecificationExecutor<Bookmark>, BookmarkRepositoryCustom {
     Optional<Bookmark> findById(int id);
     Optional<Bookmark> findByBook(Book book);
     Optional<Bookmark> findByIdAndMember(int id, Member member);

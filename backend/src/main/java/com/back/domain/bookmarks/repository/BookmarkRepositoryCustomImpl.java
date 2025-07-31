@@ -1,12 +1,21 @@
 package com.back.domain.bookmarks.repository;
 
+import com.back.domain.bookmarks.constant.ReadState;
 import com.back.domain.bookmarks.entity.Bookmark;
 import com.back.domain.member.member.entity.Member;
 import com.querydsl.core.BooleanBuilder;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+
+import java.util.List;
+
+import static com.back.domain.book.author.entity.QAuthor.author;
+import static com.back.domain.book.book.entity.QBook.book;
+import static com.back.domain.book.wrote.entity.QWrote.wrote;
+import static com.back.domain.bookmarks.entity.QBookmark.bookmark;
 
 @RequiredArgsConstructor
 public class BookmarkRepositoryCustomImpl implements BookmarkRepositoryCustom {
@@ -15,6 +24,45 @@ public class BookmarkRepositoryCustomImpl implements BookmarkRepositoryCustom {
     @Override
     public Page<Bookmark> search(Member member, String category, String readState, String keyword, Pageable pageable) {
         BooleanBuilder builder = new BooleanBuilder();
+
+        builder.and(bookmark.member.eq(member));
+
+        if(category != null && !category.isBlank()){
+            builder.and(bookmark.book.category.name.eq(category));
+        }
+
+        if(readState != null && !readState.isBlank()){
+            builder.and(bookmark.readState.eq(ReadState.valueOf(readState.toUpperCase())));
+        }
+
+        if(keyword != null && !keyword.isBlank()){
+            builder.and(
+                    book.title.containsIgnoreCase(keyword)
+                            .or(author.name.containsIgnoreCase(keyword))
+            );
+        }
+
+        List<Bookmark> bookmarks = queryFactory
+                .select(bookmark).distinct()
+                .from(bookmark)
+                .join(bookmark.book, book)
+                .leftJoin(book.authors, wrote)
+                .leftJoin(wrote.author, author)
+                .where(builder)
+                .offset(pageable.getOffset())
+                .limit(pageable.getPageSize())
+                .orderBy(bookmark.createDate.desc())
+                .fetch();
+
+        Long total = queryFactory
+                .select(bookmark.countDistinct())
+                .from(bookmark)
+                .join(bookmark.book, book)
+                .leftJoin(book.authors, wrote)
+                .leftJoin(wrote.author, author)
+                .where(builder)
+                .fetchOne();
+        return new PageImpl<>(bookmarks, pageable, total != null ? total : 0L);
     }
 
 }

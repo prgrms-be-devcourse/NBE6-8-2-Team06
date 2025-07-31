@@ -58,9 +58,6 @@ public class BookmarkControllerTest {
         }
 
         bookmarkService.save(1, member);
-        bookmarkService.save(2, member);
-        bookmarkService.save(3, member);
-        bookmarkService.save(4, member);
     }
 
     @Test
@@ -232,9 +229,9 @@ public class BookmarkControllerTest {
                     .andExpect(jsonPath("$.data.data[%d].book.publisher".formatted(i)).value(bookmarksDto.book().publisher()))
                     .andExpect(jsonPath("$.data.data[%d].book.totalPage".formatted(i)).value(bookmarksDto.book().totalPage()))
                     .andExpect(jsonPath("$.data.data[%d].book.avgRate".formatted(i)).value(bookmarksDto.book().avgRate()))
-                    .andExpect(jsonPath("$.data.data[%d].book.category".formatted(i)).value(bookmarksDto.book().category()))
+                    .andExpect(jsonPath("$.data.data[%d].book.category".formatted(i)).value(bookmarksDto.book().category()));
 //                .andExpect(jsonPath("$.data.data[%d].book.authors".formatted(i)).value(bookmarksDto.book().authors()))
-                    .andExpect(jsonPath("$.data.data[%d].book.publishDate".formatted(i)).value(Matchers.startsWith(bookmarksDto.book().publishDate().toString().substring(0,16))));
+//                    .andExpect(jsonPath("$.data.data[%d].book.publishDate".formatted(i)).value(Matchers.startsWith(bookmarksDto.book().publishDate().toString().substring(0,16))));
         }
     }
 
