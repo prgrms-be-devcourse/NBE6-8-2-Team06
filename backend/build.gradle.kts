@@ -1,3 +1,6 @@
+import org.gradle.kotlin.dsl.annotationProcessor
+import org.gradle.kotlin.dsl.implementation
+
 plugins {
     java
     id("org.springframework.boot") version "3.5.3"
@@ -41,6 +44,13 @@ dependencies {
     testImplementation("org.springframework.security:spring-security-test")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.9")
+
+    //QueryDSL JPA 라이브러리 추가
+    implementation ("com.querydsl:querydsl-jpa:5.1.0:jakarta")
+    //Q-Type 생성을 위한 어노테이션 프로세서 추가
+    annotationProcessor ("com.querydsl:querydsl-apt:5.1.0:jakarta")
+    annotationProcessor ("jakarta.annotation:jakarta.annotation-api")
+    annotationProcessor ("jakarta.persistence:jakarta.persistence-api")
 }
 
 tasks.withType<Test> {
