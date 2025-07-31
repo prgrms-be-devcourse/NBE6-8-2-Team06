@@ -145,7 +145,7 @@ export default withLogin(function page({params}:{params:Promise<{id:string}>}){
             <CardContent className="p-6">
               <div className="text-center">
                 <ImageWithFallback
-                  src={`https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=200&h=300&fit=crop&crop=center&sig=${book!.id}`}
+                  src={`${book!.imageUrl}`}
                   alt={book!.title}
                   className="w-40 h-60 object-cover rounded mx-auto mb-4"
                 />
