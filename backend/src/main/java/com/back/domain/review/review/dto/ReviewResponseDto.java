@@ -15,6 +15,7 @@ public class ReviewResponseDto {
     private int memberId;
     private int likeCount;
     private int dislikeCount;
+    private Boolean isRecommended;
     private LocalDateTime createdDate;
     private LocalDateTime modifiedDate;
 }

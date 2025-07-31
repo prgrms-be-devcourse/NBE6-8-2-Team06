@@ -12,6 +12,7 @@ export interface ReviewResponseDto {
   memberId: number;
   likeCount: number;
   dislikeCount: number;
+  isRecommended: boolean | null;
   createdDate: string;
   modifiedDate: string;
 }
@@ -27,7 +28,7 @@ export interface BookDetailDto {
   avgRate: number;
   categoryName: string;
   authors: string[];
-  readState: ReadState;
+  readState?: ReadState;
   reviews: PageResponseDto<ReviewResponseDto>;
 }
 
@@ -131,9 +132,15 @@ export async function fetchBooks(page: number = 0, size: number = 9): Promise<Bo
   try {
     console.log(`🔍 API 호출 시작: /api/books?page=${page}&size=${size}`);
     const response = await apiFetch<ApiResponse<PageResponseDto<BookSearchDto>>>(`/api/books?page=${page}&size=${size}`);
+    console.log('📦 fetchBooks 응답 받음:', response);
     return await processApiResponse(response);
   } catch (error) {
-    console.error('❌ API 호출 에러:', error);
+    console.error('❌ fetchBooks API 호출 에러 상세:', error);
+    console.error('❌ 에러 타입:', typeof error);
+    console.error('❌ 에러 메시지:', error instanceof Error ? error.message : String(error));
+    if (error instanceof Error && (error as any).data) {
+      console.error('❌ 에러 데이터:', (error as any).data);
+    }
     throw error;
   }
 }
@@ -214,6 +221,25 @@ export async function fetchBookDetail(bookId: number): Promise<BookDetailDto> {
     throw new Error('책 상세 정보를 찾을 수 없습니다.');
   } catch (error) {
     console.error('❌ 책 상세 정보 API 호출 에러:', error);
+    throw error;
+  }
+}
+
+export async function addToMyBooks(bookId: number): Promise<void> {
+  const { apiFetch } = await import('@/lib/apiFetch');
+  
+  try {
+    console.log(`📚 내 목록에 추가 API 호출 시작: /api/bookmarks`);
+    await apiFetch('/api/bookmarks', {
+      method: 'POST',
+      body: JSON.stringify({ 
+        bookId: bookId,
+        readState: ReadState.WISH 
+      })
+    });
+    console.log('✅ 내 목록에 추가 완료');
+  } catch (error) {
+    console.error('❌ 내 목록에 추가 API 호출 에러:', error);
     throw error;
   }
 }

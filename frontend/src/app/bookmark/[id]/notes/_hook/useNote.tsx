@@ -42,13 +42,15 @@ export function useNote(bookmarkId: number) {
             // credentials: "include",
         });
 
-        const data = await res.json();
+        const json = await res.json();
+        const data = json.data;
+
         setNotes(data.notes);
         setBookInfo({
             title: data.title,
             imageUrl: data.imageUrl || "",
         });
-        console.log(data);
+        console.log(json);
     };
 
     // 2. 노트 추가
@@ -59,6 +61,7 @@ export function useNote(bookmarkId: number) {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify(newNote),
+            // credentials: "include",
         });
 
         await fetchNotes(); // 🔁 추가 후 리스트 다시 불러오기
@@ -72,6 +75,7 @@ export function useNote(bookmarkId: number) {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify(updatedNote),
+            // credentials: "include",
         });
 
         await fetchNotes(); // 🔁 수정 후 리스트 다시 불러오기
@@ -81,6 +85,7 @@ export function useNote(bookmarkId: number) {
     const deleteNote = async (noteId: number) => {
         await fetch(`${NEXT_PUBLIC_API_BASE_URL}/bookmarks/1/notes/${noteId}`, {
             method: "DELETE",
+            // credentials: "include",
         });
 
         await fetchNotes(); // 🔁 삭제 후 리스트 다시 불러오기

@@ -51,8 +51,8 @@ public class BaseInitData {
         return args->{
 //            self.initReviewData(); // 리뷰 테스트 시 주석 해제
             self.initBookData(); // 책 데이터 초기화
-//            self.initNoteData(); // Note 관련 데이터
-//            self.initBookmarkData(); // Bookmark 데이터 초기화
+            self.initNoteData(); // Note 관련 데이터
+            self.initBookmarkData(); // Bookmark 데이터 초기화
         };
     }
 
@@ -155,13 +155,22 @@ public class BaseInitData {
 
         Book book = new Book("Text Book", "Publisher", categoryRepository.save(new Category("Test Category")));
         bookRepository.save(book);
-        Bookmark bookmark = bookmarkRepository.save(new Bookmark(book, null));
-        int id = bookmark.getId();
 
-        noteService.write(id,"제목1", "내용1", null);
-        noteService.write(id,"제목2", "내용2", "2");
-        noteService.write(id,"제목3", "내용3", "3");
-        noteService.write(id,"제목4", "내용4", "4");
+        Member member1 = memberService.join("유저1", "이메일1", "1234");
+        member1.updateRefreshToken("key1");
+        Member member2 = memberService.join("유저2", "이메일2", "1234");
+        member2.updateRefreshToken("key2");
+        Member member3 = memberService.join("유저3", "이메일3", "1234");
+
+        Bookmark bookmark1 = bookmarkRepository.save(new Bookmark(book, member1));
+        Bookmark bookmark2 = bookmarkRepository.save(new Bookmark(book, member2));
+        int id1 = bookmark1.getId();
+        int id2 = bookmark2.getId();
+
+        noteService.write(id1,"제목1", "내용1", null, member1);
+        noteService.write(id1,"제목2", "내용2", "2", member1);
+        noteService.write(id2,"제목3", "내용3", "3", member2);
+        noteService.write(id2,"제목4", "내용4", "4", member2);
     }
 
     public void initBookmarkData(){

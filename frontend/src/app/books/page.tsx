@@ -35,6 +35,7 @@ import {
 } from "@/types/book";
 import { useAuth } from "@/app/_hooks/auth-context";
 import { toast } from "@/lib/toast";
+import { createBookmark } from "@/types/bookmarkAPI.js";
 
 interface BooksPageProps {
   onNavigate: (page: string) => void;
@@ -53,9 +54,6 @@ export default function BooksPage() {
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
   const [isSearching, setIsSearching] = useState(false);
-  const [userBookStatus, setUserBookStatus] = useState<{
-    [key: number]: string;
-  }>({});
   const router = useRouter();
   const pathName = usePathname();
   const { isLoggedIn } = useAuth();
@@ -213,25 +211,51 @@ export default function BooksPage() {
     ));
   };
 
-  const addToMyBooks = (bookId: number, status: string) => {
+  const addToMyBooks = async (bookId: number, status: string) => {
     if (!isLoggedIn) {
       toast.info("로그인을 해 주세요");
       return;
     }
     
-    setUserBookStatus((prev) => ({
-      ...prev,
-      [bookId]: status,
-    }));
+    try {
+      // 상태 텍스트를 ReadState enum으로 변환
+      let readState: ReadState;
+      switch (status) {
+        case "읽고 싶은 책":
+          readState = ReadState.WISH;
+          break;
+        case "읽고 있는 책":
+          readState = ReadState.READING;
+          break;
+        case "읽은 책":
+          readState = ReadState.READ;
+          break;
+        default:
+          readState = ReadState.WISH;
+      }
+      
+      // API 호출
+      await createBookmark({
+        bookId: bookId,
+        readState: readState
+      });
+      
+      // 성공 시 책 목록 새로고침 (readState 업데이트를 위해)
+      if (isSearching && searchTerm.trim()) {
+        if (searchType === "title") {
+          await loadBooks(currentPage, searchTerm, searchType);
+        } else {
+          await loadBooks(currentPage, searchTerm, searchType);
+        }
+      } else {
+        await loadBooks(currentPage);
+      }
+      
+    } catch (error) {
+      console.error("북마크 추가 실패:", error);
+    }
   };
 
-  const removeFromMyBooks = (bookId: number) => {
-    setUserBookStatus((prev) => {
-      const newStatus = { ...prev };
-      delete newStatus[bookId];
-      return newStatus;
-    });
-  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -397,37 +421,10 @@ export default function BooksPage() {
                   className="mt-4 pt-4 border-t"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  {book.readState || userBookStatus[book.id] ? (
-                    <div className="flex gap-2">
-                      <Select
-                        value={userBookStatus[book.id] || getReadStateText(book.readState)}
-                        onValueChange={(status) =>
-                          addToMyBooks(book.id, status)
-                        }
-                      >
-                        <SelectTrigger className="flex-1">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="읽고 싶은 책">
-                            읽고 싶은 책
-                          </SelectItem>
-                          <SelectItem value="읽고 있는 책">
-                            읽고 있는 책
-                          </SelectItem>
-                          <SelectItem value="읽은 책">읽은 책</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      {userBookStatus[book.id] && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => removeFromMyBooks(book.id)}
-                        >
-                          제거
-                        </Button>
-                      )}
-                    </div>
+                  {book.readState ? (
+                    <Button className="w-full" disabled>
+                      내 목록에 추가됨
+                    </Button>
                   ) : (
                     <Button
                       className="w-full"
