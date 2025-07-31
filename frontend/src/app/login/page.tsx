@@ -11,99 +11,75 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
-import { BookOpen, Eye, EyeOff } from "lucide-react";
+import { BookOpen } from "lucide-react";
 import { useLogin } from "../_hooks/useLogin";
 import { useSignup } from "../_hooks/useSignup";
 import { LoginForm, SignupForm } from "@/types/auth";
 import { toast } from "@/lib/toast";
+import { validateSignupForm, validateLoginForm } from "../utils/formValidation";
+import { useFormValidation } from "../_hooks/useFormValidation";
+import { PasswordInput } from "@/components/ui/password-input";
+import { FormField } from "@/components/ui/form-field";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, isLoading: isLoginLoading } = useLogin();
-  const { signup, isLoading: isSignupLoading } = useSignup();
+  const { login } = useLogin();
+  const { signup } = useSignup();
   const [currentTab, setCurrentTab] = useState("login");
-
-  // 폼 상태
-  const [loginForm, setLoginForm] = useState<LoginForm>({
-    email: "",
-    password: "",
-  });
-  const [signupForm, setSignupForm] = useState<SignupForm>({
-    name: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
-  });
-
-  // UI 상태
-  const [showLoginPassword, setShowLoginPassword] = useState(false);
-  const [showSignupPassword, setShowSignupPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [agreeToTerms, setAgreeToTerms] = useState(false);
 
-  // 에러 상태
-  const [loginErrors, setLoginErrors] = useState<{ [key: string]: string }>({});
-  const [signupErrors, setSignupErrors] = useState<{ [key: string]: string }>(
-    {}
-  );
+  // 로그인 폼 관리
+  const loginFormValidation = useFormValidation<LoginForm>({
+    initialValues: { email: "", password: "" },
+    validate: (values) => validateLoginForm(values.email, values.password),
+    onSubmit: async (values) => {
+      const result = await login(values);
+      if (result.success) {
+        toast.success("로그인되었습니다!");
+        router.push("/");
+      } else {
+        toast.error(result.error || "로그인에 실패했습니다.");
+      }
+      return result;
+    },
+  });
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // 회원가입 폼 관리
+  const signupFormValidation = useFormValidation<SignupForm>({
+    initialValues: { name: "", email: "", password: "", confirmPassword: "" },
+    validate: (values) =>
+      validateSignupForm(
+        values.name,
+        values.email,
+        values.password,
+        values.confirmPassword
+      ),
+    onSubmit: async (values) => {
+      // 이용약관 동의 체크
+      if (!agreeToTerms) {
+        toast.error("이용약관에 동의해주세요.");
+        return { success: false, error: "이용약관에 동의해주세요." };
+      }
 
-    const result = await login(loginForm);
-
-    if (result.success) {
-      toast.success("로그인되었습니다!");
-      router.push("/"); // 홈으로 이동
-    } else {
-      toast.error(result.error || "로그인에 실패했습니다.");
-    }
-  };
-
-  const handleSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    // 이용약관 동의 체크
-    if (!agreeToTerms) {
-      toast.error("이용약관에 동의해주세요.");
-      return;
-    }
-
-    const result = await signup(signupForm);
-
-    if (result.success) {
-      toast.success("회원가입이 완료되었습니다! 로그인해주세요.");
-      // 회원가입 성공 후 로그인 탭으로 이동
-      setSignupForm({ name: "", email: "", password: "", confirmPassword: "" });
-      setAgreeToTerms(false);
-      setCurrentTab("login");
-    } else {
-      toast.error(result.error || "회원가입에 실패했습니다.");
-    }
-  };
-
-  const handleLoginInputChange = (field: keyof LoginForm, value: string) => {
-    setLoginForm((prev) => ({ ...prev, [field]: value }));
-    // 에러 메시지 클리어
-    if (loginErrors[field]) {
-      setLoginErrors((prev) => ({ ...prev, [field]: "" }));
-    }
-  };
-
-  const handleSignupInputChange = (field: keyof SignupForm, value: string) => {
-    setSignupForm((prev) => ({ ...prev, [field]: value }));
-    // 에러 메시지 클리어
-    if (signupErrors[field]) {
-      setSignupErrors((prev) => ({ ...prev, [field]: "" }));
-    }
-  };
+      const result = await signup(values);
+      if (result.success) {
+        toast.success("회원가입이 완료되었습니다! 로그인해주세요.");
+        signupFormValidation.resetForm();
+        setAgreeToTerms(false);
+        setCurrentTab("login");
+      } else {
+        toast.error(result.error || "회원가입에 실패했습니다.");
+      }
+      return result;
+    },
+  });
 
   return (
     <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4">
       <div className="w-full max-w-md">
+        {/* 헤더 */}
         <div className="text-center mb-8">
           <BookOpen className="h-12 w-12 text-primary mx-auto mb-4" />
           <h1 className="text-2xl mb-2">책 관리 시스템</h1>
@@ -120,6 +96,7 @@ export default function LoginPage() {
             <TabsTrigger value="signup">회원가입</TabsTrigger>
           </TabsList>
 
+          {/* 로그인 탭 */}
           <TabsContent value="login">
             <Card>
               <CardHeader>
@@ -129,65 +106,50 @@ export default function LoginPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <form onSubmit={handleLogin} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="login-email">이메일</Label>
+                <form
+                  onSubmit={loginFormValidation.handleSubmit}
+                  className="space-y-4"
+                >
+                  <FormField
+                    label="이메일"
+                    htmlFor="login-email"
+                    error={loginFormValidation.errors.email}
+                  >
                     <Input
                       id="login-email"
                       type="email"
                       placeholder="이메일을 입력하세요"
-                      value={loginForm.email}
+                      value={loginFormValidation.values.email}
                       onChange={(e) =>
-                        handleLoginInputChange("email", e.target.value)
+                        loginFormValidation.setValue("email", e.target.value)
                       }
-                      className={loginErrors.email ? "border-destructive" : ""}
-                      disabled={isLoginLoading}
+                      onBlur={() => loginFormValidation.validateField("email")}
+                      className={
+                        loginFormValidation.errors.email
+                          ? "border-destructive"
+                          : ""
+                      }
+                      disabled={loginFormValidation.isSubmitting}
                     />
-                    {loginErrors.email && (
-                      <p className="text-sm text-destructive">
-                        {loginErrors.email}
-                      </p>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="login-password">비밀번호</Label>
-                    <div className="relative">
-                      <Input
-                        id="login-password"
-                        type={showLoginPassword ? "text" : "password"}
-                        placeholder="비밀번호를 입력하세요"
-                        value={loginForm.password}
-                        onChange={(e) =>
-                          handleLoginInputChange("password", e.target.value)
-                        }
-                        className={
-                          loginErrors.password
-                            ? "border-destructive pr-10"
-                            : "pr-10"
-                        }
-                        disabled={isLoginLoading}
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                        onClick={() => setShowLoginPassword(!showLoginPassword)}
-                        disabled={isLoginLoading}
-                      >
-                        {showLoginPassword ? (
-                          <EyeOff className="h-4 w-4 text-muted-foreground" />
-                        ) : (
-                          <Eye className="h-4 w-4 text-muted-foreground" />
-                        )}
-                      </Button>
-                    </div>
-                    {loginErrors.password && (
-                      <p className="text-sm text-destructive">
-                        {loginErrors.password}
-                      </p>
-                    )}
-                  </div>
+                  </FormField>
+
+                  <FormField
+                    label="비밀번호"
+                    htmlFor="login-password"
+                    error={loginFormValidation.errors.password}
+                  >
+                    <PasswordInput
+                      id="login-password"
+                      placeholder="비밀번호를 입력하세요"
+                      value={loginFormValidation.values.password}
+                      onChange={(value) =>
+                        loginFormValidation.setValue("password", value)
+                      }
+                      error={loginFormValidation.errors.password}
+                      disabled={loginFormValidation.isSubmitting}
+                    />
+                  </FormField>
+
                   <div className="text-right">
                     <button
                       type="button"
@@ -196,18 +158,22 @@ export default function LoginPage() {
                       비밀번호를 잊으셨나요?
                     </button>
                   </div>
+
                   <Button
                     type="submit"
                     className="w-full"
-                    disabled={isLoginLoading}
+                    disabled={loginFormValidation.isSubmitting}
                   >
-                    {isLoginLoading ? "로그인 중..." : "로그인"}
+                    {loginFormValidation.isSubmitting
+                      ? "로그인 중..."
+                      : "로그인"}
                   </Button>
                 </form>
               </CardContent>
             </Card>
           </TabsContent>
 
+          {/* 회원가입 탭 */}
           <TabsContent value="signup">
             <Card>
               <CardHeader>
@@ -217,144 +183,105 @@ export default function LoginPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <form onSubmit={handleSignup} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-name">이름 *</Label>
+                <form
+                  onSubmit={signupFormValidation.handleSubmit}
+                  className="space-y-4"
+                >
+                  <FormField
+                    label="이름"
+                    htmlFor="signup-name"
+                    error={signupFormValidation.errors.name}
+                    required
+                  >
                     <Input
                       id="signup-name"
                       type="text"
                       placeholder="이름을 입력하세요"
-                      value={signupForm.name}
+                      value={signupFormValidation.values.name}
                       onChange={(e) =>
-                        handleSignupInputChange("name", e.target.value)
+                        signupFormValidation.setValue("name", e.target.value)
                       }
-                      className={signupErrors.name ? "border-destructive" : ""}
-                      disabled={isSignupLoading}
+                      onBlur={() => signupFormValidation.validateField("name")}
+                      className={
+                        signupFormValidation.errors.name
+                          ? "border-destructive"
+                          : ""
+                      }
+                      disabled={signupFormValidation.isSubmitting}
                     />
-                    {signupErrors.name && (
-                      <p className="text-sm text-destructive">
-                        {signupErrors.name}
-                      </p>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-email">이메일 *</Label>
+                  </FormField>
+
+                  <FormField
+                    label="이메일"
+                    htmlFor="signup-email"
+                    error={signupFormValidation.errors.email}
+                    required
+                  >
                     <Input
                       id="signup-email"
                       type="email"
                       placeholder="이메일을 입력하세요"
-                      value={signupForm.email}
+                      value={signupFormValidation.values.email}
                       onChange={(e) =>
-                        handleSignupInputChange("email", e.target.value)
+                        signupFormValidation.setValue("email", e.target.value)
                       }
-                      className={signupErrors.email ? "border-destructive" : ""}
-                      disabled={isSignupLoading}
+                      onBlur={() => signupFormValidation.validateField("email")}
+                      className={
+                        signupFormValidation.errors.email
+                          ? "border-destructive"
+                          : ""
+                      }
+                      disabled={signupFormValidation.isSubmitting}
                     />
-                    {signupErrors.email && (
-                      <p className="text-sm text-destructive">
-                        {signupErrors.email}
-                      </p>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-password">비밀번호 *</Label>
-                    <div className="relative">
-                      <Input
-                        id="signup-password"
-                        type={showSignupPassword ? "text" : "password"}
-                        placeholder="최소 8자 이상"
-                        value={signupForm.password}
-                        onChange={(e) =>
-                          handleSignupInputChange("password", e.target.value)
-                        }
-                        className={
-                          signupErrors.password
-                            ? "border-destructive pr-10"
-                            : "pr-10"
-                        }
-                        disabled={isSignupLoading}
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                        onClick={() =>
-                          setShowSignupPassword(!showSignupPassword)
-                        }
-                        disabled={isSignupLoading}
-                      >
-                        {showSignupPassword ? (
-                          <EyeOff className="h-4 w-4 text-muted-foreground" />
-                        ) : (
-                          <Eye className="h-4 w-4 text-muted-foreground" />
-                        )}
-                      </Button>
-                    </div>
-                    {signupErrors.password && (
-                      <p className="text-sm text-destructive">
-                        {signupErrors.password}
-                      </p>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="confirm-password">비밀번호 확인 *</Label>
-                    <div className="relative">
-                      <Input
-                        id="confirm-password"
-                        type={showConfirmPassword ? "text" : "password"}
-                        placeholder="비밀번호를 다시 입력하세요"
-                        value={signupForm.confirmPassword}
-                        onChange={(e) =>
-                          handleSignupInputChange(
-                            "confirmPassword",
-                            e.target.value
-                          )
-                        }
-                        className={
-                          signupErrors.confirmPassword
-                            ? "border-destructive pr-10"
-                            : "pr-10"
-                        }
-                        disabled={isSignupLoading}
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                        onClick={() =>
-                          setShowConfirmPassword(!showConfirmPassword)
-                        }
-                        disabled={isSignupLoading}
-                      >
-                        {showConfirmPassword ? (
-                          <EyeOff className="h-4 w-4 text-muted-foreground" />
-                        ) : (
-                          <Eye className="h-4 w-4 text-muted-foreground" />
-                        )}
-                      </Button>
-                    </div>
-                    {signupErrors.confirmPassword && (
-                      <p className="text-sm text-destructive">
-                        {signupErrors.confirmPassword}
-                      </p>
-                    )}
-                  </div>
+                  </FormField>
+
+                  <FormField
+                    label="비밀번호"
+                    htmlFor="signup-password"
+                    error={signupFormValidation.errors.password}
+                    required
+                  >
+                    <PasswordInput
+                      id="signup-password"
+                      placeholder="최소 8자 이상"
+                      value={signupFormValidation.values.password}
+                      onChange={(value) =>
+                        signupFormValidation.setValue("password", value)
+                      }
+                      error={signupFormValidation.errors.password}
+                      disabled={signupFormValidation.isSubmitting}
+                    />
+                  </FormField>
+
+                  <FormField
+                    label="비밀번호 확인"
+                    htmlFor="confirm-password"
+                    error={signupFormValidation.errors.confirmPassword}
+                    required
+                  >
+                    <PasswordInput
+                      id="confirm-password"
+                      placeholder="비밀번호를 다시 입력하세요"
+                      value={signupFormValidation.values.confirmPassword}
+                      onChange={(value) =>
+                        signupFormValidation.setValue("confirmPassword", value)
+                      }
+                      error={signupFormValidation.errors.confirmPassword}
+                      disabled={signupFormValidation.isSubmitting}
+                    />
+                  </FormField>
+
                   <div className="space-y-2">
                     <div className="flex items-center space-x-2">
                       <Checkbox
                         id="terms"
                         checked={agreeToTerms}
-                        onCheckedChange={(checked: boolean) => {
-                          setAgreeToTerms(checked);
-                          if (signupErrors.terms) {
-                            setSignupErrors((prev) => ({ ...prev, terms: "" }));
-                          }
-                        }}
-                        disabled={isSignupLoading}
+                        onCheckedChange={(checked: boolean) =>
+                          setAgreeToTerms(checked)
+                        }
+                        disabled={signupFormValidation.isSubmitting}
                       />
-                      <Label
+                      <label
                         htmlFor="terms"
                         className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                       >
@@ -374,20 +301,18 @@ export default function LoginPage() {
                           </button>
                           에 동의합니다 *
                         </span>
-                      </Label>
+                      </label>
                     </div>
-                    {signupErrors.terms && (
-                      <p className="text-sm text-destructive">
-                        {signupErrors.terms}
-                      </p>
-                    )}
                   </div>
+
                   <Button
                     type="submit"
                     className="w-full"
-                    disabled={isSignupLoading}
+                    disabled={signupFormValidation.isSubmitting}
                   >
-                    {isSignupLoading ? "회원가입 중..." : "회원가입"}
+                    {signupFormValidation.isSubmitting
+                      ? "회원가입 중..."
+                      : "회원가입"}
                   </Button>
                 </form>
               </CardContent>
