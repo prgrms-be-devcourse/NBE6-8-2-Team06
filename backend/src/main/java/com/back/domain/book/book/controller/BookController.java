@@ -6,9 +6,11 @@ import com.back.domain.book.book.service.BookService;
 import com.back.domain.member.member.entity.Member;
 import com.back.global.dto.PageResponseDto;
 import com.back.global.exception.ServiceException;
-import com.back.global.rq.Rq;
+import com.back.global.util.AuthUtil;
 import com.back.global.rsData.RsData;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -18,17 +20,19 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/books")
 @RequiredArgsConstructor
+@Slf4j
 public class BookController {
     private final BookService bookService;
-    private final Rq rq;
+    private final AuthUtil authUtil;
 
-    //전체 책 조회(DB내부만)
+    //전체 책 조회(DB내부만) - 로그인 선택사항
     @GetMapping
     public RsData<PageResponseDto<BookSearchDto>> getAllBooks(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "9") int size,
             @RequestParam(defaultValue = "id") String sortBy,
-            @RequestParam(defaultValue = "desc") String sortDir) {
+            @RequestParam(defaultValue = "desc") String sortDir,
+            HttpServletRequest request) {
 
         if (page < 0) {
             throw new ServiceException("400-1", "페이지 번호는 0 이상이어야 합니다.");
@@ -50,8 +54,14 @@ public class BookController {
         // Pageable 객체 생성
         Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
 
-        // 현재 로그인한 사용자 정보 가져오기 (로그인하지 않은 경우 null)
-        Member member = rq.getActor();
+        // JWT 토큰에서 사용자 정보 추출 (토큰이 없거나 유효하지 않으면 null)
+        Member member = authUtil.getMemberFromRequest(request);
+
+        if (member != null) {
+            log.debug("로그인된 사용자로 책 조회: {}", member.getEmail());
+        } else {
+            log.debug("비로그인 사용자로 책 조회");
+        }
 
         Page<BookSearchDto> books = bookService.getAllBooks(pageable, member);
         PageResponseDto<BookSearchDto> pageResponse = new PageResponseDto<>(books);
@@ -65,7 +75,8 @@ public class BookController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "9") int size,
             @RequestParam(defaultValue = "id") String sortBy,
-            @RequestParam(defaultValue = "desc") String sortDir) {
+            @RequestParam(defaultValue = "desc") String sortDir,
+            HttpServletRequest request) {
 
         if (query == null || query.trim().isEmpty()) {
             throw new ServiceException("400-6", "검색어를 입력해주세요.");
@@ -91,8 +102,8 @@ public class BookController {
         // Pageable 객체 생성
         Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
 
-        // 현재 로그인한 사용자 정보 가져오기 (로그인하지 않은 경우 null)
-        Member member = rq.getActor();
+        // JWT 토큰에서 사용자 정보 추출 (토큰이 없거나 유효하지 않으면 null)
+        Member member = authUtil.getMemberFromRequest(request);
 
         Page<BookSearchDto> books = bookService.searchBooks(query.trim(), pageable, member);
         PageResponseDto<BookSearchDto> pageResponse = new PageResponseDto<>(books);
@@ -105,7 +116,7 @@ public class BookController {
     }
 
     @GetMapping("/isbn/{isbn}")
-    public RsData<BookSearchDto> getBookByIsbn(@PathVariable String isbn) {
+    public RsData<BookSearchDto> getBookByIsbn(@PathVariable String isbn, HttpServletRequest request) {
 
         if (isbn == null || isbn.trim().isEmpty()) {
             throw new ServiceException("400-7", "ISBN을 입력해주세요.");
@@ -117,8 +128,8 @@ public class BookController {
             throw new ServiceException("400-8", "올바른 ISBN-13 형식이 아닙니다. (13자리 숫자)");
         }
 
-        // 현재 로그인한 사용자 정보 가져오기 (로그인하지 않은 경우 null)
-        Member member = rq.getActor();
+        // JWT 토큰에서 사용자 정보 추출 (토큰이 없거나 유효하지 않으면 null)
+        Member member = authUtil.getMemberFromRequest(request);
 
         BookSearchDto book = bookService.getBookByIsbn(cleanIsbn, member);
 
@@ -135,7 +146,8 @@ public class BookController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
-            @RequestParam(defaultValue = "desc") String sortDir) {
+            @RequestParam(defaultValue = "desc") String sortDir,
+            HttpServletRequest request) {
 
         if (page < 0) {
             throw new ServiceException("400-1", "페이지 번호는 0 이상이어야 합니다.");
@@ -157,8 +169,8 @@ public class BookController {
         // Pageable 객체 생성
         Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
 
-        // 현재 로그인한 사용자 정보 가져오기 (로그인하지 않은 경우 null)
-        Member member = rq.getActor();
+        // JWT 토큰에서 사용자 정보 추출 (토큰이 없거나 유효하지 않으면 null)
+        Member member = authUtil.getMemberFromRequest(request);
 
         BookDetailDto bookDetail = bookService.getBookDetailById(id, pageable, member);
 
@@ -168,5 +180,4 @@ public class BookController {
 
         return new RsData<>("200-4", "책 상세 조회 성공", bookDetail);
     }
-
 }
