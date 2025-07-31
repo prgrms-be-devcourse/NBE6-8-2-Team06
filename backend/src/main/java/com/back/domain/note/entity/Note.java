@@ -1,6 +1,7 @@
 package com.back.domain.note.entity;
 
 import com.back.domain.bookmarks.entity.Bookmark;
+import com.back.domain.member.member.entity.Member;
 import com.back.global.jpa.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -12,7 +13,11 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 public class Note extends BaseEntity {
-    @Column(nullable = false, length = 5000)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "member_id")
+    private Member member;
+
+    @Column(nullable = false, length = 250)
     private String title;
 
     @Column(nullable = false, length = 5000)
@@ -25,10 +30,11 @@ public class Note extends BaseEntity {
     @JoinColumn(name = "bookmark_id")
     private Bookmark bookmark;
 
-    public Note(String title, String content, String page, Bookmark bookmark) {
+    public Note(String title, String content, String page, Bookmark bookmark, Member member) {
         this.title = title;
         this.content = content;
         this.page = page;
         this.bookmark = bookmark;
+        this.member = member;
     }
 }

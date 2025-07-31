@@ -62,7 +62,7 @@ export default function page({ params }: { params: Promise<{ bookId: string }> }
     router.push(e);
   }
 
-  const filteredNotes = notes.filter(note =>
+  const filteredNotes = (notes ?? []).filter(note =>
     note.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     note.content.toLowerCase().includes(searchTerm.toLowerCase())
   );
