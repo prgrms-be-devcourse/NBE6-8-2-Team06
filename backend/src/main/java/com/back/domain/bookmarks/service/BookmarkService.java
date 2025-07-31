@@ -95,8 +95,7 @@ public class BookmarkService {
     }
 
     public BookmarkModifyResponseDto modifyBookmark(Member member, int id, String state, LocalDateTime startReadDate, LocalDateTime endReadDate, int readPage) {
-        Bookmark bookmark = findById(id);
-        bookmark.checkActor(member);
+        Bookmark bookmark = findByIdAndMember(id, member);
         if(endReadDate != null){
             bookmark.updateEndReadDate(endReadDate);
         }
@@ -110,17 +109,19 @@ public class BookmarkService {
             ReadState readState = ReadState.valueOf(state.toUpperCase());
             bookmark.updateReadState(readState);
         }
-        bookmarkRepository.save(bookmark);
         return new BookmarkModifyResponseDto(bookmark);
     }
 
     public void deleteBookmark(Member member, int bookmarkId) {
-        Bookmark bookmark = findById(bookmarkId);
-        bookmark.checkActor(member);
+        Bookmark bookmark = findByIdAndMember(bookmarkId, member);
         bookmarkRepository.delete(bookmark);
         if(getReview(bookmark) != null) {
             reviewService.deleteReview(bookmark.getBook(), member);
         }
+    }
+
+    private Bookmark findByIdAndMember(int bookmarkId, Member member) {
+        return bookmarkRepository.findByIdAndMember(bookmarkId, member).orElseThrow(() -> new NoSuchElementException("해당 북마크를 찾을 수 없습니다."));
     }
 
     public BookmarkReadStatesDto getReadStatesCount(Member member) {
@@ -137,10 +138,6 @@ public class BookmarkService {
 
     private Review getReview(Bookmark bookmark) {
         return reviewService.findByBookAndMember(bookmark.getBook(), bookmark.getMember()).orElse(null);
-    }
-    private Map<Book, Review> getReviews(Member member) {
-        List<Review> reviews = reviewRepository.findAllByMember(member);
-        return reviews.stream().collect(Collectors.toMap(Review::getBook, review -> review));
     }
 
     private ReadState getReadStateByMemberAndBook(Member member, Book book) {
