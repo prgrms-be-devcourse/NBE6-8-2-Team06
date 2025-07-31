@@ -9,7 +9,8 @@ import { Separator } from "@/components/ui/separator";
 import { ArrowLeft, BookOpen, Building, Calendar, Globe, Heart, Plus, Star, ThumbsDown, ThumbsUp } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { use, useEffect, useState } from "react";
-import { BookDetailDto, fetchBookDetail } from "@/types/book";
+import { BookDetailDto, fetchBookDetail, ReviewResponseDto } from "@/types/book";
+import { useReviewRecommend } from "@/app/_hooks/useReview";
 
 export default function page({params}:{params:Promise<{bookId:string}>}){
     const {bookId:bookIdStr} = use(params);
@@ -20,20 +21,33 @@ export default function page({params}:{params:Promise<{bookId:string}>}){
     const [error, setError] = useState<string | null>(null);
     const [isInMyBooks, setIsInMyBooks] = useState(false);
     const router = useRouter();
+    const reviewRecommend = useReviewRecommend();
+    const [tabState, setTabState] = useState("description");
     
+    const loadBookDetail = async () => {
+      try {
+        setLoading(true);
+        const detail = await fetchBookDetail(bookId);
+        setBookDetail(detail);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : '책 정보를 불러오는데 실패했습니다.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const loadReviews = async () => {
+      try {
+        
+        const detail = await fetchBookDetail(bookId);
+        const reviewData = detail.reviews.data;
+        setBookDetail({...bookDetail!, reviews: {...bookDetail!.reviews, data:detail.reviews.data }});
+      } catch (err) {
+        
+      } 
+    }
+
     useEffect(() => {
-      const loadBookDetail = async () => {
-        try {
-          setLoading(true);
-          const detail = await fetchBookDetail(bookId);
-          setBookDetail(detail);
-        } catch (err) {
-          setError(err instanceof Error ? err.message : '책 정보를 불러오는데 실패했습니다.');
-        } finally {
-          setLoading(false);
-        }
-      };
-      
       loadBookDetail();
     }, [bookId]);
     
@@ -98,6 +112,51 @@ export default function page({params}:{params:Promise<{bookId:string}>}){
     setIsInMyBooks(true);
     onAddToMyBooks(bookDetail.id);
   };
+
+  const handleRecommend = async(review:ReviewResponseDto, recommend:boolean)=>{
+    // 업데이트가 늦어질 경우 대비해서 프론트에서 먼저 적용
+    const reviews = bookDetail.reviews.data.map((r)=>{
+      if (r.id === review.id){
+        let likeCount = r.likeCount;
+        let dislikeCount = r.dislikeCount
+        if (r.isRecommended === null){
+          if (recommend){
+            likeCount++;
+          }else{
+            dislikeCount++;
+          }
+          return {...r, isRecommended:recommend, likeCount:likeCount, dislikeCount:dislikeCount}
+        }else if (r.isRecommended === recommend){
+          if (recommend){
+            likeCount--;
+          }else{
+            dislikeCount--;
+          }
+          return {...r, isRecommended:null, likeCount:likeCount, dislikeCount:dislikeCount}
+        }else{
+          if (recommend){
+            likeCount++;
+            dislikeCount--;
+          }else{
+            likeCount--;
+            dislikeCount++;
+          }
+          return {...r, isRecommended:recommend, likeCount:likeCount, dislikeCount:dislikeCount}
+        }
+      }
+      return r;
+    });
+    setBookDetail({...bookDetail, reviews: {...bookDetail.reviews, data:  reviews}});
+    // 백엔드에서 업데이트
+    if (review.isRecommended === null){
+      await reviewRecommend.createReviewRecommend(review.id, recommend);
+    }else if (review.isRecommended === recommend){
+      await reviewRecommend.deleteReviewRecommend(review.id);
+    }else{
+      await reviewRecommend.modifyReviewRecomend(review.id, recommend);
+    }
+    await loadReviews();
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -194,7 +253,7 @@ export default function page({params}:{params:Promise<{bookId:string}>}){
 
         {/* 책 상세 정보 및 리뷰 */}
         <div className="lg:col-span-2">
-          <Tabs defaultValue="description" className="w-full">
+          <Tabs defaultValue="description" className="w-full" value={tabState} onValueChange={(state)=>{setTabState(state)}}>
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="description">책 소개</TabsTrigger>
               <TabsTrigger value="reviews">리뷰 ({bookDetail.reviews.data.length})</TabsTrigger>
@@ -247,13 +306,13 @@ export default function page({params}:{params:Promise<{bookId:string}>}){
                             {review.content}
                           </p>
                           <div className="flex items-center space-x-4">
-                            <Button variant="ghost" size="sm">
-                              <ThumbsUp className="h-4 w-4 mr-1" />
-                              좋아요 {review.likeCount}
+                            <Button variant={"ghost"} size="sm" onClick={()=>{handleRecommend(review, true)}}>
+                              <ThumbsUp fill={review.isRecommended === true ? "#000" : "none"} strokeWidth={review.isRecommended===true?1:2} className="h-4 w-4 mr-1" />
+                              좋아요 {reviewRecommend.formatLikes(review.likeCount)}
                             </Button>
-                            <Button variant="ghost" size="sm">
-                              <ThumbsDown className="h-4 w-4 mr-1" />
-                              싫어요 {review.dislikeCount}
+                            <Button variant={"ghost"} size="sm" onClick={()=>{handleRecommend(review, false)}}>
+                              <ThumbsDown fill={review.isRecommended === false ? "#000" : "none"} strokeWidth={review.isRecommended===false?1:2} className="h-4 w-4 mr-1" />
+                              싫어요 {reviewRecommend.formatLikes(review.dislikeCount)}
                             </Button>
                           </div>
                         </div>

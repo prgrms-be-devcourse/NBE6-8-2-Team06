@@ -19,6 +19,7 @@ import com.back.domain.member.member.entity.Member;
 import com.back.domain.review.review.dto.ReviewResponseDto;
 import com.back.domain.review.review.entity.Review;
 import com.back.domain.review.review.repository.ReviewRepository;
+import com.back.domain.review.reviewRecommend.service.ReviewRecommendService;
 import com.back.global.dto.PageResponseDto;
 import com.back.global.exception.ServiceException;
 import lombok.RequiredArgsConstructor;
@@ -48,6 +49,7 @@ public class BookService {
     private final AladinApiClient aladinApiClient;
     private final BookmarkRepository bookmarkRepository;
     private final ReviewRepository reviewRepository;
+    private final ReviewRecommendService reviewRecommendService;
 
     /**
      * 새로운 페이징 지원 검색 메서드
@@ -297,7 +299,7 @@ public class BookService {
             // 리뷰 페이징 조회
             Page<Review> reviewPage = reviewRepository.findByBookOrderByCreateDateDesc(book, pageable);
             PageResponseDto<ReviewResponseDto> reviewPageResponse = new PageResponseDto<>(
-                    reviewPage.map(this::convertReviewToDto)
+                    reviewPage.map((review -> convertReviewToDto(review, member)))
             );
 
             // ReadState 조회
@@ -641,7 +643,7 @@ public class BookService {
     /**
      * Review 엔티티를 DTO로 변환
      */
-    private ReviewResponseDto convertReviewToDto(Review review) {
+    private ReviewResponseDto convertReviewToDto(Review review, Member member) {
         return ReviewResponseDto.builder()
                 .id(review.getId())
                 .content(review.getContent())
@@ -650,6 +652,7 @@ public class BookService {
                 .memberId(review.getMember().getId())
                 .likeCount(review.getLikeCount())
                 .dislikeCount(review.getDislikeCount())
+                .isRecommended(reviewRecommendService.isRecommended(review, member))
                 .createdDate(review.getCreateDate())
                 .modifiedDate(review.getModifyDate())
                 .build();
