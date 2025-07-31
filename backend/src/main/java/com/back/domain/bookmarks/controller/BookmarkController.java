@@ -56,11 +56,12 @@ public class BookmarkController {
     @Transactional(readOnly = true)
     public RsData<PageResponseDto<BookmarkDto>> getBookmarksToPage(@RequestParam(value = "page", defaultValue = "0")int page,
                                                                          @RequestParam(value = "size", defaultValue = "10")int size,
+                                                                         @RequestParam(value = "sort", defaultValue = "createDate,desc") String sort,
                                                                          @RequestParam(value = "category", required = false) String category,
                                                                          @RequestParam(value = "read_state", required = false) String read_state,
                                                                          @RequestParam(value = "keyword", required = false) String keyword) {
         Member member = rq.getActor();
-        Page<BookmarkDto> bookmarkDtoPage = bookmarkService.toPage(member, page, size, category, read_state, keyword);
+        Page<BookmarkDto> bookmarkDtoPage = bookmarkService.toPage(member, page, size, sort, category, read_state, keyword);
         if(bookmarkDtoPage.isEmpty()){
             return new RsData<>("404-1", "데이터가 없습니다.", null);
         }

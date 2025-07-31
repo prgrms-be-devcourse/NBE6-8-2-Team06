@@ -11,7 +11,7 @@ import org.springframework.data.repository.query.Param;
 import java.util.List;
 import java.util.Optional;
 
-public interface BookmarkRepository extends JpaRepository<Bookmark, Integer>, JpaSpecificationExecutor<Bookmark> {
+public interface BookmarkRepository extends JpaRepository<Bookmark, Integer>, JpaSpecificationExecutor<Bookmark>, BookmarkRepositoryCustom {
     Optional<Bookmark> findById(int id);
     Optional<Bookmark> findByBook(Book book);
     Optional<Bookmark> findByIdAndMember(int id, Member member);
@@ -21,4 +21,5 @@ public interface BookmarkRepository extends JpaRepository<Bookmark, Integer>, Jp
     List<Bookmark> findByMemberAndBookIds(@Param("member") Member member, @Param("bookIds") List<Integer> bookIds);
     @Query("SELECT b FROM Bookmark b WHERE b.member = :member AND b.book = :book")
     Optional<Bookmark> findByMemberAndBookWithFresh(@Param("member") Member member, @Param("book") Book book);
+    boolean existsByMemberAndBook(Member member, Book book);
 }

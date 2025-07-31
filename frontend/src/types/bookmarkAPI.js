@@ -1,9 +1,10 @@
 import { apiFetch } from "@/lib/apiFetch";
 
-export const getBookmarks = async ({ page, size, category, readState, keyword }) => {
+export const getBookmarks = async ({ page, size, sort, category, readState, keyword }) => {
     const params = new URLSearchParams({
         page: String(page),
         size: String(size),
+        sort: String(sort),
     });
     if(category && category !== 'all') params.append('category', category);
     if(readState && readState !== 'all') params.append('readState', readState);
