@@ -14,8 +14,9 @@ export interface ReviewResponseDto{
   modifiedDate:string
 };
 
-export const useReviewRecommend = (reviewId:number) =>{
-  const createReviewRecommend = async (isRecommend:boolean) => {
+export const useReviewRecommend = () =>{
+
+  const createReviewRecommend = async (reviewId:number, isRecommend:boolean) => {
     const res = await apiFetch<ApiResponse>(`/reviewRecommend/${reviewId}/${isRecommend}`,{
       method:"POST",
       headers:{
@@ -23,7 +24,7 @@ export const useReviewRecommend = (reviewId:number) =>{
       }});
   }
 
-  const modifyReviewRecomend = async (isRecommend:boolean) => {
+  const modifyReviewRecomend = async (reviewId:number, isRecommend:boolean) => {
     const res = await apiFetch<ApiResponse>(`/reviewRecommend/${reviewId}/${isRecommend}`,{
       method:"PUT",
       headers:{
@@ -32,7 +33,7 @@ export const useReviewRecommend = (reviewId:number) =>{
     });
   }
 
-  const deleteReviewRecommend = async () => {
+  const deleteReviewRecommend = async (reviewId:number) => {
     const res = await apiFetch<ApiResponse>(`/reviewRecommend/${reviewId}`, {
       method:"DELETE",
       headers:{
@@ -40,10 +41,29 @@ export const useReviewRecommend = (reviewId:number) =>{
       }
     });
   }
+
+  const formatLikes = (num:number) => {
+    const units = [
+      { value: 1_000_000_000_000, symbol: 'T' }, // 조 (Trillion)
+      { value: 1_000_000_000, symbol: 'B' },     // 십억 (Billion)
+      { value: 1_000_000, symbol: 'M' },         // 백만 (Million)
+      { value: 1_000, symbol: 'K' },             // 천 (Thousand)
+    ];
+  
+    for (const unit of units) {
+      if (num >= unit.value) {
+        return (num / unit.value).toFixed(1).replace(/\.0$/, '') + unit.symbol;
+      }
+    }
+  
+    return num.toString(); // 단위 적용 안 되는 작은 숫자
+  }
+
   return {
     createReviewRecommend,
     modifyReviewRecomend,
-    deleteReviewRecommend
+    deleteReviewRecommend,
+    formatLikes
   }
 }
 
@@ -88,6 +108,8 @@ export const useReview = (initBookId:number) =>{
       },
     })
   }
+
+  
 
   return {
       createReview,

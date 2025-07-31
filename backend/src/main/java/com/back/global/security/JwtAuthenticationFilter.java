@@ -30,10 +30,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         String token = extractAccessTokenFromCookie(request);
+        String path = request.getRequestURI();
 
         try {
             //토큰이 없거나 유효하지 않으면 401
             if(token == null||!Ut.jwt.isValid(secretKey,token)) {
+                // 특정 API 경로는 토큰 없이 접근 허용
+                if (path.startsWith("/api/books")){
+                    filterChain.doFilter(request, response);
+                    return;
+                }
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                 response.setContentType("application/json");
                 response.setCharacterEncoding("UTF-8");

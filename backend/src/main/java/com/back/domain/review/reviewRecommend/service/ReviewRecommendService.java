@@ -51,4 +51,10 @@ public class ReviewRecommendService {
         review.setLikeCount(reviewRecommendRepository.countByReviewAndIsRecommendedTrue(review));
         review.setDislikeCount(reviewRecommendRepository.countByReviewAndIsRecommendedFalse(review));
     }
+
+    public Boolean isRecommended(Review review, Member member) {
+        return reviewRecommendRepository.findByReviewAndMember(review, member)
+                .map(ReviewRecommend::isRecommended)
+                .orElse(null);
+    }
 }
