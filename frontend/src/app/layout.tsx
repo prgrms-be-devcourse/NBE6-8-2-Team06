@@ -26,6 +26,7 @@ import Link from "next/link";
 import React from "react";
 import { BookOpen, Home, User, LogOut, Library } from "lucide-react";
 
+import { Toaster } from "@/components/ui/sonner";
 type Page = "home" | "login" | "books" | "bookmark" | "profile";
 
 interface NavigationProps {
@@ -45,6 +46,7 @@ function NavigationContent({ children }: { children: React.ReactNode }) {
 
   return (
     <>
+      <Toaster richColors></Toaster>
       <nav className="border-b bg-card">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
