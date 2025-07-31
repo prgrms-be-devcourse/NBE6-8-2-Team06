@@ -46,8 +46,10 @@ public class BookmarkService {
         }).toList();
     }
 
-    public Page<BookmarkDto> toPage(Member member, int page, int size, String category, String state, String keyword) {
-        Pageable pageable = PageRequest.of(page, size);
+    //queryDsl
+    public Page<BookmarkDto> toPage(Member member, int page, int size, String sort, String category, String state, String keyword) {
+        String[] sorts = sort.split(",",2);
+        Pageable pageable = PageRequest.of(page, size, sorts[1].equals("desc") ? Sort.by(sorts[0]).descending() : Sort.by(sorts[0]).ascending());
 
         Page<Bookmark> bookmarks = bookmarkRepository.search(member, category, state, keyword, pageable);
 
@@ -57,6 +59,7 @@ public class BookmarkService {
             return new BookmarkDto(bookmark, review);
         });
     }
+    //Specification
     public Page<BookmarkDto> toPageSpec(Member member, int pageNumber, int pageSize, String category, String state, String keyword){
         Pageable pageable = PageRequest.of(pageNumber, pageSize);
         Specification<Bookmark> spec = (root, query, criteriaBuilder) -> {

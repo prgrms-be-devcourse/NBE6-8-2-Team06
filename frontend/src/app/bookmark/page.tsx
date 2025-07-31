@@ -54,6 +54,7 @@ export default function Page() {
       const response = await getBookmarks({
         page: currentPage,
         size: 10,
+        sort: "createDate,desc",
         category: selectedCategory,
         readState: selectedReadState,
         keyword: searchKeyword,

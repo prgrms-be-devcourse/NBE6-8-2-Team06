@@ -59,7 +59,7 @@ export default function HomePage() {
                 내 책 보기
               </Button>
             </Link>
-            <Link href="/books/add" passHref>
+            <Link href="/books" passHref>
               <Button size="lg" variant="outline">
                 <Plus className="mr-2 h-5 w-5" />
                 책 추가하기

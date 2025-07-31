@@ -200,7 +200,7 @@ public class BookmarkControllerTest {
                 )
                 .andDo(print());
 
-        Page<BookmarkDto> bookmarksDtoPage = bookmarkService.toPage(member,0,10, null, null, null);
+        Page<BookmarkDto> bookmarksDtoPage = bookmarkService.toPage(member,0,10, "createDate,desc",null, null, null);
 
         resultActions
                 .andExpect(handler().handlerType(BookmarkController.class))

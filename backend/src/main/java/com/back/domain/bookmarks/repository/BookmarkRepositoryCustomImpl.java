@@ -4,11 +4,15 @@ import com.back.domain.bookmarks.constant.ReadState;
 import com.back.domain.bookmarks.entity.Bookmark;
 import com.back.domain.member.member.entity.Member;
 import com.querydsl.core.BooleanBuilder;
+import com.querydsl.core.types.Order;
+import com.querydsl.core.types.OrderSpecifier;
+import com.querydsl.core.types.dsl.PathBuilder;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 
 import java.util.List;
 
@@ -51,7 +55,7 @@ public class BookmarkRepositoryCustomImpl implements BookmarkRepositoryCustom {
                 .where(builder)
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
-                .orderBy(bookmark.createDate.desc())
+                .orderBy(getOrderSpecifiers(pageable.getSort()))
                 .fetch();
 
         Long total = queryFactory
@@ -65,4 +69,16 @@ public class BookmarkRepositoryCustomImpl implements BookmarkRepositoryCustom {
         return new PageImpl<>(bookmarks, pageable, total != null ? total : 0L);
     }
 
+    private OrderSpecifier<?>[] getOrderSpecifiers(Sort sort){
+        if(sort.isEmpty()){
+            return new OrderSpecifier[]{bookmark.createDate.desc()};
+        }
+        return sort.stream().map(order -> {
+            Order direction = order.isAscending() ? Order.ASC : Order.DESC;
+            String property = order.getProperty();
+            PathBuilder<Bookmark> pathBuilder = new PathBuilder<>(Bookmark.class, "bookmark");
+            return new OrderSpecifier(direction, pathBuilder.get(property));
+        })
+                .toArray(OrderSpecifier[]::new);
+    }
 }
