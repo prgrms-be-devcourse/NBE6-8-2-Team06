@@ -6,7 +6,7 @@ import com.back.domain.book.book.service.BookService;
 import com.back.domain.member.member.entity.Member;
 import com.back.global.dto.PageResponseDto;
 import com.back.global.exception.ServiceException;
-import com.back.global.util.AuthUtil;
+import com.back.global.rq.Rq;
 import com.back.global.rsData.RsData;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.*;
 @Slf4j
 public class BookController {
     private final BookService bookService;
-    private final AuthUtil authUtil;
+    private final Rq rq;
 
     //전체 책 조회(DB내부만) - 로그인 선택사항
     @GetMapping
@@ -55,7 +55,7 @@ public class BookController {
         Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
 
         // JWT 토큰에서 사용자 정보 추출 (토큰이 없거나 유효하지 않으면 null)
-        Member member = authUtil.getMemberFromRequest(request);
+        Member member = rq.getActor();
 
         if (member != null) {
             log.debug("로그인된 사용자로 책 조회: {}", member.getEmail());
@@ -103,7 +103,7 @@ public class BookController {
         Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
 
         // JWT 토큰에서 사용자 정보 추출 (토큰이 없거나 유효하지 않으면 null)
-        Member member = authUtil.getMemberFromRequest(request);
+        Member member = rq.getActor();
 
         Page<BookSearchDto> books = bookService.searchBooks(query.trim(), pageable, member);
         PageResponseDto<BookSearchDto> pageResponse = new PageResponseDto<>(books);
@@ -129,7 +129,7 @@ public class BookController {
         }
 
         // JWT 토큰에서 사용자 정보 추출 (토큰이 없거나 유효하지 않으면 null)
-        Member member = authUtil.getMemberFromRequest(request);
+        Member member = rq.getActor();
 
         BookSearchDto book = bookService.getBookByIsbn(cleanIsbn, member);
 
@@ -170,7 +170,7 @@ public class BookController {
         Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
 
         // JWT 토큰에서 사용자 정보 추출 (토큰이 없거나 유효하지 않으면 null)
-        Member member = authUtil.getMemberFromRequest(request);
+        Member member = rq.getActor();
 
         BookDetailDto bookDetail = bookService.getBookDetailById(id, pageable, member);
 
