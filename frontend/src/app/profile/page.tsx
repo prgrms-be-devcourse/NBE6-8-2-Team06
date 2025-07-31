@@ -10,7 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@radix-ui/react-select";
+import { Separator } from "@radix-ui/react-separator";
 import {
   Dialog,
   DialogContent,
@@ -26,8 +26,8 @@ import { toast } from "@/lib/toast";
 import { useAuth } from "../_hooks/auth-context";
 
 interface UserProfile {
-  name: String;
-  email: String;
+  name: string;
+  email: string;
 }
 
 export default function ProfilePage() {
