@@ -1,6 +1,6 @@
 import { apiFetch } from "@/lib/apiFetch";
 import { ApiResponse } from "@/types/auth";
-import { ReviewResponseDto } from "@/types/book";
+import { PageResponseDto, ReviewResponseDto } from "@/types/book";
 import { useState } from "react";
 
 export const useReviewRecommend = () =>{
@@ -69,6 +69,14 @@ export const useReview = (initBookId:number) =>{
     return data;
   }
 
+  const getReviews = async () => {
+    const res = await apiFetch<ApiResponse<PageResponseDto<ReviewResponseDto>>>(`/reviews/${bookId}/list`,{
+      method:"GET"
+    })
+    const data:PageResponseDto<ReviewResponseDto> = res.data;
+    return data;
+  }
+
   const createReview = async ({ rating, content } : {rating:number, content:string}) => {
       await apiFetch<ApiResponse>(`/reviews/${bookId}`, {
           method: "POST",
@@ -105,6 +113,7 @@ export const useReview = (initBookId:number) =>{
       editReview,
       deleteReview,
       getReview,
+      getReviews,
       setBookId
   }
 }
