@@ -12,7 +12,6 @@ import java.util.Optional;
 
 public interface BookRepository extends JpaRepository<Book, Integer> {
 
-    List<Book> findByTitleContainingIgnoreCase(String title);
 
     Optional<Book> findByIsbn13(String isbn13);
 
@@ -46,9 +45,4 @@ public interface BookRepository extends JpaRepository<Book, Integer> {
     @Query("SELECT b FROM Book b WHERE b.isbn13 = :isbn13 AND b.totalPage > 0")
     Optional<Book> findValidBookByIsbn13(@Param("isbn13") String isbn13);
 
-
-
-    List<Book> findByCategoryId(Long categoryId);
-
-    List<Book> findByPublisherContainingIgnoreCase(String publisher);
 }
