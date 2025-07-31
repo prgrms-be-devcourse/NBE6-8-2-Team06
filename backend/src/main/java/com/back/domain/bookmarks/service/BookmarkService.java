@@ -11,10 +11,7 @@ import com.back.domain.review.review.repository.ReviewRepository;
 import com.back.domain.review.review.service.ReviewService;
 import jakarta.persistence.criteria.Join;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
@@ -34,16 +31,16 @@ public class BookmarkService {
 
     public Bookmark save(int bookId, Member member) {
         Book book = bookRepository.findById(bookId).orElseThrow(() -> new NoSuchElementException("%d번 등록된 책이 없습니다.".formatted(bookId)));
+        if(bookmarkRepository.existsByMemberAndBook(member, book)) {
+            throw new IllegalStateException("이미 추가된 책입니다.");
+        }
         Bookmark bookmark = new Bookmark(book, member);
         return bookmarkRepository.save(bookmark);
     }
 
     public List<BookmarkDto> toList(Member member){
-        return bookmarkRepository.findByMember(member).stream().map(bookmark -> {
-            if(bookmark.getReadState()==ReadState.WISH) return new BookmarkDto(bookmark, null);
-            Review review = getReviews(bookmark.getMember()).get(bookmark.getBook());
-            return new BookmarkDto(bookmark, review);
-        }).toList();
+        List<Bookmark> bookmarks = bookmarkRepository.findByMember(member);
+        return convertToBookmarkDtoList(bookmarks, member);
     }
 
     //queryDsl
@@ -52,12 +49,8 @@ public class BookmarkService {
         Pageable pageable = PageRequest.of(page, size, sorts[1].equals("desc") ? Sort.by(sorts[0]).descending() : Sort.by(sorts[0]).ascending());
 
         Page<Bookmark> bookmarks = bookmarkRepository.search(member, category, state, keyword, pageable);
-
-        return bookmarks.map(bookmark -> {
-            if(ReadState.READ != bookmark.getReadState()) return new BookmarkDto(bookmark, null);
-            Review review = getReviews(bookmark.getMember()).get(bookmark.getBook());
-            return new BookmarkDto(bookmark, review);
-        });
+        List<BookmarkDto> dtoList = convertToBookmarkDtoList(bookmarks.getContent(), member);
+        return new PageImpl<>(dtoList, pageable, bookmarks.getTotalElements());
     }
     //Specification
     public Page<BookmarkDto> toPageSpec(Member member, int pageNumber, int pageSize, String category, String state, String keyword){
@@ -87,11 +80,8 @@ public class BookmarkService {
             });
         }
         Page<Bookmark> bookmarks = bookmarkRepository.findAll(spec, pageable);
-        return bookmarks.map(bookmark -> {
-            if(bookmark.getReadState()==ReadState.WISH) return new BookmarkDto(bookmark, null);
-            Review review = getReviews(bookmark.getMember()).get(bookmark.getBook());
-            return new BookmarkDto(bookmark, review);
-        });
+        List<BookmarkDto> dtoList = convertToBookmarkDtoList(bookmarks.getContent(), member);
+        return new PageImpl<>(dtoList, pageable, bookmarks.getTotalElements());
     }
 
     public BookmarkDetailDto getBookmarkById(Member member, int bookmarkId) {
@@ -120,7 +110,8 @@ public class BookmarkService {
             ReadState readState = ReadState.valueOf(state.toUpperCase());
             bookmark.updateReadState(readState);
         }
-        return new BookmarkModifyResponseDto(bookmarkRepository.save(bookmark));
+        bookmarkRepository.save(bookmark);
+        return new BookmarkModifyResponseDto(bookmark);
     }
 
     public void deleteBookmark(Member member, int bookmarkId) {
@@ -174,5 +165,20 @@ public class BookmarkService {
                         bookmark -> bookmark.getBook().getId(),
                         Bookmark::getReadState
                 ));
+    }
+
+    private List<BookmarkDto> convertToBookmarkDtoList(List<Bookmark> bookmarks, Member member) {
+        if(bookmarks == null || bookmarks.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<Review> reviews = reviewRepository.findAllByMember(member);
+        Map<Integer, Review> reviewMap = reviews.stream().collect(Collectors.toMap(review -> review.getBook().getId(), review -> review));
+
+
+        return bookmarks.stream().map(bookmark -> {
+            Review review = reviewMap.get(bookmark.getBook().getId());
+            return new BookmarkDto(bookmark, review);
+        }).toList();
+
     }
 }

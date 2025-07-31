@@ -21,4 +21,5 @@ public interface BookmarkRepository extends JpaRepository<Bookmark, Integer>, Jp
     List<Bookmark> findByMemberAndBookIds(@Param("member") Member member, @Param("bookIds") List<Integer> bookIds);
     @Query("SELECT b FROM Bookmark b WHERE b.member = :member AND b.book = :book")
     Optional<Bookmark> findByMemberAndBookWithFresh(@Param("member") Member member, @Param("book") Book book);
+    boolean existsByMemberAndBook(Member member, Book book);
 }
