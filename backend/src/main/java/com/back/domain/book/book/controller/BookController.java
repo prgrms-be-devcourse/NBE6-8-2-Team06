@@ -153,8 +153,7 @@ public class BookController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
-            @RequestParam(defaultValue = "desc") String sortDir,
-            HttpServletRequest request) {
+            @RequestParam(defaultValue = "desc") String sortDir) {
 
         if (page < 0) {
             throw new ServiceException("400-1", "페이지 번호는 0 이상이어야 합니다.");

@@ -200,12 +200,16 @@ export async function searchBookByIsbn(isbn: string): Promise<BooksResponse> {
   }
 }
 
-export async function fetchBookDetail(bookId: number): Promise<BookDetailDto> {
+export async function fetchBookDetail(bookId: number, reviewPage: number = 0): Promise<BookDetailDto> {
   const { apiFetch } = await import('@/lib/apiFetch');
   
   try {
-    console.log(`📖 책 상세 정보 API 호출 시작: /api/books/${bookId}`);
-    const response = await apiFetch<ApiResponse<BookDetailDto>>(`/api/books/${bookId}`);
+    let url = `/api/books/${bookId}`;
+    if (reviewPage > 0) {
+      url += `?page=${reviewPage}`;
+    }
+    console.log(`📖 책 상세 정보 API 호출 시작: ${url}`);
+    const response = await apiFetch<ApiResponse<BookDetailDto>>(url);
     
     console.log('📦 책 상세 정보 API 응답 원본:', response);
     
