@@ -359,8 +359,9 @@ public class BookService {
      * 여러 책들의 ReadState를 한번에 조회 (성능 최적화)
      */
     private Map<Integer, ReadState> getReadStatesForBooks(Member member, List<Integer> bookIds) {
-        return bookmarkRepository.findByMember(member).stream()
-                .filter(bookmark -> bookIds.contains(bookmark.getBook().getId()))
+        List<Bookmark> bookmarks = bookmarkRepository.findByMemberAndBookIds(member, bookIds);
+
+        return bookmarks.stream()
                 .collect(Collectors.toMap(
                         bookmark -> bookmark.getBook().getId(),
                         bookmark -> bookmark.getReadState()

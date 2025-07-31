@@ -135,8 +135,8 @@ public class BookmarkService {
         return reviews.stream().collect(Collectors.toMap(Review::getBook, review -> review));
     }
 
-    public ReadState getReadStateByMemberAndBook(Member member, Book book) {
-        Optional<Bookmark> bookmark = bookmarkRepository.findByMemberAndBook(member, book);
+    private ReadState getReadStateByMemberAndBook(Member member, Book book) {
+        Optional<Bookmark> bookmark = bookmarkRepository.findByMemberAndBookWithFresh(member, book);
         return bookmark.map(Bookmark::getReadState).orElse(null);
     }
 

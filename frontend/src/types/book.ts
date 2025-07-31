@@ -132,9 +132,15 @@ export async function fetchBooks(page: number = 0, size: number = 9): Promise<Bo
   try {
     console.log(`🔍 API 호출 시작: /api/books?page=${page}&size=${size}`);
     const response = await apiFetch<ApiResponse<PageResponseDto<BookSearchDto>>>(`/api/books?page=${page}&size=${size}`);
+    console.log('📦 fetchBooks 응답 받음:', response);
     return await processApiResponse(response);
   } catch (error) {
-    console.error('❌ API 호출 에러:', error);
+    console.error('❌ fetchBooks API 호출 에러 상세:', error);
+    console.error('❌ 에러 타입:', typeof error);
+    console.error('❌ 에러 메시지:', error instanceof Error ? error.message : String(error));
+    if (error instanceof Error && (error as any).data) {
+      console.error('❌ 에러 데이터:', (error as any).data);
+    }
     throw error;
   }
 }
