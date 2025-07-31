@@ -1,18 +1,7 @@
 import { apiFetch } from "@/lib/apiFetch";
 import { ApiResponse } from "@/types/auth";
+import { ReviewResponseDto } from "@/types/book";
 import { useState } from "react";
-
-export interface ReviewResponseDto{
-  id:number,
-  content:string,
-  rate:string,
-  memberName:string,
-  memberId:number,
-  likeCount:number,
-  dislikeCount:number,
-  createdDate:string,
-  modifiedDate:string
-};
 
 export const useReviewRecommend = () =>{
 
