@@ -251,10 +251,8 @@ export default function BooksPage() {
         await loadBooks(currentPage);
       }
       
-      toast.success("내 목록에 추가되었습니다");
     } catch (error) {
       console.error("북마크 추가 실패:", error);
-      toast.error("목록 추가에 실패했습니다");
     }
   };
 
@@ -424,11 +422,9 @@ export default function BooksPage() {
                   onClick={(e) => e.stopPropagation()}
                 >
                   {book.readState ? (
-                    <div className="text-center py-2">
-                      <span className="text-sm text-muted-foreground">
-                        이미 내 목록에 있는 책입니다
-                      </span>
-                    </div>
+                    <Button className="w-full" disabled>
+                      내 목록에 추가됨
+                    </Button>
                   ) : (
                     <Button
                       className="w-full"
