@@ -9,6 +9,7 @@ import com.back.domain.member.member.entity.Member;
 import com.back.domain.review.review.entity.Review;
 import com.back.domain.review.review.repository.ReviewRepository;
 import com.back.domain.review.review.service.ReviewService;
+import com.back.global.exception.ServiceException;
 import jakarta.persistence.criteria.Join;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
@@ -121,7 +122,7 @@ public class BookmarkService {
     }
 
     private Bookmark findByIdAndMember(int bookmarkId, Member member) {
-        return bookmarkRepository.findByIdAndMember(bookmarkId, member).orElseThrow(() -> new NoSuchElementException("해당 북마크를 찾을 수 없습니다."));
+        return bookmarkRepository.findByIdAndMember(bookmarkId, member).orElseThrow(() -> new ServiceException("403-1", "해당 북마크에 대한 권한이 없습니다."));
     }
 
     public BookmarkReadStatesDto getReadStatesCount(Member member) {

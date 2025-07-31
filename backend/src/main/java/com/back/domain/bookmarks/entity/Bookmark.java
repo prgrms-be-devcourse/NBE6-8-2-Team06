@@ -80,10 +80,4 @@ public class Bookmark extends BaseEntity {
         LocalDateTime effectiveEnd = (endReadDate == null) ? LocalDateTime.now() : endReadDate;
         return ChronoUnit.DAYS.between(startReadDate, effectiveEnd);
     }
-
-    public void checkActor(Member actor){
-        if(actor.getId() != member.getId()){
-            throw new ServiceException("403-1", "권한이 없습니다.");
-        }
-    }
 }
