@@ -2,10 +2,14 @@ package com.back.domain.note.service;
 
 import com.back.domain.bookmarks.entity.Bookmark;
 import com.back.domain.bookmarks.repository.BookmarkRepository;
+import com.back.domain.member.member.entity.Member;
 import com.back.domain.note.entity.Note;
 import com.back.domain.note.repository.NoteRepository;
+import com.back.global.exception.ServiceException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.ResponseStatus;
 
 import java.util.NoSuchElementException;
 import java.util.Optional;
@@ -20,11 +24,11 @@ public class NoteService {
         return bookmarkRepository.findById(id);
     }
 
-    public Note write(int bookmarkId, String title, String content, String page) {
+    public Note write(int bookmarkId, String title, String content, String page, Member member) {
         Bookmark bookmark = bookmarkRepository.findById(bookmarkId)
                 .orElseThrow(() -> new NoSuchElementException("%d번 북마크가 없습니다.".formatted(bookmarkId)));
 
-        Note note = new Note(title, content, page, bookmark);
+        Note note = new Note(title, content, page, bookmark, member);
         bookmark.getNotes().add(note);
 
         return note;
@@ -54,5 +58,12 @@ public class NoteService {
                 .stream()
                 .filter(note -> note.getId() == id)
                 .findFirst();
+    }
+
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public void checkNotePageCURD(Bookmark bookmark, Member actor, String str) {
+        if (!bookmark.getMember().equals(actor)) {
+            throw new ServiceException("403-1", "%d번 북마크의 노트 %s 권한이 없습니다.".formatted(bookmark.getId(), str));
+        }
     }
 }

@@ -2,6 +2,8 @@ package com.back.domain.note.controller;
 
 import com.back.domain.book.book.entity.Book;
 import com.back.domain.bookmarks.entity.Bookmark;
+import com.back.domain.member.member.entity.Member;
+import com.back.domain.member.member.repository.MemberRepository;
 import com.back.domain.note.entity.Note;
 import com.back.domain.note.service.NoteService;
 import org.hamcrest.Matchers;
@@ -11,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithUserDetails;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
@@ -34,32 +37,8 @@ public class NoteControllerTest {
     @Autowired
     private NoteService noteService;
 
-    @Test
-    @DisplayName("노트 단건 조회")
-    void t1() throws Exception {
-        int bookmarkId = 1;
-        int id = 1;
-
-        ResultActions resultActions = mvc
-                .perform(
-                        get("/bookmarks/%d/notes/%d".formatted(bookmarkId, id))
-                )
-                .andDo(print());
-
-        Bookmark bookmark = noteService.findBookmarkById(bookmarkId).get();
-        Note note = noteService.findNoteById(bookmark, id).get();
-
-        resultActions
-                .andExpect(handler().handlerType(NoteController.class))
-                .andExpect(handler().methodName("getItem"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(note.getId()))
-                .andExpect(jsonPath("$.createDate").value(Matchers.startsWith(note.getCreateDate().toString().substring(0, 20))))
-                .andExpect(jsonPath("$.modifyDate").value(Matchers.startsWith(note.getModifyDate().toString().substring(0, 20))))
-                .andExpect(jsonPath("$.title").value(note.getTitle()))
-                .andExpect(jsonPath("$.content").value(note.getContent()))
-                .andExpect(jsonPath("$.page").value(note.getPage()));
-    }
+    @Autowired
+    private MemberRepository memberRepository;
 
 //    @Test
 //    @DisplayName("노트 다건 조회")
@@ -93,9 +72,67 @@ public class NoteControllerTest {
 //                    .andExpect(jsonPath("$[%d].page".formatted(i)).value(note.getPage()));
 //        }
 //    }
+    @Test
+    @DisplayName("노트 로직 수행 전 로그인 안됨 확인")
+    void t1() throws Exception {
+        int bookmarkId = 1;
+
+        ResultActions resultActions = mvc
+                .perform(
+                        get("/bookmarks/%d/notes".formatted(bookmarkId))
+                )
+                .andDo(print());
+
+        resultActions
+                .andExpect(handler().handlerType(NoteController.class))
+                .andExpect(handler().methodName("getItems"))
+                .andExpect(jsonPath("$.resultCode").value("401-1"))
+                .andExpect(jsonPath("$.msg").value("로그인 후 이용해주세요"));
+    }
+
+    @Test
+    @DisplayName("노트 페이지 전체 조회")
+    @WithUserDetails("이메일1")
+    void t6() throws Exception {
+        int bookmarkId = 1;
+
+        ResultActions resultActions = mvc
+                .perform(
+                        get("/bookmarks/%d/notes".formatted(bookmarkId))
+                )
+                .andDo(print());
+
+        Bookmark bookmark = noteService.findBookmarkById(bookmarkId).get();
+        Book book = bookmark.getBook();
+        List<Note> notes = bookmark.getNotes();
+
+        resultActions
+                .andExpect(handler().handlerType(NoteController.class))
+                .andExpect(handler().methodName("getItems"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resultCode").value("200-1"))
+                .andExpect(jsonPath("$.msg").value("%d번 북마크의 노트 조회를 성공했습니다.".formatted(bookmarkId)))
+                .andExpect(jsonPath("$.data.imageUrl").value(book.getImageUrl()))
+                .andExpect(jsonPath("$.data.title").value(book.getTitle()))
+                .andExpect(jsonPath("$.data.notes.length()").value(notes.size()));
+//                .andExpect(jsonPath("$.author").value(book.getAuthors()))
+
+        for (int i = 0; i < notes.size(); i++) {
+            Note note = notes.get(i);
+
+            resultActions
+                    .andExpect(jsonPath("$.data.notes[%d].id".formatted(i)).value(note.getId()))
+                    .andExpect(jsonPath("$.data.notes[%d].createDate".formatted(i)).value(Matchers.startsWith(note.getCreateDate().toString().substring(0, 20))))
+                    .andExpect(jsonPath("$.data.notes[%d].modifyDate".formatted(i)).value(Matchers.startsWith(note.getModifyDate().toString().substring(0, 20))))
+                    .andExpect(jsonPath("$.data.notes[%d].title".formatted(i)).value(note.getTitle()))
+                    .andExpect(jsonPath("$.data.notes[%d].content".formatted(i)).value(note.getContent()))
+                    .andExpect(jsonPath("$.data.notes[%d].page".formatted(i)).value(note.getPage()));
+        }
+    }
 
     @Test
     @DisplayName("노트 작성")
+    @WithUserDetails("이메일1")
     void t3() throws Exception {
         int bookmarkId = 1;
 
@@ -132,7 +169,39 @@ public class NoteControllerTest {
     }
 
     @Test
+    @DisplayName("노트 작성 without permission")
+    @WithUserDetails("이메일2")
+    void t7() throws Exception {
+        int bookmarkId = 1;
+
+        Member member = memberRepository.findByEmail("이메일2").get();
+        String apikey = member.getRefreshToken();
+
+        ResultActions resultActions = mvc
+                .perform(
+                        post("/bookmarks/%d/notes".formatted(bookmarkId))
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .characterEncoding(StandardCharsets.UTF_8)
+                                .content("""
+                                        {
+                                            "title": "테스트 제목",
+                                            "content": "테스트 내용",
+                                            "page": "1"
+                                        }
+                                        """)
+                )
+                .andDo(print());
+
+        resultActions
+                .andExpect(handler().handlerType(NoteController.class))
+                .andExpect(handler().methodName("write"))
+                .andExpect(jsonPath("$.resultCode").value("403-1"))
+                .andExpect(jsonPath("$.msg").value("%d번 북마크의 노트 작성 권한이 없습니다.".formatted(bookmarkId)));
+    }
+
+    @Test
     @DisplayName("노트 수정")
+    @WithUserDetails("이메일1")
     void t4() throws Exception {
         int bookmarkId = 1;
         int id = 1;
@@ -156,15 +225,48 @@ public class NoteControllerTest {
                 .andExpect(handler().handlerType(NoteController.class))
                 .andExpect(handler().methodName("modify"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.resultCode").value("200-1"))
+                .andExpect(jsonPath("$.resultCode").value("200-2"))
                 .andExpect(jsonPath("$.msg").value("%d번 노트가 수정되었습니다.".formatted(id)));
     }
 
     @Test
+    @DisplayName("노트 수정 without permission")
+    @WithUserDetails("이메일2")
+    void t9() throws Exception {
+        int bookmarkId = 1;
+        int id = 1;
+
+        Member member = memberRepository.findByEmail("이메일2").get();
+        String apikey = member.getRefreshToken();
+
+        ResultActions resultActions = mvc
+                .perform(
+                        put("/bookmarks/%d/notes/%d".formatted(bookmarkId, id))
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .characterEncoding(StandardCharsets.UTF_8)
+                                .content("""
+                                        {
+                                            "title": "테스트 제목",
+                                            "content": "테스트 내용",
+                                            "page": "1"
+                                        }
+                                        """)
+                )
+                .andDo(print());
+
+        resultActions
+                .andExpect(handler().handlerType(NoteController.class))
+                .andExpect(handler().methodName("modify"))
+                .andExpect(jsonPath("$.resultCode").value("403-1"))
+                .andExpect(jsonPath("$.msg").value("%d번 북마크의 노트 수정 권한이 없습니다.".formatted(bookmarkId)));
+    }
+
+    @Test
     @DisplayName("노트 삭제")
+    @WithUserDetails("이메일1")
     void t5() throws Exception {
         int bookmarkId = 1;
-        int id = 3;
+        int id = 1;
 
         ResultActions resultActions = mvc
                 .perform(
@@ -176,43 +278,27 @@ public class NoteControllerTest {
                 .andExpect(handler().handlerType(NoteController.class))
                 .andExpect(handler().methodName("delete"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.resultCode").value("200-1"))
+                .andExpect(jsonPath("$.resultCode").value("200-3"))
                 .andExpect(jsonPath("$.msg").value("%d번 노트가 삭제되었습니다.".formatted(id)));
     }
 
     @Test
-    @DisplayName("노트 페이지 전체 조회")
-    void t6() throws Exception {
+    @DisplayName("노트 삭제 without permission")
+    @WithUserDetails("이메일2")
+    void t11() throws Exception {
         int bookmarkId = 1;
+        int id = 1;
 
         ResultActions resultActions = mvc
                 .perform(
-                        get("/bookmarks/%d/notes".formatted(bookmarkId))
+                        delete("/bookmarks/%d/notes/%d".formatted(bookmarkId, id))
                 )
                 .andDo(print());
 
-        Bookmark bookmark = noteService.findBookmarkById(bookmarkId).get();
-        Book book = bookmark.getBook();
-        List<Note> notes = bookmark.getNotes();
-
         resultActions
                 .andExpect(handler().handlerType(NoteController.class))
-                .andExpect(handler().methodName("getItems"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.imageUrl").value(book.getImageUrl()))
-                .andExpect(jsonPath("$.title").value(book.getTitle()))
-//                .andExpect(jsonPath("$.author").value(book.getAuthors()))
-                .andExpect(jsonPath("$.notes.length()").value(notes.size()));
-
-        for (int i = 0; i < notes.size(); i++) {
-            Note note = notes.get(i);
-
-            resultActions
-                    .andExpect(jsonPath("$.notes[%d].id".formatted(i)).value(note.getId()))
-                    .andExpect(jsonPath("$.notes[%d].modifyDate".formatted(i)).value(Matchers.startsWith(note.getModifyDate().toString().substring(0, 20))))
-                    .andExpect(jsonPath("$.notes[%d].title".formatted(i)).value(note.getTitle()))
-                    .andExpect(jsonPath("$.notes[%d].content".formatted(i)).value(note.getContent()))
-                    .andExpect(jsonPath("$.notes[%d].page".formatted(i)).value(note.getPage()));
-        }
+                .andExpect(handler().methodName("delete"))
+                .andExpect(jsonPath("$.resultCode").value("403-1"))
+                .andExpect(jsonPath("$.msg").value("%d번 북마크의 노트 삭제 권한이 없습니다.".formatted(bookmarkId)));
     }
 }
