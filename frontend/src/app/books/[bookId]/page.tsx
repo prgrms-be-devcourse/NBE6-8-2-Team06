@@ -11,6 +11,7 @@ import { useRouter } from "next/navigation";
 import { use, useEffect, useState } from "react";
 import { BookDetailDto, fetchBookDetail, ReviewResponseDto, addToMyBooks, ReadState } from "@/types/book";
 import { useReview, useReviewRecommend } from "@/app/_hooks/useReview";
+import { useTheme } from "next-themes";
 
 export default function page({params}:{params:Promise<{bookId:string}>}){
     const {bookId:bookIdStr} = use(params);
@@ -24,6 +25,7 @@ export default function page({params}:{params:Promise<{bookId:string}>}){
     const reviewApi = useReview(bookId);
     const reviewRecommendApi = useReviewRecommend();
     const [tabState, setTabState] = useState("description");
+    const {theme} = useTheme();
     
     const loadBookDetail = async () => {
       try {
@@ -304,11 +306,11 @@ export default function page({params}:{params:Promise<{bookId:string}>}){
                           </p>
                           <div className="flex items-center space-x-4">
                             <Button variant={"ghost"} size="sm" onClick={()=>{handleRecommend(review, true)}}>
-                              <ThumbsUp fill={review.isRecommended === true ? "#000" : "none"} strokeWidth={review.isRecommended===true?1:2} className="h-4 w-4 mr-1" />
+                              <ThumbsUp fill={review.isRecommended === true ? theme==="dark"?"#fff":"#000" : "none"} strokeWidth={review.isRecommended===true?1:2} className={"h-4 w-4 mr-1"} />
                               좋아요 {reviewRecommendApi.formatLikes(review.likeCount)}
                             </Button>
                             <Button variant={"ghost"} size="sm" onClick={()=>{handleRecommend(review, false)}}>
-                              <ThumbsDown fill={review.isRecommended === false ? "#000" : "none"} strokeWidth={review.isRecommended===false?1:2} className="h-4 w-4 mr-1" />
+                              <ThumbsDown fill={review.isRecommended === false ? theme==="dark"?"#fff":"#000" : "none"} strokeWidth={review.isRecommended===false?1:2} className="h-4 w-4 mr-1" />
                               싫어요 {reviewRecommendApi.formatLikes(review.dislikeCount)}
                             </Button>
                           </div>
