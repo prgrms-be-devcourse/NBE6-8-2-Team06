@@ -39,8 +39,9 @@ export default function page({params}:{params:Promise<{bookId:string}>}){
 
     const loadReviews = async () => {
       try {
-        const review = await reviewApi.getReview();
-        setBookDetail({...bookDetail!, reviews: {...bookDetail!.reviews, data:bookDetail!.reviews.data.map((r)=>r.id === review.id?review:r) }});
+        const detail = await fetchBookDetail(bookId);
+        const reviews = detail.reviews.data;
+        setBookDetail({...bookDetail!, reviews: {...bookDetail!.reviews, data: reviews}});
       } catch (err) {
         
       } 
