@@ -4,9 +4,13 @@ import com.back.domain.book.book.entity.Book;
 import com.back.domain.book.book.service.BookService;
 import com.back.domain.member.member.entity.Member;
 import com.back.domain.review.review.dto.ReviewRequestDto;
+import com.back.domain.review.review.dto.ReviewResponseDto;
 import com.back.domain.review.review.entity.Review;
 import com.back.domain.review.review.repository.ReviewRepository;
+import com.back.global.dto.PageResponseDto;
 import com.back.global.exception.ServiceException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -62,5 +66,14 @@ public class ReviewService {
 
     public Optional<Review> findById(int reviewId) {
         return reviewRepository.findById(reviewId);
+    }
+
+    public Page<Review> findByBookOrderByCreateDateDesc(Book book, Pageable pageable){
+        return reviewRepository.findByBookOrderByCreateDateDesc(book, pageable);
+    }
+
+    public PageResponseDto<ReviewResponseDto> getPageReviewResponseDto(Book book, Pageable pageable, Member member) {
+        Page<Review> reviewPage = reviewRepository.findByBookOrderByCreateDateDesc(book, pageable);
+        return reviewDtoService.reviewsToReviewResponseDtos(reviewPage, member);
     }
 }
