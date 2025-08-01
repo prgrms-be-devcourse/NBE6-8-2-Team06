@@ -9,7 +9,7 @@ export const getBookmarks = async ({ page, size, sort, category, readState, keyw
     if(category && category !== 'all') params.append('category', category);
     if(readState && readState !== 'all') params.append('readState', readState);
     if(keyword) params.append('keyword', keyword);
-    return apiFetch(`/api/bookmarks?${params.toString()}`);
+    return apiFetch(`/bookmarks?${params.toString()}`);
 };
 
 export const getBookmark = async (id) => {

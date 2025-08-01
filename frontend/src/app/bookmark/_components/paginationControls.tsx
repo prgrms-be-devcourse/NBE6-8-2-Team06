@@ -24,7 +24,7 @@ export function PaginationControls({ currentPage, totalPages, isLast, onPrevious
             </span>
             <Button
                 onClick={onNext}
-                disabled={isLast}
+                disabled={currentPage +1 >= totalPages || isLast}
                 variant="outline"
             >
                 다음

@@ -53,7 +53,7 @@ export default function Page() {
     try {
       const response = await getBookmarks({
         page: currentPage,
-        size: 10,
+        size: 9,
         sort: "createDate,desc",
         category: selectedCategory,
         readState: selectedReadState,
@@ -312,6 +312,16 @@ function BookmarkEditForm({ bookmark, onSave, onCancel }: BookmarkEditFormProps)
     }
   };
 
+  const isFormValid = useMemo(() => {
+    if(formData.readState === 'READING') {
+      return !! formData.startReadDate && !! formData.readPage;
+    }
+    if (formData.readState === 'READ') {
+      return !!formData.startReadDate && !!formData.endReadDate && formData.endReadDate >= formData.startReadDate;
+    }
+    return true;
+  }, [formData]);
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
@@ -375,7 +385,7 @@ function BookmarkEditForm({ bookmark, onSave, onCancel }: BookmarkEditFormProps)
         <Button type="button" variant="outline" onClick={onCancel}>
           취소
         </Button>
-        <Button type="submit">
+        <Button type="submit" disabled={!isFormValid}>
           저장
         </Button>
       </div>
