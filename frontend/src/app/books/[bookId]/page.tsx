@@ -25,6 +25,7 @@ export default function page({params}:{params:Promise<{bookId:string}>}){
     const reviewApi = useReview(bookId);
     const reviewRecommendApi = useReviewRecommend();
     const [tabState, setTabState] = useState("description");
+    const [reviewPage, setReviewPage] = useState(0);
     const {theme} = useTheme();
     
     const loadBookDetail = async () => {
@@ -39,12 +40,13 @@ export default function page({params}:{params:Promise<{bookId:string}>}){
       }
     };
 
-    const loadReviews = async () => {
+    const loadReviews = async (page: number = 0) => {
       try {
-        const reviews = await reviewApi.getReviews();
-        setBookDetail({...bookDetail!, reviews:  reviews});
+        const detail = await fetchBookDetail(bookId, page);
+        setBookDetail(prev => prev ? {...prev, reviews: detail.reviews} : detail);
+        setReviewPage(page);
       } catch (err) {
-        
+        console.error('리뷰 로드 실패:', err);
       } 
     }
 
@@ -161,7 +163,7 @@ export default function page({params}:{params:Promise<{bookId:string}>}){
     }else{
       await reviewRecommendApi.modifyReviewRecomend(review.id, recommend);
     }
-    await loadReviews();
+    await loadReviews(0);
   }
 
   return (
@@ -254,7 +256,7 @@ export default function page({params}:{params:Promise<{bookId:string}>}){
           <Tabs defaultValue="description" className="w-full" value={tabState} onValueChange={(state)=>{setTabState(state)}}>
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="description">책 소개</TabsTrigger>
-              <TabsTrigger value="reviews">리뷰 ({bookDetail.reviews.data.length})</TabsTrigger>
+              <TabsTrigger value="reviews">리뷰 ({bookDetail.reviews.totalElements})</TabsTrigger>
             </TabsList>
             
             <TabsContent value="description" className="mt-6">
@@ -328,6 +330,70 @@ export default function page({params}:{params:Promise<{bookId:string}>}){
                       </p>
                     </CardContent>
                   </Card>
+                )}
+
+                {/* 리뷰 페이징 */}
+                {bookDetail.reviews.totalPages > 1 && (
+                  <div className="mt-8 flex justify-center items-center space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => loadReviews(0)}
+                      disabled={reviewPage === 0}
+                    >
+                      처음
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => loadReviews(reviewPage - 1)}
+                      disabled={reviewPage === 0}
+                    >
+                      이전
+                    </Button>
+                    
+                    {/* 페이지 번호들 */}
+                    {Array.from({ length: Math.min(5, bookDetail.reviews.totalPages) }, (_, i) => {
+                      const startPage = Math.max(0, Math.min(reviewPage - 2, bookDetail.reviews.totalPages - 5));
+                      const pageNum = startPage + i;
+                      if (pageNum >= bookDetail.reviews.totalPages) return null;
+                      
+                      return (
+                        <Button
+                          key={pageNum}
+                          variant={pageNum === reviewPage ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => loadReviews(pageNum)}
+                        >
+                          {pageNum + 1}
+                        </Button>
+                      );
+                    })}
+                    
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => loadReviews(reviewPage + 1)}
+                      disabled={bookDetail.reviews.isLast}
+                    >
+                      다음
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => loadReviews(bookDetail.reviews.totalPages - 1)}
+                      disabled={bookDetail.reviews.isLast}
+                    >
+                      마지막
+                    </Button>
+                  </div>
+                )}
+
+                {/* 리뷰 페이징 정보 */}
+                {bookDetail.reviews.totalElements > 0 && (
+                  <div className="mt-4 text-center text-sm text-muted-foreground">
+                    전체 {bookDetail.reviews.totalElements}개의 리뷰 중 {reviewPage + 1}/{bookDetail.reviews.totalPages} 페이지
+                  </div>
                 )}
               </div>
             </TabsContent>
