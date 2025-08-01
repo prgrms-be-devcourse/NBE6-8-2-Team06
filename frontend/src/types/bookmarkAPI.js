@@ -13,29 +13,29 @@ export const getBookmarks = async ({ page, size, sort, category, readState, keyw
 };
 
 export const getBookmark = async (id) => {
-    return apiFetch(`/api/bookmarks/${id}`);
+    return apiFetch(`/bookmarks/${id}`);
 };
 
 export const createBookmark = async (data) => {
-    return apiFetch('/api/bookmarks', {
+    return apiFetch('/bookmarks', {
         method: 'POST',
         body: JSON.stringify(data),
     });
 };
 
 export const updateBookmark = async (id, data) => {
-    return apiFetch(`/api/bookmarks/${id}`, {
+    return apiFetch(`/bookmarks/${id}`, {
         method: 'PUT',
         body: JSON.stringify(data),
     });
 };
 
 export const deleteBookmark = async (id) => {
-    return apiFetch(`/api/bookmarks/${id}`, {
+    return apiFetch(`/bookmarks/${id}`, {
         method: 'DELETE',
     });
 };
 
 export const getBookmarkReadStates = async () => {
-    return apiFetch('/api/bookmarks/read-states');
+    return apiFetch('/bookmarks/read-states');
 };
