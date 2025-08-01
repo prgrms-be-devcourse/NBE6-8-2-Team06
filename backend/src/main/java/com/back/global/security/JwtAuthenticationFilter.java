@@ -36,7 +36,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             //토큰이 없거나 유효하지 않으면 401
             if(token == null||!Ut.jwt.isValid(secretKey,token)) {
                 // 특정 API 경로는 토큰 없이 접근 허용
-                if (path.startsWith("/api/books")){
+                if (path.startsWith("/books")){
                     filterChain.doFilter(request, response);
                     return;
                 }
