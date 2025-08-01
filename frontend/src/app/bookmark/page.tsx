@@ -162,15 +162,6 @@ export default function Page() {
     }
   };
 
-  const handlePreviousPage = () => {
-    setCurrentPage(prev => Math.max(prev - 1, 0));
-  };
-  const handleNextPage = () => {
-    if (bookmarks && !bookmarks.isLast) {
-      setCurrentPage(prev => prev + 1);
-    }
-  };
-
   if (isAuthLoading) {
     return <div className="flex justify-center items-center h-screen">로딩 중...</div>;
   };
@@ -231,7 +222,7 @@ export default function Page() {
                 />
               ))}
             </div>
-          )};
+          )}
         </div>
       </Tabs>
       {/* 페이지  */}
