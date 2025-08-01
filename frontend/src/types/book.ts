@@ -244,6 +244,22 @@ export async function fetchBooksByCategory(categoryName: string, page: number = 
   }
 }
 
+export async function searchBooksByCategory(query: string, categoryName: string, page: number = 0, size: number = 9): Promise<BooksResponse> {
+  const { apiFetch } = await import('@/lib/apiFetch');
+  
+  try {
+    const encodedQuery = encodeURIComponent(query);
+    const encodedCategoryName = encodeURIComponent(categoryName);
+    console.log(`🔍 카테고리별 검색 API 호출 시작: /api/books/search/category?query=${encodedQuery}&categoryName=${encodedCategoryName}&page=${page}&size=${size}`);
+    const response = await apiFetch<ApiResponse<PageResponseDto<BookSearchDto>>>(`/api/books/search/category?query=${encodedQuery}&categoryName=${encodedCategoryName}&page=${page}&size=${size}`);
+    console.log('📦 카테고리별 검색 응답 받음:', response);
+    return await processApiResponse(response);
+  } catch (error) {
+    console.error('❌ 카테고리별 검색 API 호출 에러:', error);
+    throw error;
+  }
+}
+
 export async function addToMyBooks(bookId: number): Promise<void> {
   const { apiFetch } = await import('@/lib/apiFetch');
   

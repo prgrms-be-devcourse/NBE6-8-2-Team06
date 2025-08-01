@@ -369,6 +369,39 @@ public class BookService {
     }
 
     /**
+     * 검색어와 카테고리로 책 검색 (페이징, Member 정보 포함) - DB에서만 조회, 유효한 책들만
+     */
+    public Page<BookSearchDto> searchBooksByCategory(String query, String categoryName, Pageable pageable, Member member) {
+        log.info("검색어+카테고리로 유효한 책 조회: query={}, category={}, page={}, size={}, sort={}, member={}",
+                query, categoryName, pageable.getPageNumber(), pageable.getPageSize(), pageable.getSort(),
+                member != null ? member.getId() : "null");
+
+        try {
+            // 카테고리 존재 여부 확인
+            Optional<Category> categoryOptional = categoryRepository.findByName(categoryName);
+            if (categoryOptional.isEmpty()) {
+                log.warn("존재하지 않는 카테고리: {}", categoryName);
+                return Page.empty(pageable);
+            }
+
+            // 검색어와 카테고리로 페이지 수가 0보다 큰 유효한 책들만 조회
+            Page<Book> validBookPage = bookRepository.findValidBooksByQueryAndCategory(query, categoryName, pageable);
+
+            log.info("검색 결과: {}개 책 발견 (전체 {}개)", validBookPage.getNumberOfElements(), validBookPage.getTotalElements());
+
+            return validBookPage.map(book -> {
+                BookSearchDto dto = convertToDto(book, member);
+                log.debug("Book {} converted with readState: {}", book.getId(), dto.getReadState());
+                return dto;
+            });
+        } catch (Exception e) {
+            log.error("검색어+카테고리 책 조회 중 오류 발생: query={}, category={}, error={}",
+                    query, categoryName, e.getMessage());
+            throw new ServiceException("500-4", "검색어+카테고리 책 조회 중 오류가 발생했습니다.");
+        }
+    }
+
+    /**
      * AladinBookDto를 Book 엔티티로 변환하고 저장
      */
     private Book convertAndSaveBook(AladinBookDto apiBook) {

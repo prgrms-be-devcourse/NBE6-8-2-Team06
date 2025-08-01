@@ -47,5 +47,20 @@ public interface BookRepository extends JpaRepository<Book, Integer> {
 
     @Query("SELECT b FROM Book b WHERE b.category.name = :categoryName AND b.totalPage > 0")
     Page<Book> findValidBooksByCategory(@Param("categoryName") String categoryName, Pageable pageable);
+
+    /**
+     * 검색어와 카테고리로 유효한 책 검색 (페이징)
+     */
+    @Query("SELECT DISTINCT b FROM Book b " +
+            "LEFT JOIN b.authors w " +
+            "LEFT JOIN w.author a " +
+            "WHERE b.totalPage > 0 AND " +
+            "b.category.name = :categoryName AND (" +
+            "LOWER(b.title) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+            "LOWER(a.name) LIKE LOWER(CONCAT('%', :query, '%'))" +
+            ")")
+    Page<Book> findValidBooksByQueryAndCategory(@Param("query") String query,
+                                                @Param("categoryName") String categoryName,
+                                                Pageable pageable);
 }
 

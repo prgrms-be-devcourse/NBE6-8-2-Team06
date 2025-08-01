@@ -32,6 +32,7 @@ import {
   searchBooks,
   searchBookByIsbn,
   fetchBooksByCategory,
+  searchBooksByCategory,
   BooksResponse,
 } from "@/types/book";
 import { useAuth } from "@/app/_hooks/auth-context";
@@ -89,7 +90,12 @@ export default function BooksPage() {
         if (type === "isbn") {
           response = await searchBookByIsbn(query);
         } else {
-          response = await searchBooks(query, page);
+          // 카테고리가 선택되어 있고 "all"이 아닌 경우 카테고리별 검색
+          if (category && category !== "all") {
+            response = await searchBooksByCategory(query, category, page);
+          } else {
+            response = await searchBooks(query, page);
+          }
         }
       } else if (category && category !== "all") {
         response = await fetchBooksByCategory(category, page);
@@ -116,7 +122,7 @@ export default function BooksPage() {
   const handleSearch = () => {
     setCurrentPage(0); // 검색 시 첫 페이지로 이동
     setIsSearching(true);
-    loadBooks(0, searchTerm, searchType);
+    loadBooks(0, searchTerm, searchType, selectedCategory);
   };
 
   // 검색어 초기화 함수
@@ -142,7 +148,7 @@ export default function BooksPage() {
     if (isSearching && searchTerm.trim()) {
       // ISBN 검색은 페이징이 없으므로 제목/저자 검색만 페이징 적용
       if (searchType === "title") {
-        loadBooks(page, searchTerm, searchType);
+        loadBooks(page, searchTerm, searchType, selectedCategory);
       }
     } else {
       loadBooks(page, undefined, undefined, selectedCategory);
@@ -259,12 +265,12 @@ export default function BooksPage() {
         readState: readState
       });
       
-      // 성공 시 책 목록 새로고림 (readState 업데이트를 위해)
+      // 성공 시 책 목록 새로고침 (readState 업데이트를 위해)
       if (isSearching && searchTerm.trim()) {
         if (searchType === "title") {
-          await loadBooks(currentPage, searchTerm, searchType);
+          await loadBooks(currentPage, searchTerm, searchType, selectedCategory);
         } else {
-          await loadBooks(currentPage, searchTerm, searchType);
+          await loadBooks(currentPage, searchTerm, searchType, selectedCategory);
         }
       } else {
         await loadBooks(currentPage, undefined, undefined, selectedCategory);
