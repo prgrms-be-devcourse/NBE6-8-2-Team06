@@ -1,8 +1,8 @@
 package com.back.domain.note.controller;
 
-import com.back.domain.book.book.entity.Book;
 import com.back.domain.bookmarks.entity.Bookmark;
 import com.back.domain.member.member.entity.Member;
+import com.back.domain.note.dto.BookDto;
 import com.back.domain.note.dto.NoteDto;
 import com.back.domain.note.dto.NotePageDto;
 import com.back.domain.note.entity.Note;
@@ -14,7 +14,6 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import org.hibernate.validator.constraints.Length;
-import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
@@ -29,7 +28,6 @@ public class NoteController {
     private final Rq rq;
 
     @GetMapping
-    @ResponseStatus(HttpStatus.OK)
     @Transactional(readOnly = true)
     @Operation(summary = "노트 페이지 전체 조회")
     public RsData<NotePageDto> getItems(@PathVariable int bookmarkId) {
@@ -45,9 +43,9 @@ public class NoteController {
 
         Bookmark bookmark = noteService.findBookmarkById(bookmarkId).get();
 
-        noteService.checkNotePageCURD(bookmark, actor, "조회"); // 노트 페이지 조회 권한 확인
+        noteService.checkNotePageCURD(bookmark, actor, "조회", "403-1"); // 노트 페이지 조회 권한 확인
 
-        Book book = bookmark.getBook();
+        BookDto bookInfo = noteService.getBookInfo(bookmark);
 
         List<NoteDto> notes = bookmark
                 .getNotes()
@@ -58,14 +56,14 @@ public class NoteController {
         return new RsData<>(
                 "200-1",
                 "%d번 북마크의 노트 조회를 성공했습니다.".formatted(bookmarkId),
-                new NotePageDto(notes, book)
+                new NotePageDto(notes, bookInfo)
         );
     }
 
 
     record NoteWriteReqBody(
             @NotBlank
-            @Length(min = 1, max = 100)
+            @Length(min = 1, max = 50)
             String title,
             @NotBlank
             @Length(min = 1, max = 1000)
@@ -75,7 +73,6 @@ public class NoteController {
     }
 
     @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)
     @Transactional
     @Operation(summary = "노트 작성")
     public RsData<NoteDto> write(
@@ -94,7 +91,7 @@ public class NoteController {
 
         Bookmark bookmark = noteService.findBookmarkById(bookmarkId).get();
 
-        noteService.checkNotePageCURD(bookmark, actor, "작성"); // 노트 페이지 작성 권한 확인
+        noteService.checkNotePageCURD(bookmark, actor, "작성", "403-2"); // 노트 페이지 작성 권한 확인
 
         Note note = noteService.write(bookmarkId, reqBody.title, reqBody.content, reqBody.page, actor);
 
@@ -121,7 +118,6 @@ public class NoteController {
     }
 
     @PutMapping("/{id}")
-    @ResponseStatus(HttpStatus.OK)
     @Transactional
     @Operation(summary = "노트 수정")
     public RsData<Void> modify(
@@ -141,7 +137,7 @@ public class NoteController {
 
         Bookmark bookmark = noteService.findBookmarkById(bookmarkId).get();
 
-        noteService.checkNotePageCURD(bookmark, actor, "수정"); // 노트 페이지 작성 수정 확인
+        noteService.checkNotePageCURD(bookmark, actor, "수정", "403-3"); // 노트 페이지 작성 수정 확인
 
         Note note = noteService.findNoteById(bookmark, id).get();
 
@@ -154,7 +150,6 @@ public class NoteController {
     }
 
     @DeleteMapping("/{id}")
-    @ResponseStatus(HttpStatus.OK)
     @Transactional
     @Operation(summary = "노트 삭제")
     public RsData<Void> delete(
@@ -173,7 +168,7 @@ public class NoteController {
 
         Bookmark bookmark = noteService.findBookmarkById(bookmarkId).get();
 
-        noteService.checkNotePageCURD(bookmark, actor, "삭제"); // 노트 페이지 삭제 권한 확인
+        noteService.checkNotePageCURD(bookmark, actor, "삭제", "403-4"); // 노트 페이지 삭제 권한 확인
 
         Note note = noteService.findNoteById(bookmark, id).get();
 

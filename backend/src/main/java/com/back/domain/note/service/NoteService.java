@@ -1,16 +1,17 @@
 package com.back.domain.note.service;
 
+import com.back.domain.book.book.entity.Book;
 import com.back.domain.bookmarks.entity.Bookmark;
 import com.back.domain.bookmarks.repository.BookmarkRepository;
 import com.back.domain.member.member.entity.Member;
+import com.back.domain.note.dto.BookDto;
 import com.back.domain.note.entity.Note;
 import com.back.domain.note.repository.NoteRepository;
 import com.back.global.exception.ServiceException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.ResponseStatus;
 
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 
@@ -60,10 +61,24 @@ public class NoteService {
                 .findFirst();
     }
 
-    @ResponseStatus(HttpStatus.FORBIDDEN)
-    public void checkNotePageCURD(Bookmark bookmark, Member actor, String str) {
+    public void checkNotePageCURD(Bookmark bookmark, Member actor, String str, String resultCode) {
         if (!bookmark.getMember().equals(actor)) {
-            throw new ServiceException("403-1", "%d번 북마크의 노트 %s 권한이 없습니다.".formatted(bookmark.getId(), str));
+            throw new ServiceException(resultCode, "%d번 북마크의 노트 %s 권한이 없습니다.".formatted(bookmark.getId(), str));
         }
+    }
+
+    public BookDto getBookInfo(Bookmark bookmark) {
+        Book book = bookmark.getBook();
+
+        String imageUrl = book.getImageUrl();
+        String title = book.getTitle();
+        String category = book.getCategory().getName();
+
+        List<String> authors = book.getAuthors()
+                .stream()
+                .map(wrote -> wrote.getAuthor().getName())
+                .toList();
+
+        return new BookDto(imageUrl, title, authors, category);
     }
 }

@@ -22,15 +22,22 @@ export interface NoteResponse {
     modifyDate: string;
 }
 
-// 책 정보(수정 필요)
+// 책 정보
 type BookInfo = {
     title: string;
     imageUrl: string;
+    category: string;
+    author: string[];
 };
 
 export function useNote(bookmarkId: number) {
     const [notes, setNotes] = useState<NoteResponse[]>([]);
-    const [bookInfo, setBookInfo] = useState<BookInfo>({ title: "", imageUrl: "" });
+    const [bookInfo, setBookInfo] = useState<BookInfo>({
+        title: "",
+        imageUrl: "",
+        category: "",
+        author: [],
+    });
 
     const { safeFetch } = useSafeFetch(); // 공통 fetch 훅 사용
 
@@ -43,11 +50,15 @@ export function useNote(bookmarkId: number) {
         });
 
         console.log(json);
-        const data = json.data;
-        setNotes(data.notes);
+        const notes = json.data.notes;
+        const bookInfo = json.data.bookInfo;
+
+        setNotes(notes);
         setBookInfo({
-            title: data.title,
-            imageUrl: data.imageUrl || "",
+            title: bookInfo.title,
+            imageUrl: bookInfo.imageUrl || "",
+            category: bookInfo.category || "",
+            author: bookInfo.author || [],
         });
     };
 
