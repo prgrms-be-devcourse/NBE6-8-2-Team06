@@ -29,6 +29,7 @@ export function BookmarkFilters({
     return (
         <div className="mb-8 space-y-4">
         <div className="flex flex-col sm:flex-row gap-4">
+          <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
           <Input
             placeholder="책 제목 또는 저자 검색..."
@@ -36,6 +37,7 @@ export function BookmarkFilters({
             onChange={(e) => onSearchKeywordChange(e.target.value)}
             className="pl-10"
           />
+          </div>
           <Select value={selectedCategory} onValueChange={onCategoryChange}>
             <SelectTrigger className="w-full sm:w-48">
               <SelectValue placeholder="카테고리 선택" />
