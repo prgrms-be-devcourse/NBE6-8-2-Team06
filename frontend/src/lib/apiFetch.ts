@@ -8,10 +8,15 @@ export async function apiFetch<T>(
   const baseUrl = API_BASE_URL;
   const url = path;
 
-  const headers = {
-    "Content-Type": "application/json",
+  const method = options.method || 'GET';
+  const headers: Record<string, string> = {
     ...(options.headers || {}),
   };
+  
+  // GET 요청이 아닌 경우에만 Content-Type 헤더 추가
+  if (method !== 'GET') {
+    headers["Content-Type"] = "application/json";
+  }
 
   let res = await fetch(`${baseUrl}${url}`, {
     ...options,

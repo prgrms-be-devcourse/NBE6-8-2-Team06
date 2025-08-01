@@ -31,11 +31,13 @@ import {
   fetchBooks,
   searchBooks,
   searchBookByIsbn,
+  fetchBooksByCategory,
   BooksResponse,
 } from "@/types/book";
 import { useAuth } from "@/app/_hooks/auth-context";
 import { toast } from "@/lib/toast";
 import { createBookmark } from "@/types/bookmarkAPI.js";
+import { getCategories, Category } from "@/types/category";
 
 interface BooksPageProps {
   onNavigate: (page: string) => void;
@@ -44,10 +46,11 @@ interface BooksPageProps {
 
 export default function BooksPage() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [searchType, setSearchType] = useState<"title" | "isbn">("title");
+  const [searchType, setSearchType] = useState<"title" | "isbn" | "category">("title");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [sortBy, setSortBy] = useState("title");
   const [books, setBooks] = useState<BookSearchDto[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
@@ -59,6 +62,21 @@ export default function BooksPage() {
   const { isLoggedIn } = useAuth();
   const onBookClick = (id: number) => {
     router.push(`${pathName}/${id}`);
+  };
+
+  const loadCategories = async () => {
+    try {
+      const response = await getCategories();
+      console.log("📂 카테고리 목록:", response);
+      if (response && Array.isArray(response)) {
+        setCategories(["all", ...response.map((cat: Category) => cat.name)]);
+      } else if (response && response.data && Array.isArray(response.data)) {
+        setCategories(["all", ...response.data.map((cat: Category) => cat.name)]);
+      }
+    } catch (error) {
+      console.error("❌ 카테고리 목록 조회 실패:", error);
+      setCategories(["all"]);
+    }
   };
 
   const loadBooks = async (page: number = 0, query?: string, type?: "title" | "isbn") => {
@@ -107,6 +125,16 @@ export default function BooksPage() {
     loadBooks(0); // 전체 목록 다시 로드
   };
 
+  // 카테고리 변경 핸들러
+  const handleCategoryChange = (category: string) => {
+    setSelectedCategory(category);
+    setCurrentPage(0);
+    setIsSearching(false);
+    setSearchTerm('');
+    // 임시로 전체 목록을 가져온 후 클라이언트에서 필터링
+    loadBooks(0);
+  };
+
   // 페이지 로드 함수 (검색 상태 유지)
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -122,13 +150,9 @@ export default function BooksPage() {
 
   useEffect(() => {
     loadBooks(0);
+    loadCategories();
   }, []);
 
-  // Get unique categories from books data
-  const categories = [
-    "all",
-    ...Array.from(new Set(books.map((book) => book.categoryName))),
-  ];
 
   // Helper function to get display text for read state
   const getReadStateText = (readState: ReadState) => {
@@ -240,7 +264,7 @@ export default function BooksPage() {
         readState: readState
       });
       
-      // 성공 시 책 목록 새로고침 (readState 업데이트를 위해)
+      // 성공 시 책 목록 새로고림 (readState 업데이트를 위해)
       if (isSearching && searchTerm.trim()) {
         if (searchType === "title") {
           await loadBooks(currentPage, searchTerm, searchType);
@@ -314,7 +338,7 @@ export default function BooksPage() {
               전체보기
             </Button>
           )}
-          <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+          <Select value={selectedCategory} onValueChange={handleCategoryChange}>
             <SelectTrigger className="w-full sm:w-48">
               <SelectValue placeholder="카테고리 선택" />
             </SelectTrigger>
