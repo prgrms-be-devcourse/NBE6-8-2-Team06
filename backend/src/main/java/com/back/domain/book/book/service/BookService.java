@@ -56,31 +56,36 @@ public class BookService {
      */
     @Transactional
     public Page<BookSearchDto> searchBooks(String query, Pageable pageable, Member member) {
-        // 1. DB에서 유효한 책들만 먼저 확인 (페이지 수 > 0)
+        // 1. DB에서 유효한 책들만 먼저 확인
         List<Book> validBooksFromDb = bookRepository.findValidBooksByTitleOrAuthorContaining(query);
 
-        if (!validBooksFromDb.isEmpty()) {
-            log.info("DB에서 찾은 유효한 책: {} 권", validBooksFromDb.size());
-            return createPageFromList(validBooksFromDb, pageable, member);
+        if (validBooksFromDb.isEmpty()) {
+            log.info("DB에 유효한 책이 없어서 알라딘 API에서 검색: {}", query);
+
+            // 2. API에서 검색하여 DB에 저장 (충분한 양)
+            List<AladinBookDto> apiBooks = aladinApiClient.searchBooks(query, 100); // 더 많이 가져오기
+
+            // 3. API 결과를 엔티티로 변환하고 저장
+            List<Book> savedBooks = apiBooks.stream()
+                    .map(this::convertAndSaveBook)
+                    .filter(book -> book != null)
+                    .collect(Collectors.toList());
+
+            // 4. 상세 정보 보완
+            enrichMissingDetails(savedBooks);
+
+            // ★ 핵심: DB에 저장 완료 후 DB에서 다시 검색해서 반환 ★
+            log.info("API 검색 및 저장 완료. DB에서 다시 검색하여 페이징 처리");
+            validBooksFromDb = bookRepository.findValidBooksByTitleOrAuthorContaining(query);
         }
 
-        log.info("DB에 유효한 책이 없어서 알라딘 API에서 검색: {}", query);
+        if (validBooksFromDb.isEmpty()) {
+            log.warn("API 검색 후에도 유효한 책이 없음: {}", query);
+            return Page.empty(pageable);
+        }
 
-        // 2. API에서 검색 (더 많은 결과를 가져와서 페이징 처리)
-        int apiLimit = Math.max(30, (pageable.getPageNumber() + 1) * pageable.getPageSize());
-        List<AladinBookDto> apiBooks = aladinApiClient.searchBooks(query, apiLimit);
-
-        // 3. API 결과를 엔티티로 변환하고 저장
-        List<Book> savedBooks = apiBooks.stream()
-                .map(this::convertAndSaveBook)
-                .filter(book -> book != null)
-                .collect(Collectors.toList());
-
-        // 4. 상세 정보 보완 (페이지 수 0인 책들은 여기서 필터링됨)
-        savedBooks = enrichMissingDetails(savedBooks);
-
-        // 5. 페이징 처리하여 반환
-        return createPageFromList(savedBooks, pageable, member);
+        log.info("DB에서 찾은 유효한 책: {} 권", validBooksFromDb.size());
+        return createPageFromList(validBooksFromDb, pageable, member);
     }
 
     /**
