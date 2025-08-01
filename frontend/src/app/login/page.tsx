@@ -17,7 +17,7 @@ import { BookOpen } from "lucide-react";
 import { useLogin } from "../_hooks/useLogin";
 import { useSignup } from "../_hooks/useSignup";
 import { LoginForm, SignupForm } from "@/types/auth";
-import { toast } from "@/lib/toast";
+import { toast } from "sonner";
 import { validateSignupForm, validateLoginForm } from "../utils/formValidation";
 import { useFormValidation } from "../_hooks/useFormValidation";
 import { PasswordInput } from "@/components/ui/password-input";

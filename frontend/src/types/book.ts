@@ -54,7 +54,7 @@ interface ApiResponse<T> {
 }
 
 // PageResponseDto 타입 정의 (백엔드와 일치)
-interface PageResponseDto<T> {
+export interface PageResponseDto<T> {
   data: T[];
   pageNumber: number;
   pageSize: number;
