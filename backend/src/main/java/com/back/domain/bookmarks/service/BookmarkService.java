@@ -53,37 +53,6 @@ public class BookmarkService {
         List<BookmarkDto> dtoList = convertToBookmarkDtoList(bookmarks.getContent(), member);
         return new PageImpl<>(dtoList, pageable, bookmarks.getTotalElements());
     }
-    //Specification
-    public Page<BookmarkDto> toPageSpec(Member member, int pageNumber, int pageSize, String category, String state, String keyword){
-        Pageable pageable = PageRequest.of(pageNumber, pageSize);
-        Specification<Bookmark> spec = (root, query, criteriaBuilder) -> {
-            query.distinct(true);
-            return criteriaBuilder.equal(root.get("member"), member);
-        };
-
-        if(category != null){
-            spec = spec.and((root, query, builder) -> {
-                Join<Bookmark, Book> bookJoin = root.join("book");
-                return builder.equal(bookJoin.get("category").get("name"), category);
-            });
-        }
-        if(state != null){
-            ReadState readState = ReadState.valueOf(state.toUpperCase());
-            spec = spec.and((root, query, builder) -> builder.equal(root.get("state"), readState));
-        }
-        if(keyword != null){
-            spec = spec.and((root, query, builder) -> {
-                Join<Bookmark, Book> bookJoin = root.join("book");
-                return builder.or(
-                        builder.like(bookJoin.get("title"), "%"+keyword+"%"),
-                        builder.like(bookJoin.get("authors").get("author").get("name"), "%"+keyword+"%")
-                );
-            });
-        }
-        Page<Bookmark> bookmarks = bookmarkRepository.findAll(spec, pageable);
-        List<BookmarkDto> dtoList = convertToBookmarkDtoList(bookmarks.getContent(), member);
-        return new PageImpl<>(dtoList, pageable, bookmarks.getTotalElements());
-    }
 
     public BookmarkDetailDto getBookmarkById(Member member, int bookmarkId) {
         Bookmark bookmark = bookmarkRepository.findByIdAndMember(bookmarkId, member).orElseThrow(() -> new NoSuchElementException("%d번 데이터가 없습니다.".formatted(bookmarkId)));

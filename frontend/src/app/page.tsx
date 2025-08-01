@@ -36,7 +36,7 @@ export default function HomePage() {
         getBookmarks({
           page: 0,
           size: 3,
-          sort: "createDate,desc",
+          sort: "modifyDate,desc",
           category: null,
           readState: null,
           keyword: null,
@@ -46,7 +46,7 @@ export default function HomePage() {
       setRecentBooks(recentBooksResponse.data.data);
     } catch (error){
       console.error('❌ 에러 데이터:', (error as any).data);
-      setError(error instanceof Error ? error.message : '북마크 목록을 가져올 수 없습니다.');
+      setError(error instanceof Error ? error.message : '내 책 정보를 가져올 수 없습니다.');
     }finally {
       setIsLoading(false);
     }
@@ -148,7 +148,7 @@ if(isAuthLoading || isLoading){
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {recentBooks.map((bookmark) => (
-                <Card key={bookmark.id}>
+                <Card key={bookmark.id} className="flex flex-col h-full">
                   <CardHeader>
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
@@ -164,13 +164,13 @@ if(isAuthLoading || isLoading){
                       />
                     </div>
                   </CardHeader>
-                  <CardContent>
-                    <div className="flex justify-between items-center">
+                  <CardContent className="mt-auto">
+                    <div className="flex items-center">
                       <Badge className={`mt-2 ${getReadStateColor(bookmark.readState)}`}>
                             {getReadState(bookmark.readState)}
                       </Badge>
                       {bookmark.review?.rate > 0 && (
-                        <div className="flex items-center">
+                        <div className="flex items-center ml-auto">
                           <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mr-1" />
                           <span className="text-sm">{bookmark.review?.rate}</span>
                         </div>
