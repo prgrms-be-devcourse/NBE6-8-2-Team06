@@ -2,7 +2,6 @@ package com.back.domain.note.controller;
 
 import com.back.domain.book.book.entity.Book;
 import com.back.domain.bookmarks.entity.Bookmark;
-import com.back.domain.member.member.entity.Member;
 import com.back.domain.member.member.repository.MemberRepository;
 import com.back.domain.note.entity.Note;
 import com.back.domain.note.service.NoteService;
@@ -92,7 +91,7 @@ public class NoteControllerTest {
 
     @Test
     @DisplayName("노트 페이지 전체 조회")
-    @WithUserDetails("이메일1")
+    @WithUserDetails("email1@naver.com")
     void t6() throws Exception {
         int bookmarkId = 1;
 
@@ -132,7 +131,7 @@ public class NoteControllerTest {
 
     @Test
     @DisplayName("노트 작성")
-    @WithUserDetails("이메일1")
+    @WithUserDetails("email1@naver.com")
     void t3() throws Exception {
         int bookmarkId = 1;
 
@@ -170,12 +169,9 @@ public class NoteControllerTest {
 
     @Test
     @DisplayName("노트 작성 without permission")
-    @WithUserDetails("이메일2")
+    @WithUserDetails("email2@naver.com")
     void t7() throws Exception {
         int bookmarkId = 1;
-
-        Member member = memberRepository.findByEmail("이메일2").get();
-        String apikey = member.getRefreshToken();
 
         ResultActions resultActions = mvc
                 .perform(
@@ -201,7 +197,7 @@ public class NoteControllerTest {
 
     @Test
     @DisplayName("노트 수정")
-    @WithUserDetails("이메일1")
+    @WithUserDetails("email1@naver.com")
     void t4() throws Exception {
         int bookmarkId = 1;
         int id = 1;
@@ -231,13 +227,10 @@ public class NoteControllerTest {
 
     @Test
     @DisplayName("노트 수정 without permission")
-    @WithUserDetails("이메일2")
+    @WithUserDetails("email2@naver.com")
     void t9() throws Exception {
         int bookmarkId = 1;
         int id = 1;
-
-        Member member = memberRepository.findByEmail("이메일2").get();
-        String apikey = member.getRefreshToken();
 
         ResultActions resultActions = mvc
                 .perform(
@@ -263,7 +256,7 @@ public class NoteControllerTest {
 
     @Test
     @DisplayName("노트 삭제")
-    @WithUserDetails("이메일1")
+    @WithUserDetails("email1@naver.com")
     void t5() throws Exception {
         int bookmarkId = 1;
         int id = 1;
@@ -284,7 +277,7 @@ public class NoteControllerTest {
 
     @Test
     @DisplayName("노트 삭제 without permission")
-    @WithUserDetails("이메일2")
+    @WithUserDetails("email2@naver.com")
     void t11() throws Exception {
         int bookmarkId = 1;
         int id = 1;
