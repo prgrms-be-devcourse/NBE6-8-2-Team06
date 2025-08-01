@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/app/_hooks/auth-context';
 import { getBookmarkReadStates, getBookmarks } from '@/types/bookmarkAPI';
 import { Bookmark, BookmarkReadStates } from '@/types/bookmarkData';
-import { getReadState, getReadStateColor, renderStars } from '@/lib/bookmarkUtils';
+import { getReadState, getReadStateColor } from '@/lib/bookmarkUtils';
 
 export default function HomePage() {
   const { isLoggedIn, isLoading: isAuthLoading } = useAuth();
