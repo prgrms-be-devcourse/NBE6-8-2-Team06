@@ -568,6 +568,35 @@ public class BookService {
     }
 
     /**
+     * 카테고리별 책 조회 (페이징, Member 정보 포함) - 유효한 책들만
+     */
+    public Page<BookSearchDto> getBooksByCategory(String categoryName, Pageable pageable, Member member) {
+        log.info("카테고리별 유효한 책 조회: category={}, page={}, size={}, sort={}, member={}",
+                categoryName, pageable.getPageNumber(), pageable.getPageSize(), pageable.getSort(),
+                member != null ? member.getId() : "null");
+
+        try {
+            // 카테고리 존재 여부 확인
+            Optional<Category> categoryOptional = categoryRepository.findByName(categoryName);
+            if (categoryOptional.isEmpty()) {
+                log.warn("존재하지 않는 카테고리: {}", categoryName);
+                return Page.empty(pageable);
+            }
+
+            // 페이지 수가 0보다 큰 유효한 책들만 조회
+            Page<Book> validBookPage = bookRepository.findValidBooksByCategory(categoryName, pageable);
+            return validBookPage.map(book -> {
+                BookSearchDto dto = convertToDto(book, member);
+                log.debug("Book {} converted with readState: {}", book.getId(), dto.getReadState());
+                return dto;
+            });
+        } catch (Exception e) {
+            log.error("카테고리별 책 조회 중 오류 발생: {}", e.getMessage());
+            throw new ServiceException("500-3", "카테고리별 책 조회 중 오류가 발생했습니다.");
+        }
+    }
+
+    /**
      * 책의 평균 평점 계산
      */
     private float calculateAvgRateForBook(Book book) {

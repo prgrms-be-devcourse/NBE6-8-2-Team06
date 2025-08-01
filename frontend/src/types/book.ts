@@ -234,8 +234,8 @@ export async function fetchBooksByCategory(categoryName: string, page: number = 
   
   try {
     const encodedCategoryName = encodeURIComponent(categoryName);
-    console.log(`🔍 카테고리별 책 조회 API 호출 시작: /api/books/categories/${encodedCategoryName}?page=${page}&size=${size}`);
-    const response = await apiFetch<ApiResponse<PageResponseDto<BookSearchDto>>>(`/api/books/categories/${encodedCategoryName}?page=${page}&size=${size}`);
+    console.log(`🔍 카테고리별 책 조회 API 호출 시작: /api/books/categories?categoryName=${encodedCategoryName}&page=${page}&size=${size}`);
+    const response = await apiFetch<ApiResponse<PageResponseDto<BookSearchDto>>>(`/api/books/categories?categoryName=${encodedCategoryName}&page=${page}&size=${size}`);
     console.log('📦 카테고리별 책 조회 응답 받음:', response);
     return await processApiResponse(response);
   } catch (error) {

@@ -79,10 +79,10 @@ export default function BooksPage() {
     }
   };
 
-  const loadBooks = async (page: number = 0, query?: string, type?: "title" | "isbn") => {
+  const loadBooks = async (page: number = 0, query?: string, type?: "title" | "isbn", category?: string) => {
     try {
       setLoading(true);
-      console.log(`🚀 books 페이지에서 API 호출 시작 - 페이지: ${page}, 검색어: ${query}, 타입: ${type}`);
+      console.log(`🚀 books 페이지에서 API 호출 시작 - 페이지: ${page}, 검색어: ${query}, 타입: ${type}, 카테고리: ${category}`);
       
       let response: BooksResponse;
       if (query && query.trim()) {
@@ -91,6 +91,8 @@ export default function BooksPage() {
         } else {
           response = await searchBooks(query, page);
         }
+      } else if (category && category !== "all") {
+        response = await fetchBooksByCategory(category, page);
       } else {
         response = await fetchBooks(page);
       }
@@ -122,7 +124,7 @@ export default function BooksPage() {
     setSearchTerm('');
     setCurrentPage(0);
     setIsSearching(false);
-    loadBooks(0); // 전체 목록 다시 로드
+    loadBooks(0, undefined, undefined, selectedCategory); // 현재 선택된 카테고리로 로드
   };
 
   // 카테고리 변경 핸들러
@@ -131,8 +133,7 @@ export default function BooksPage() {
     setCurrentPage(0);
     setIsSearching(false);
     setSearchTerm('');
-    // 임시로 전체 목록을 가져온 후 클라이언트에서 필터링
-    loadBooks(0);
+    loadBooks(0, undefined, undefined, category);
   };
 
   // 페이지 로드 함수 (검색 상태 유지)
@@ -144,7 +145,7 @@ export default function BooksPage() {
         loadBooks(page, searchTerm, searchType);
       }
     } else {
-      loadBooks(page);
+      loadBooks(page, undefined, undefined, selectedCategory);
     }
   };
 
@@ -168,29 +169,23 @@ export default function BooksPage() {
     }
   };
 
-  const filteredBooks = books
-    .filter((book) => {
-      const matchesCategory =
-        selectedCategory === "all" || book.categoryName === selectedCategory;
-      return matchesCategory;
-    })
-    .sort((a, b) => {
-      switch (sortBy) {
-        case "title":
-          return a.title.localeCompare(b.title);
-        case "author":
-          return a.authors[0]?.localeCompare(b.authors[0] || "") || 0;
-        case "rating":
-          return b.avgRate - a.avgRate;
-        case "published":
-          return (
-            new Date(b.publishedDate).getTime() -
-            new Date(a.publishedDate).getTime()
-          );
-        default:
-          return 0;
-      }
-    });
+  const filteredBooks = books.sort((a, b) => {
+    switch (sortBy) {
+      case "title":
+        return a.title.localeCompare(b.title);
+      case "author":
+        return a.authors[0]?.localeCompare(b.authors[0] || "") || 0;
+      case "rating":
+        return b.avgRate - a.avgRate;
+      case "published":
+        return (
+          new Date(b.publishedDate).getTime() -
+          new Date(a.publishedDate).getTime()
+        );
+      default:
+        return 0;
+    }
+  });
 
   if (loading) {
     return (
@@ -272,7 +267,7 @@ export default function BooksPage() {
           await loadBooks(currentPage, searchTerm, searchType);
         }
       } else {
-        await loadBooks(currentPage);
+        await loadBooks(currentPage, undefined, undefined, selectedCategory);
       }
       
     } catch (error) {
