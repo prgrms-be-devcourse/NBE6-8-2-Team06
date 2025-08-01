@@ -1,4 +1,5 @@
 "use client"
+import { useAuth } from "@/app/_hooks/auth-context";
 import { useReview } from "@/app/_hooks/useReview";
 import withLogin from "@/app/_hooks/withLogin";
 import { ImageWithFallback } from "@/components/ImageWithFallback";
@@ -13,9 +14,7 @@ import { useRouter } from "next/navigation";
 import { use, useCallback, useEffect, useState } from "react";
 
 
-export default 
-withLogin(
-  function page({params}:{params:Promise<{id:string}>}){
+export default withLogin(function page({params}:{params:Promise<{id:string}>}){
   const {id:bookmarkIdStr} = use(params);
   const bookmarkId = parseInt(bookmarkIdStr);
   const router = useRouter();
@@ -30,29 +29,21 @@ withLogin(
 
   const fetchBookmark = async () => {
     const response = await getBookmark(bookmarkId);
+    const bookmarkData = response.data as BookmarkDetail;
     setBookmark(response.data);
+    setReview(bookmarkData.review || null);
+    setBook(bookmarkData.book || null);
+    setRating(bookmarkData.review?.rate || 0);
+    setContent(bookmarkData.review?.content || '');
+    setBookId(bookmarkData.book?.id || 0);
+    reviewApi.setBookId(bookmarkData.book?.id || 0);
   }
   
   useEffect(()=>{
     if (!bookmark){
       fetchBookmark();
     }
-  },[])
-
-  useEffect(()=>{
-    setReview(bookmark?.review||null);
-    setBook(bookmark?.book||null);
-  }, [bookmark])
-
-  useEffect(()=>{
-    setRating(review?.rate||0);
-    setContent(review?.content||"");
-  }, [review])
-
-  useEffect(()=>{
-    setBookId(book?.id||0);
-    reviewApi.setBookId(book?.id||0);
-  }, [book])
+  },[bookmarkId])
   
   const onNavigate = (e:string)=>{
     router.push(e);
@@ -154,7 +145,7 @@ withLogin(
             <CardContent className="p-6">
               <div className="text-center">
                 <ImageWithFallback
-                  src={`https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=200&h=300&fit=crop&crop=center&sig=${book!.id}`}
+                  src={`${book!.imageUrl}`}
                   alt={book!.title}
                   className="w-40 h-60 object-cover rounded mx-auto mb-4"
                 />
@@ -241,5 +232,4 @@ withLogin(
       </div>
     </div>
   );
-}
-)
+})

@@ -11,7 +11,7 @@ export const useSafeFetch = () => {
 
         const json = await res.json();
         console.log(json)
-        if (res.status !== 200) {
+        if (json.resultCode.substring(0, 3) === "403") {
             alert(`${json.resultCode}: ${json.msg}`);
             router.push("/");
             throw new Error("권한 없음");

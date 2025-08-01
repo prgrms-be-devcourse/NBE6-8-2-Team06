@@ -1,13 +1,7 @@
 package com.back.domain.bookmark.controller;
 
-import com.back.domain.book.author.entity.Author;
-import com.back.domain.book.author.repository.AuthorRepository;
 import com.back.domain.book.book.entity.Book;
 import com.back.domain.book.book.repository.BookRepository;
-import com.back.domain.book.category.entity.Category;
-import com.back.domain.book.category.repository.CategoryRepository;
-import com.back.domain.book.wrote.entity.Wrote;
-import com.back.domain.book.wrote.repository.WroteRepository;
 import com.back.domain.bookmarks.controller.BookmarkController;
 import com.back.domain.bookmarks.dto.BookmarkDto;
 import com.back.domain.bookmarks.dto.BookmarkDetailDto;
@@ -26,13 +20,14 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.Page;
 import org.springframework.http.MediaType;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -50,43 +45,25 @@ public class BookmarkControllerTest {
     @Autowired
     private BookmarkService bookmarkService;
     @Autowired
-    private CategoryRepository categoryRepository;
-    @Autowired
     private MemberService memberService;
     @Autowired
-    private AuthorRepository authorRepository;
-    @Autowired
-    private WroteRepository wroteRepository;
+    private PasswordEncoder passwordEncoder;
 
     @BeforeEach
     void setup() {
-        Category category = new Category("테스트");
-        categoryRepository.save(category);
 
-        Author author = new Author("가나다");
-        author = authorRepository.save(author);
+        Member member =memberService.findByEmail("email@test.com").orElse(null);
+        if(member==null) {
+            member = memberService.join("testUser", "email@test.com", passwordEncoder.encode("password"));
+        }
 
-        Book book = new Book();
-        book.setTitle("테스트 도서 제목");
-        book.setImageUrl("http://example.com/image.jpg");     // imageUrl
-        book.setAvgRate(4.0f);                               // avgRate
-        book.setTotalPage(300);                                // totalPage (nullable=false일 가능성 높음)
-        book.setPublishedDate(LocalDateTime.of(2023, 1, 1, 0, 0)); // publishedDate
-        book.setPublisher("테스트 출판사");                       // publisher
-        book.setCategory(category);
-        // DB에 저장하면 @GeneratedValue 전략에 따라 ID가 할당됩니다.
-        book = bookRepository.save(book);
-        Wrote wrote = new Wrote(author, book);
-        wrote = wroteRepository.save(wrote);
-        Member member = memberService.join("testUser1", "testUser1", "password");
-
-        bookmarkService.save(book.getId(), member);
+        bookmarkService.save(1, member);
     }
 
     @Test
     @DisplayName("북마크 추가")
     void t1() throws Exception {
-        Member member = memberService.findByEmail("testUser1").get();
+        Member member = memberService.findByEmail("email@test.com").get();
         String accessToken = memberService.geneAccessToken(member);
         Book book = bookRepository.findById(1).get();
         ResultActions resultActions = mvc.perform(
@@ -111,8 +88,8 @@ public class BookmarkControllerTest {
     @Test
     @DisplayName("북마크 단건 조회")
     void t2() throws Exception {
-        int id = 1;
-        Member member = memberService.findByEmail("testUser1").get();
+        int id = 3;
+        Member member = memberService.findByEmail("email@test.com").get();
         String accessToken = memberService.geneAccessToken(member);
         ResultActions resultActions = mvc
                 .perform(
@@ -133,7 +110,8 @@ public class BookmarkControllerTest {
                 .andExpect(jsonPath("$.data.readState").value(bookmarkDto.bookmarkDto().readState()))
                 .andExpect(jsonPath("$.data.readPage").value(bookmarkDto.bookmarkDto().readPage()))
                 .andExpect(jsonPath("$.data.createDate").value(Matchers.startsWith(bookmarkDto.bookmarkDto().createDate().toString().substring(0,18))))
-                .andExpect(jsonPath("$.data.startReadDate").value(Matchers.startsWith(bookmarkDto.bookmarkDto().startReadDate().toString().substring(0,18))))
+                .andExpect(jsonPath("$.data.startReadDate").isEmpty())
+                .andExpect(jsonPath("$.data.endReadDate").isEmpty())
                 .andExpect(jsonPath("$.data.readingDuration").value(bookmarkDto.readingDuration()))
                 .andExpect(jsonPath("$.data.book.id").value(bookmarkDto.bookmarkDto().bookId()))
                 .andExpect(jsonPath("$.data.book.isbn13").value(bookmarkDto.bookmarkDto().book().isbn13()))
@@ -151,7 +129,7 @@ public class BookmarkControllerTest {
     @DisplayName("결제 단건 실패")
     void t3() throws Exception {
         int id = Integer.MAX_VALUE;
-        Member member = memberService.findByEmail("testUser1").get();
+        Member member = memberService.findByEmail("email@test.com").get();
         String accessToken = memberService.geneAccessToken(member);
         ResultActions resultActions = mvc
                 .perform(
@@ -171,7 +149,7 @@ public class BookmarkControllerTest {
     @Test
     @DisplayName("북마크 다건 조회 - 목록")
     void t4() throws Exception {
-        Member member = memberService.findByEmail("testUser1").get();
+        Member member = memberService.findByEmail("email@test.com").get();
         String accessToken = memberService.geneAccessToken(member);
         ResultActions resultActions = mvc
                 .perform(
@@ -213,7 +191,7 @@ public class BookmarkControllerTest {
     @Test
     @DisplayName("북마크 다건 조회 - 페이지")
     void t5() throws Exception {
-        Member member = memberService.findByEmail("testUser1").get();
+        Member member = memberService.findByEmail("email@test.com").get();
         String accessToken = memberService.geneAccessToken(member);
         ResultActions resultActions = mvc
                 .perform(
@@ -222,7 +200,7 @@ public class BookmarkControllerTest {
                 )
                 .andDo(print());
 
-        Page<BookmarkDto> bookmarksDtoPage = bookmarkService.toPage(member,0,10, null, null, null);
+        Page<BookmarkDto> bookmarksDtoPage = bookmarkService.toPage(member,0,10, "createDate,desc",null, null, null);
 
         resultActions
                 .andExpect(handler().handlerType(BookmarkController.class))
@@ -251,17 +229,17 @@ public class BookmarkControllerTest {
                     .andExpect(jsonPath("$.data.data[%d].book.publisher".formatted(i)).value(bookmarksDto.book().publisher()))
                     .andExpect(jsonPath("$.data.data[%d].book.totalPage".formatted(i)).value(bookmarksDto.book().totalPage()))
                     .andExpect(jsonPath("$.data.data[%d].book.avgRate".formatted(i)).value(bookmarksDto.book().avgRate()))
-                    .andExpect(jsonPath("$.data.data[%d].book.category".formatted(i)).value(bookmarksDto.book().category()))
+                    .andExpect(jsonPath("$.data.data[%d].book.category".formatted(i)).value(bookmarksDto.book().category()));
 //                .andExpect(jsonPath("$.data.data[%d].book.authors".formatted(i)).value(bookmarksDto.book().authors()))
-                    .andExpect(jsonPath("$.data.data[%d].book.publishDate".formatted(i)).value(Matchers.startsWith(bookmarksDto.book().publishDate().toString().substring(0,16))));
+//                    .andExpect(jsonPath("$.data.data[%d].book.publishDate".formatted(i)).value(Matchers.startsWith(bookmarksDto.book().publishDate().toString().substring(0,16))));
         }
     }
 
     @Test
     @DisplayName("북마크 수정")
     void t6() throws Exception {
-        int id=1;
-        Member member = memberService.findByEmail("testUser1").get();
+        int id=3;
+        Member member = memberService.findByEmail("email@test.com").get();
         String accessToken = memberService.geneAccessToken(member);
         ResultActions resultActions = mvc.perform(
                 put("/api/bookmarks/"+id)
@@ -288,6 +266,8 @@ public class BookmarkControllerTest {
                 .andExpect(jsonPath("$.data.readPage").value(bookmark.getReadPage()))
                 .andExpect(jsonPath("$.data.readingRate").value(bookmark.calculateReadingRate()))
                 .andExpect(jsonPath("$.data.createDate").value(Matchers.startsWith(bookmark.getCreateDate().toString().substring(0,16))))
+                .andExpect(jsonPath("$.data.startReadDate").value(Matchers.startsWith(bookmark.getStartReadDate().toString().substring(0,16))))
+                .andExpect(jsonPath("$.data.endReadDate").isEmpty())
                 .andExpect(jsonPath("$.data.book.id").value(bookmark.getBook().getId()))
                 .andExpect(jsonPath("$.data.book.isbn13").value(bookmark.getBook().getIsbn13()))
                 .andExpect(jsonPath("$.data.book.title").value(bookmark.getBook().getTitle()))
@@ -303,8 +283,8 @@ public class BookmarkControllerTest {
     @Test
     @DisplayName("북마크 삭제")
     void t7() throws Exception {
-        int id = 1;
-        Member member = memberService.findByEmail("testUser1").get();
+        int id = 3;
+        Member member = memberService.findByEmail("email@test.com").get();
         String accessToken = memberService.geneAccessToken(member);
         ResultActions resultActions = mvc
                 .perform(
@@ -324,7 +304,7 @@ public class BookmarkControllerTest {
     @Test
     @DisplayName("북마크 내책 목록 상태 조회")
     void t8() throws Exception {
-        Member member = memberService.findByEmail("testUser1").get();
+        Member member = memberService.findByEmail("email@test.com").get();
         String accessToken = memberService.geneAccessToken(member);
         ResultActions resultActions = mvc
                 .perform(

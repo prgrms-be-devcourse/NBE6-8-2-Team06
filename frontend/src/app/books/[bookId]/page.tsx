@@ -10,7 +10,8 @@ import { ArrowLeft, BookOpen, Building, Calendar, Globe, Heart, Plus, Star, Thum
 import { useRouter } from "next/navigation";
 import { use, useEffect, useState } from "react";
 import { BookDetailDto, fetchBookDetail, ReviewResponseDto, addToMyBooks, ReadState } from "@/types/book";
-import { useReviewRecommend } from "@/app/_hooks/useReview";
+import { useReview, useReviewRecommend } from "@/app/_hooks/useReview";
+import { useTheme } from "next-themes";
 
 export default function page({params}:{params:Promise<{bookId:string}>}){
     const {bookId:bookIdStr} = use(params);
@@ -21,9 +22,11 @@ export default function page({params}:{params:Promise<{bookId:string}>}){
     const [error, setError] = useState<string | null>(null);
     const [isInMyBooks, setIsInMyBooks] = useState(false);
     const router = useRouter();
-    const reviewRecommend = useReviewRecommend();
+    const reviewApi = useReview(bookId);
+    const reviewRecommendApi = useReviewRecommend();
     const [tabState, setTabState] = useState("description");
     const [reviewPage, setReviewPage] = useState(0);
+    const {theme} = useTheme();
     
     const loadBookDetail = async () => {
       try {
@@ -154,11 +157,11 @@ export default function page({params}:{params:Promise<{bookId:string}>}){
     setBookDetail({...bookDetail, reviews: {...bookDetail.reviews, data:  reviews}});
     // 백엔드에서 업데이트
     if (review.isRecommended === null){
-      await reviewRecommend.createReviewRecommend(review.id, recommend);
+      await reviewRecommendApi.createReviewRecommend(review.id, recommend);
     }else if (review.isRecommended === recommend){
-      await reviewRecommend.deleteReviewRecommend(review.id);
+      await reviewRecommendApi.deleteReviewRecommend(review.id);
     }else{
-      await reviewRecommend.modifyReviewRecomend(review.id, recommend);
+      await reviewRecommendApi.modifyReviewRecomend(review.id, recommend);
     }
     await loadReviews(0);
   }
@@ -304,12 +307,12 @@ export default function page({params}:{params:Promise<{bookId:string}>}){
                           </p>
                           <div className="flex items-center space-x-4">
                             <Button variant={"ghost"} size="sm" onClick={()=>{handleRecommend(review, true)}}>
-                              <ThumbsUp fill={review.isRecommended === true ? "#000" : "none"} strokeWidth={review.isRecommended===true?1:2} className="h-4 w-4 mr-1" />
-                              좋아요 {reviewRecommend.formatLikes(review.likeCount)}
+                              <ThumbsUp fill={review.isRecommended === true ? theme==="dark"?"#fff":"#000" : "none"} strokeWidth={review.isRecommended===true?1:2} className={"h-4 w-4 mr-1"} />
+                              좋아요 {reviewRecommendApi.formatLikes(review.likeCount)}
                             </Button>
                             <Button variant={"ghost"} size="sm" onClick={()=>{handleRecommend(review, false)}}>
-                              <ThumbsDown fill={review.isRecommended === false ? "#000" : "none"} strokeWidth={review.isRecommended===false?1:2} className="h-4 w-4 mr-1" />
-                              싫어요 {reviewRecommend.formatLikes(review.dislikeCount)}
+                              <ThumbsDown fill={review.isRecommended === false ? theme==="dark"?"#fff":"#000" : "none"} strokeWidth={review.isRecommended===false?1:2} className="h-4 w-4 mr-1" />
+                              싫어요 {reviewRecommendApi.formatLikes(review.dislikeCount)}
                             </Button>
                           </div>
                         </div>

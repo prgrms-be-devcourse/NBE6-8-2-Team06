@@ -71,8 +71,8 @@ export default function BooksPage() {
       console.log("📂 카테고리 목록:", response);
       if (response && Array.isArray(response)) {
         setCategories(["all", ...response.map((cat: Category) => cat.name)]);
-      } else if (response && response.data && Array.isArray(response.data)) {
-        setCategories(["all", ...response.data.map((cat: Category) => cat.name)]);
+      } else if (response && (response as any).data && Array.isArray((response as any).data)) {
+        setCategories(["all", ...(response as any).data.map((cat: Category) => cat.name)]);
       }
     } catch (error) {
       console.error("❌ 카테고리 목록 조회 실패:", error);
@@ -80,7 +80,7 @@ export default function BooksPage() {
     }
   };
 
-  const loadBooks = async (page: number = 0, query?: string, type?: "title" | "isbn", category?: string) => {
+  const loadBooks = async (page: number = 0, query?: string, type?: "title" | "isbn" | "category", category?: string) => {
     try {
       setLoading(true);
       console.log(`🚀 books 페이지에서 API 호출 시작 - 페이지: ${page}, 검색어: ${query}, 타입: ${type}, 카테고리: ${category}`);

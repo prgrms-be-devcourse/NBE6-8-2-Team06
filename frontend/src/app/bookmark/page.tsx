@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { getBookmarks, updateBookmark, deleteBookmark, getBookmarkReadStates } from '../../types/bookmarkAPI';
 import { BookmarkPage, Bookmark, BookmarkReadStates, UpdateBookmark } from '../../types/bookmarkData';
-import { BookOpen, Plus, Search } from 'lucide-react';
+import { BookOpen, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -54,12 +54,14 @@ export default function Page() {
       const response = await getBookmarks({
         page: currentPage,
         size: 10,
+        sort: "createDate,desc",
         category: selectedCategory,
         readState: selectedReadState,
         keyword: searchKeyword,
       });
       setBookmarks(response.data);
     } catch (error) {
+      console.error('❌ 에러 데이터:', (error as any).data);
       if (error instanceof Error && error.message.includes("데이터가 없습니다")) {
         setBookmarks({
           data: [],
@@ -84,6 +86,7 @@ export default function Page() {
       const response = await getBookmarkReadStates();
       setBookmarkReadStates(response.data);
     } catch (error) {
+      console.error('❌ 에러 데이터:', (error as any).data);
       setError(error instanceof Error ? error.message : '북마크 읽기 상태 데이터를 가져올 수 없습니다.');
     } finally {
       setIsLoading(false);
@@ -95,6 +98,7 @@ export default function Page() {
       const response = await getCategories();
       setCategories(response.data);
     } catch (error) {
+      console.error('❌ 에러 데이터:', (error as any).data);
       setError(error instanceof Error ? error.message : '카테고리 목록을 가져오는 데 실패했습니다.');
       setCategories([]);
     }
@@ -140,6 +144,7 @@ export default function Page() {
       await fetchBookmarkReadStates();
       await fetchBookmarks(searchKeyword);
     } catch (error) {
+      console.error('❌ 에러 데이터:', (error as any).data);
       setError(error instanceof Error ? error.message : '북마크 업데이트가 실패했습니다.');
     }
   };
@@ -151,17 +156,9 @@ export default function Page() {
         await fetchBookmarkReadStates();
         await fetchBookmarks(searchKeyword);
       } catch (error) {
+        console.error('❌ 에러 데이터:', (error as any).data);
         setError(error instanceof Error ? error.message : '북마크 삭제에 실패했습니다.');
       }
-    }
-  };
-
-  const handlePreviousPage = () => {
-    setCurrentPage(prev => Math.max(prev - 1, 0));
-  };
-  const handleNextPage = () => {
-    if (bookmarks && !bookmarks.isLast) {
-      setCurrentPage(prev => prev + 1);
     }
   };
 
@@ -225,7 +222,7 @@ export default function Page() {
                 />
               ))}
             </div>
-          )};
+          )}
         </div>
       </Tabs>
       {/* 페이지  */}

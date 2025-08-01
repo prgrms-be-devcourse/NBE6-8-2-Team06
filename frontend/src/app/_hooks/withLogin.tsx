@@ -8,11 +8,16 @@ import { useRouter } from "next/navigation";
 export default function withLogin<P extends object>(
     Component: React.ComponentType<P>,
 ){
+
     return function WithLoginComponent(props:P){
-        const {isLoggedIn} = useAuth();
+        const {isLoggedIn, isLoading} = useAuth();
         const router = useRouter();
         const onNavigate = ()=>{
             router.push("/login");
+        }
+
+        if (isLoading) {
+            return <div>Loading...</div>;
         }
 
         if (!isLoggedIn){
