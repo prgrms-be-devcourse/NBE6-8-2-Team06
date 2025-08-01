@@ -13,20 +13,6 @@ import { use, useState, useEffect } from "react";
 import { useNote } from "./_hook/useNote";
 import { useAuth } from "@/app/_hooks/auth-context";
 
-
-interface BookNotesPageProps {
-  bookId: number | null;
-  onNavigate: (page: string) => void;
-}
-
-interface MyBook {
-  id: number;
-  title: string;
-  author: string;
-  category: string;
-  totalPages: number;
-}
-
 interface Note {
   id: number;
   title: string;
@@ -160,17 +146,14 @@ export default function page({ params }: { params: Promise<{ id: string }> }) {
           <Card>
             <CardContent className="p-6">
               <div className="text-center">
-
-                {/* 수정 필요 */}
-                {/* 수정 필요 */}
                 <ImageWithFallback
-                  src={`https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=150&h=225&fit=crop&crop=center&sig=1`}
+                  src={bookInfo.imageUrl}
                   alt={`https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=150&h=225&fit=crop&crop=center&sig=1`}
                   className="w-32 h-48 object-cover rounded mx-auto mb-4"
                 />
                 <h2 className="text-lg mb-2">{bookInfo.title}</h2>
-                <p className="text-sm text-muted-foreground mb-2">{"bookInfo.author"}</p> {/* 수정 필요 */}
-                <Badge variant="secondary">{"bookInfo.category"}</Badge> {/* 수정 필요 */}
+                <p className="text-sm text-muted-foreground mb-2">{bookInfo.author.join(", ")}</p> {/* 수정 필요 */}
+                <Badge variant="secondary">{bookInfo.category}</Badge>
               </div>
 
               <div className="mt-6 pt-6 border-t">
