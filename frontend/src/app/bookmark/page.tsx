@@ -17,6 +17,7 @@ import { BookmarkCard } from './_components/bookmarkCard';
 import { BookmarkStats } from './_components/bookmarkStats';
 import { BookmarkFilters } from './_components/bookmarkFilters';
 import { PaginationControls } from './_components/paginationControls';
+import { useDebounce } from '../_hooks/useDebounce';
 
 
 export default function Page() {
@@ -37,6 +38,8 @@ export default function Page() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editBookmark, setEditBookmark] = useState<Bookmark | null>(null);
 
+  const debouncedSearchKeyword = useDebounce(searchKeyword, 500);
+
   const onNavigate = (path: string) => {
     router.push(path);
   };
@@ -47,7 +50,9 @@ export default function Page() {
     }
   }, [isAuthLoading, isLoggedIn, onNavigate]);
 
-  const fetchBookmarks = useCallback(async (searchKeyword: string) => {
+  const fetchBookmarks = useCallback(async () => {
+    if(!isLoggedIn) return;
+
     setIsLoading(true);
     setError('');
     try {
@@ -57,7 +62,7 @@ export default function Page() {
         sort: "createDate,desc",
         category: selectedCategory,
         readState: selectedReadState,
-        keyword: searchKeyword,
+        keyword: debouncedSearchKeyword,
       });
       setBookmarks(response.data);
     } catch (error) {
@@ -77,48 +82,35 @@ export default function Page() {
     } finally {
       setIsLoading(false);
     }
-  }, [currentPage, selectedCategory, selectedReadState]);
+  }, [isLoggedIn, currentPage, selectedCategory, selectedReadState, debouncedSearchKeyword]);
 
-  const fetchBookmarkReadStates = useCallback(async () => {
-    setIsLoading(true);
-    setError('');
-    try {
-      const response = await getBookmarkReadStates();
-      setBookmarkReadStates(response.data);
+
+  const fetchInitialData = useCallback(async () => {
+    if(!isLoggedIn) return;
+
+    try{
+      const [statsResponse, categoriesResponse] = await Promise.all([
+        getBookmarkReadStates(),
+        getCategories(),
+      ]);
+
+      setBookmarkReadStates(statsResponse.data);
+      setCategories(categoriesResponse.data);
     } catch (error) {
       console.error('❌ 에러 데이터:', (error as any).data);
-      setError(error instanceof Error ? error.message : '북마크 읽기 상태 데이터를 가져올 수 없습니다.');
+      setError(error instanceof Error ? error.message : '초기 데이터 로딩에 실패했습니다.');
     } finally {
       setIsLoading(false);
     }
-  }, []);
-
-  const fetchCategories = useCallback(async () => {
-    try {
-      const response = await getCategories();
-      setCategories(response.data);
-    } catch (error) {
-      console.error('❌ 에러 데이터:', (error as any).data);
-      setError(error instanceof Error ? error.message : '카테고리 목록을 가져오는 데 실패했습니다.');
-      setCategories([]);
-    }
-  }, []);
+  }, [isLoggedIn]);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      fetchBookmarks(searchKeyword);
-    }, 500);
-    return () => {
-      clearTimeout(timer);
-    };
-  }, [searchKeyword, fetchBookmarks]);
+    fetchBookmarks();
+  }, [fetchBookmarks]);
 
   useEffect(() => {
-    fetchCategories();
-    if (!isAuthLoading && isLoggedIn) {
-      fetchBookmarkReadStates();
-    }
-  }, [isAuthLoading, isLoggedIn, fetchBookmarkReadStates]);
+    fetchInitialData();
+  }, [fetchInitialData]);
 
 
   const filteredBookmarks = useMemo(() => {

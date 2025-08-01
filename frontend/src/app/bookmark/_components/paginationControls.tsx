@@ -4,11 +4,10 @@ import { Button } from '@/components/ui/button';
 interface PaginationControlsProps {
     currentPage: number;
     totalPages: number;
-    isLast: boolean;
     onPrevious: () => void;
     onNext: () => void;
 }
-export function PaginationControls({ currentPage, totalPages, isLast, onPrevious, onNext }: PaginationControlsProps) {
+export function PaginationControls({ currentPage, totalPages, onPrevious, onNext }: PaginationControlsProps) {
     if (totalPages <= 1) return null;
     return (
         <div className="flex justify-center items-center mt-8 space-x-4">
@@ -24,7 +23,7 @@ export function PaginationControls({ currentPage, totalPages, isLast, onPrevious
             </span>
             <Button
                 onClick={onNext}
-                disabled={currentPage +1 >= totalPages || isLast}
+                disabled={currentPage +1 >= totalPages}
                 variant="outline"
             >
                 다음
