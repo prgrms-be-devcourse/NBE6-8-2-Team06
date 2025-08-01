@@ -1,47 +1,62 @@
 "use client";
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { ImageWithFallback } from '@/components/ImageWithFallback';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { BookOpen, Plus, Star, TrendingUp } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { useAuth } from '@/app/_hooks/auth-context';
+import { getBookmarkReadStates, getBookmarks } from '@/types/bookmarkAPI';
+import { Bookmark, BookmarkReadStates } from '@/types/bookmarkData';
+import { getReadState, getReadStateColor, renderStars } from '@/lib/bookmarkUtils';
 
 export default function HomePage() {
-  const isLoggedIn = true; // For demonstration purposes
+  const { isLoggedIn, isLoading: isAuthLoading } = useAuth();
 
-  // 가상의 데이터
-  const recentBooks = [
-    {
-      id: 1,
-      title: "클린 코드",
-      author: "로버트 C. 마틴",
-      rating: 4.5,
-      status: "읽은 책"
-    },
-    {
-      id: 2,
-      title: "리팩터링",
-      author: "마틴 파울러",
-      rating: 4.8,
-      status: "읽고 있는 책"
-    },
-    {
-      id: 3,
-      title: "디자인 패턴",
-      author: "GoF",
-      rating: 0,
-      status: "읽고 싶은 책"
+  const [stats, setStats] = useState<BookmarkReadStates | null>(null);
+  const [recentBooks, setRecentBooks] = useState<Bookmark[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if(!isLoggedIn || isAuthLoading){
+      setIsLoading(false);
+      return ;
     }
-  ];
 
-  const stats = {
-    totalBooks: 25,
-    readBooks: 18,
-    wantToReadBooks: 7,
-    averageRating: 4.2
+  const fetchLoggedInData = async () => {
+    setIsLoading(true);
+    setError('');
+    try{
+      const [stateResponse, recentBooksResponse] = await Promise.all([
+        getBookmarkReadStates(),
+        getBookmarks({
+          page: 0,
+          size: 3,
+          sort: "createDate,desc",
+          category: null,
+          readState: null,
+          keyword: null,
+        })
+      ]);
+      setStats(stateResponse.data);
+      setRecentBooks(recentBooksResponse.data.data);
+    } catch (error){
+      console.error('❌ 에러 데이터:', (error as any).data);
+      setError(error instanceof Error ? error.message : '북마크 목록을 가져올 수 없습니다.');
+    }finally {
+      setIsLoading(false);
+    }
   };
+  fetchLoggedInData();
+}, [isLoggedIn, isAuthLoading]);
 
+if(isAuthLoading || isLoading){
+  return <div className="text-center py-20">데이터를 불러오는 중입니다...</div>
+}
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* 헤로 섹션 */}
@@ -85,7 +100,7 @@ export default function HomePage() {
                 <BookOpen className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl">{stats.totalBooks}</div>
+                <div className="text-2xl">{stats?.totalCount || 0}</div>
               </CardContent>
             </Card>
 
@@ -95,7 +110,7 @@ export default function HomePage() {
                 <TrendingUp className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl">{stats.readBooks}</div>
+                <div className="text-2xl">{stats?.readState.READ || 0}</div>
               </CardContent>
             </Card>
 
@@ -105,7 +120,7 @@ export default function HomePage() {
                 <Plus className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl">{stats.wantToReadBooks}</div>
+                <div className="text-2xl">{stats?.readState.WISH || 0}</div>
               </CardContent>
             </Card>
 
@@ -115,7 +130,7 @@ export default function HomePage() {
                 <Star className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl">{stats.averageRating}</div>
+                <div className="text-2xl">{stats?.avgRate.toFixed(1) || 0}</div>
               </CardContent>
             </Card>
           </div>
@@ -132,17 +147,17 @@ export default function HomePage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {recentBooks.map((book) => (
-                <Card key={book.id}>
+              {recentBooks.map((bookmark) => (
+                <Card key={bookmark.id}>
                   <CardHeader>
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <CardTitle className="text-lg">{book.title}</CardTitle>
-                        <CardDescription>{book.author}</CardDescription>
+                        <CardTitle className="text-lg">{bookmark.book.title}</CardTitle>
+                        <CardDescription>{bookmark.book.authors.join(', ')}</CardDescription>
                       </div>
-                      <Image
-                        src={`https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=60&h=90&fit=crop&crop=center`}
-                        alt={book.title}
+                      <ImageWithFallback
+                        src={bookmark.book.imageUrl}
+                        alt={bookmark.book.title}
                         width={60}
                         height={90}
                         className="w-12 h-16 object-cover rounded"
@@ -151,13 +166,13 @@ export default function HomePage() {
                   </CardHeader>
                   <CardContent>
                     <div className="flex justify-between items-center">
-                      <span className="text-sm bg-secondary px-2 py-1 rounded">
-                        {book.status}
-                      </span>
-                      {book.rating > 0 && (
+                      <Badge className={`mt-2 ${getReadStateColor(bookmark.readState)}`}>
+                            {getReadState(bookmark.readState)}
+                      </Badge>
+                      {bookmark.review?.rate > 0 && (
                         <div className="flex items-center">
                           <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mr-1" />
-                          <span className="text-sm">{book.rating}</span>
+                          <span className="text-sm">{bookmark.review?.rate}</span>
                         </div>
                       )}
                     </div>
