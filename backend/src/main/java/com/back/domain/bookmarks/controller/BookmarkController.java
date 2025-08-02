@@ -58,7 +58,7 @@ public class BookmarkController {
                                                                          @RequestParam(value = "size", defaultValue = "10")int size,
                                                                          @RequestParam(value = "sort", defaultValue = "createDate,desc") String sort,
                                                                          @RequestParam(value = "category", required = false) String category,
-                                                                         @RequestParam(value = "read_state", required = false) String read_state,
+                                                                         @RequestParam(value = "readState", required = false) String read_state,
                                                                          @RequestParam(value = "keyword", required = false) String keyword) {
         Member member = rq.getActor();
         Page<BookmarkDto> bookmarkDtoPage = bookmarkService.toPage(member, page, size, sort, category, read_state, keyword);

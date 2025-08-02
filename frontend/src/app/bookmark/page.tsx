@@ -57,7 +57,7 @@ export default function Page() {
     setError('');
     try {
       const response = await getBookmarks({
-        page: debouncedSearchKeyword ? 0 : currentPage,
+        page: currentPage,
         size: 9,
         sort: "createDate,desc",
         category: selectedCategory,
@@ -104,14 +104,20 @@ export default function Page() {
     }
   }, [isLoggedIn]);
 
+  // 카테고리 또는 검색어가 변경되면 페이지를 처음으로 되돌림
+  useEffect(() => {
+    setCurrentPage(0);
+  }, [selectedCategory, selectedReadState, debouncedSearchKeyword]);
+
+  // 책 목록 불러오기
   useEffect(() => {
     fetchBookmarks();
   }, [fetchBookmarks]);
 
+  // 초기 데이터 로딩
   useEffect(() => {
     fetchInitialData();
   }, [fetchInitialData]);
-
 
   const filteredBookmarks = useMemo(() => {
     if (!bookmarks?.data) return [];
@@ -181,10 +187,14 @@ export default function Page() {
         selectedCategory={selectedCategory} onCategoryChange={setSelectedCategory}
         categories={categories} selectedReadState={selectedReadState}
         onReadStateChange={setSelectedReadState} readStates={['READ', 'READING', 'WISH']}
+        setCurrentPage={setCurrentPage}
       />
 
       {/* 책 목록 테이블 */}
-      <Tabs defaultValue={selectedReadState} onValueChange={setSelectedReadState} className="w-full">
+      <Tabs defaultValue={selectedReadState} onValueChange={(value) => {
+        setSelectedReadState(value);
+        setCurrentPage(0);
+      }} className="w-full">
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="all">모든 상태 ({bookmarkReadStates?.totalCount})</TabsTrigger>
           <TabsTrigger value="READ">읽은 책 ({bookmarkReadStates?.readState.READ || 0})</TabsTrigger>

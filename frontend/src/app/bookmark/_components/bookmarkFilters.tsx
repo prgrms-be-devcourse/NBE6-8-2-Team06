@@ -14,6 +14,7 @@ interface BookmarkFiltersProps {
     selectedReadState: string;
     onReadStateChange: (state: string) => void;
     readStates: string[];
+    setCurrentPage: (page: number) => void;
 }
 
 export function BookmarkFilters({
@@ -24,7 +25,8 @@ export function BookmarkFilters({
     categories,
     selectedReadState,
     onReadStateChange,
-    readStates
+    readStates,
+    setCurrentPage
 }: BookmarkFiltersProps ) {
     return (
         <div className="mb-8 space-y-4">
@@ -38,7 +40,10 @@ export function BookmarkFilters({
             className="pl-10"
           />
           </div>
-          <Select value={selectedCategory} onValueChange={onCategoryChange}>
+          <Select value={selectedCategory} onValueChange={(value) => {
+            onCategoryChange(value);
+            setCurrentPage(0);
+          }}>
             <SelectTrigger className="w-full sm:w-48">
               <SelectValue placeholder="카테고리 선택" />
             </SelectTrigger>
@@ -49,7 +54,10 @@ export function BookmarkFilters({
               ))}
             </SelectContent>
           </Select>
-          <Select value={selectedReadState} onValueChange={onReadStateChange}>
+          <Select value={selectedReadState} onValueChange={(value) => {
+            onReadStateChange(value);
+            setCurrentPage(0);
+          }}>
             <SelectTrigger className="w-full sm:w-48">
               <SelectValue placeholder="읽기 상태 선택" />
             </SelectTrigger>
