@@ -78,6 +78,6 @@ public class Bookmark extends BaseEntity {
     public long calculateReadingDuration(){
         if(readState == ReadState.WISH) return 0;
         LocalDateTime effectiveEnd = (endReadDate == null) ? LocalDateTime.now() : endReadDate;
-        return ChronoUnit.DAYS.between(startReadDate, effectiveEnd);
+        return ChronoUnit.DAYS.between(startReadDate, effectiveEnd)+1;
     }
 }
