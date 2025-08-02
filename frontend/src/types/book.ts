@@ -130,8 +130,8 @@ export async function fetchBooks(page: number = 0, size: number = 9): Promise<Bo
   const { apiFetch } = await import('@/lib/apiFetch');
   
   try {
-    console.log(`🔍 API 호출 시작: /api/books?page=${page}&size=${size}`);
-    const response = await apiFetch<ApiResponse<PageResponseDto<BookSearchDto>>>(`/api/books?page=${page}&size=${size}`);
+    console.log(`🔍 API 호출 시작: /books?page=${page}&size=${size}`);
+    const response = await apiFetch<ApiResponse<PageResponseDto<BookSearchDto>>>(`/books?page=${page}&size=${size}`);
     console.log('📦 fetchBooks 응답 받음:', response);
     return await processApiResponse(response);
   } catch (error) {
@@ -149,8 +149,8 @@ export async function searchBooks(query: string, page: number = 0, size: number 
   const { apiFetch } = await import('@/lib/apiFetch');
   
   try {
-    console.log(`🔍 검색 API 호출 시작: /api/books/search?query=${encodeURIComponent(query)}&page=${page}&size=${size}`);
-    const response = await apiFetch<ApiResponse<PageResponseDto<BookSearchDto>>>(`/api/books/search?query=${encodeURIComponent(query)}&page=${page}&size=${size}`);
+    console.log(`🔍 검색 API 호출 시작: /books/search?query=${encodeURIComponent(query)}&page=${page}&size=${size}`);
+    const response = await apiFetch<ApiResponse<PageResponseDto<BookSearchDto>>>(`/books/search?query=${encodeURIComponent(query)}&page=${page}&size=${size}`);
     return await processApiResponse(response);
   } catch (error) {
     console.error('❌ 검색 API 호출 에러:', error);
@@ -162,8 +162,8 @@ export async function searchBookByIsbn(isbn: string): Promise<BooksResponse> {
   const { apiFetch } = await import('@/lib/apiFetch');
   
   try {
-    console.log(`📖 ISBN 검색 API 호출 시작: /api/books/isbn/${isbn}`);
-    const response = await apiFetch<ApiResponse<BookSearchDto>>(`/api/books/isbn/${isbn}`);
+    console.log(`📖 ISBN 검색 API 호출 시작: /books/isbn/${isbn}`);
+    const response = await apiFetch<ApiResponse<BookSearchDto>>(`/books/isbn/${isbn}`);
     
     console.log('📦 ISBN 검색 API 응답 원본:', response);
     
@@ -200,12 +200,16 @@ export async function searchBookByIsbn(isbn: string): Promise<BooksResponse> {
   }
 }
 
-export async function fetchBookDetail(bookId: number): Promise<BookDetailDto> {
+export async function fetchBookDetail(bookId: number, reviewPage: number = 0): Promise<BookDetailDto> {
   const { apiFetch } = await import('@/lib/apiFetch');
   
   try {
-    console.log(`📖 책 상세 정보 API 호출 시작: /api/books/${bookId}`);
-    const response = await apiFetch<ApiResponse<BookDetailDto>>(`/api/books/${bookId}`);
+    let url = `/books/${bookId}`;
+    if (reviewPage > 0) {
+      url += `?page=${reviewPage}`;
+    }
+    console.log(`📖 책 상세 정보 API 호출 시작: ${url}`);
+    const response = await apiFetch<ApiResponse<BookDetailDto>>(url);
     
     console.log('📦 책 상세 정보 API 응답 원본:', response);
     
@@ -221,6 +225,37 @@ export async function fetchBookDetail(bookId: number): Promise<BookDetailDto> {
     throw new Error('책 상세 정보를 찾을 수 없습니다.');
   } catch (error) {
     console.error('❌ 책 상세 정보 API 호출 에러:', error);
+    throw error;
+  }
+}
+
+export async function fetchBooksByCategory(categoryName: string, page: number = 0, size: number = 9): Promise<BooksResponse> {
+  const { apiFetch } = await import('@/lib/apiFetch');
+  
+  try {
+    const encodedCategoryName = encodeURIComponent(categoryName);
+    console.log(`🔍 카테고리별 책 조회 API 호출 시작: /books/categories?categoryName=${encodedCategoryName}&page=${page}&size=${size}`);
+    const response = await apiFetch<ApiResponse<PageResponseDto<BookSearchDto>>>(`/books/categories?categoryName=${encodedCategoryName}&page=${page}&size=${size}`);
+    console.log('📦 카테고리별 책 조회 응답 받음:', response);
+    return await processApiResponse(response);
+  } catch (error) {
+    console.error('❌ 카테고리별 책 조회 API 호출 에러:', error);
+    throw error;
+  }
+}
+
+export async function searchBooksByCategory(query: string, categoryName: string, page: number = 0, size: number = 9): Promise<BooksResponse> {
+  const { apiFetch } = await import('@/lib/apiFetch');
+  
+  try {
+    const encodedQuery = encodeURIComponent(query);
+    const encodedCategoryName = encodeURIComponent(categoryName);
+    console.log(`🔍 카테고리별 검색 API 호출 시작: /books/search/category?query=${encodedQuery}&categoryName=${encodedCategoryName}&page=${page}&size=${size}`);
+    const response = await apiFetch<ApiResponse<PageResponseDto<BookSearchDto>>>(`/books/search/category?query=${encodedQuery}&categoryName=${encodedCategoryName}&page=${page}&size=${size}`);
+    console.log('📦 카테고리별 검색 응답 받음:', response);
+    return await processApiResponse(response);
+  } catch (error) {
+    console.error('❌ 카테고리별 검색 API 호출 에러:', error);
     throw error;
   }
 }
