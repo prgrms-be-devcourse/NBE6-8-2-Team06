@@ -100,7 +100,6 @@ public class BookmarkService {
         if(category == null && readState == null && keyword == null){
             avgRate = getAvgRate(member);
         }
-        System.out.println("totalCount:"+totalCount+",avgRate:"+avgRate+",read:"+readStateCount.READ()+",reading:"+readStateCount.READING()+",wish:"+readStateCount.WISH());
         return new BookmarkReadStatesDto(
                totalCount , avgRate, readStateCount
         );

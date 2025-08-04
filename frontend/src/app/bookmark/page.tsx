@@ -24,18 +24,17 @@ export default function Page() {
   const router = useRouter();
   const { isLoggedIn, isLoading: isAuthLoading } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
-  const [bookmarks, setBookmarks] = useState<BookmarkPage>();
   const [error, setError] = useState<string | null>(null);
+  
+  const [bookmarks, setBookmarks] = useState<BookmarkPage>();
+  const [bookmarkReadStates, setBookmarkReadStates] = useState<BookmarkReadStates>(); // 전체 통계(상단)
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [filteredReadState, setFilteredReadState] = useState<BookmarkReadStates>(); //검색 조건 후 통계(Tab)
 
-  const [bookmarkReadStates, setBookmarkReadStates] = useState<BookmarkReadStates>();
   const [currentPage, setCurrentPage] = useState(0);
-
   const [searchKeyword, setSearchKeyword] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedReadState, setSelectedReadState] = useState('all');
-  const [filteredReadState, setFilteredReadState] = useState<BookmarkReadStates>();
-  const [categories, setCategories] = useState<Category[]>([]);
-
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editBookmark, setEditBookmark] = useState<Bookmark | null>(null);
 
@@ -51,21 +50,29 @@ export default function Page() {
     }
   }, [isAuthLoading, isLoggedIn, onNavigate]);
 
-  const fetchBookmarks = useCallback(async () => {
+  const fetchFilteredData = useCallback(async () => {
     if (!isLoggedIn) return;
 
     setIsLoading(true);
     setError('');
     try {
-      const response = await getBookmarks({
+      const [bookmarksResponse, filteredReadStateResponse] = await Promise.all([ 
+        getBookmarks({
         page: currentPage,
         size: 9,
         sort: "createDate,desc",
         category: selectedCategory,
         readState: selectedReadState,
         keyword: debouncedSearchKeyword,
-      });
-      setBookmarks(response.data);
+      }),
+      getBookmarkReadStates({
+        category: selectedCategory,
+        readState: undefined,
+        keyword: debouncedSearchKeyword,
+      }),
+    ]);
+      setBookmarks(bookmarksResponse.data);
+      setFilteredReadState(filteredReadStateResponse.data);
     } catch (error) {
       console.error('❌ 에러 데이터:', (error as any).data);
       if (error instanceof Error && error.message.includes("데이터가 없습니다")) {
@@ -76,6 +83,15 @@ export default function Page() {
           pageNumber: 0,
           pageSize: 0,
           isLast: true
+        });
+        setFilteredReadState({
+          totalCount: 0,
+          avgRate: 0.0,
+          readState:{
+            READ: 0,
+            READING: 0,
+            WISH: 0
+          }
         });
       } else {
         setError(error instanceof Error ? error.message : '북마크 목록을 가져올 수 없습니다.');
@@ -99,7 +115,6 @@ export default function Page() {
         getCategories(),
       ]);
 
-      console.log("readState API :", statsResponse.data);
       setBookmarkReadStates(statsResponse.data);
       setCategories(categoriesResponse.data);
     } catch (error) {
@@ -118,7 +133,6 @@ export default function Page() {
         readState: selectedReadState,
         keyword: debouncedSearchKeyword,
       });
-      console.log("readState API :", response.data);
       setFilteredReadState(response.data);
     } catch (error) {
       console.error('❌ 에러 데이터:', (error as any).data);
@@ -137,21 +151,18 @@ export default function Page() {
     }
   }, [isLoggedIn, selectedCategory, selectedReadState, debouncedSearchKeyword]);
 
-  // 카테고리 또는 검색어가 변경되면 페이지를 처음으로 되돌림
-  useEffect(() => {
-    setCurrentPage(0);
-    fetchFilteredReadState();
-  }, [selectedCategory, debouncedSearchKeyword, selectedReadState]);
-
-  // 책 목록 불러오기
-  useEffect(() => {
-    fetchBookmarks();
-  }, [fetchBookmarks]);
-
   // 초기 데이터 로딩
   useEffect(() => {
+    if(!isAuthLoading && isLoggedIn) {
     fetchInitialData();
-  }, [fetchInitialData]);
+    fetchFilteredData();
+    }
+  }, [fetchInitialData, fetchFilteredData]);
+
+  const handleFilterChange = (setter: React.Dispatch<React.SetStateAction<string>>, value: string ) => {
+    setter(value);
+    setCurrentPage(0);
+  };
 
   const filteredBookmarks = useMemo(() => {
     if (!bookmarks?.data) return [];
@@ -174,7 +185,7 @@ export default function Page() {
       setIsEditDialogOpen(false);
       setEditBookmark(null);
       await fetchInitialData();
-      await fetchBookmarks();
+      await fetchFilteredData();
     } catch (error) {
       console.error('❌ 에러 데이터:', (error as any).data);
       setError(error instanceof Error ? error.message : '북마크 업데이트가 실패했습니다.');
@@ -186,7 +197,7 @@ export default function Page() {
       try {
         await deleteBookmark(bookmarkId);
         await fetchInitialData();
-        await fetchBookmarks();
+        await fetchFilteredData();
       } catch (error) {
         console.error('❌ 에러 데이터:', (error as any).data);
         setError(error instanceof Error ? error.message : '북마크 삭제에 실패했습니다.');
@@ -224,17 +235,16 @@ export default function Page() {
       <BookmarkStats stats={bookmarkReadStates} />
       {/* 책 목록 검색 필터 */}
       <BookmarkFilters searchKeyword={searchKeyword} onSearchKeywordChange={setSearchKeyword}
-        selectedCategory={selectedCategory} onCategoryChange={setSelectedCategory}
+        selectedCategory={selectedCategory} onCategoryChange={(value) => handleFilterChange(setSelectedCategory, value)}
         categories={categories} selectedReadState={selectedReadState}
-        onReadStateChange={setSelectedReadState} readStates={['READ', 'READING', 'WISH']}
+        onReadStateChange={(value) => handleFilterChange(setSelectedReadState, value)} readStates={['READ', 'READING', 'WISH']}
         setCurrentPage={setCurrentPage}
       />
 
       {/* 책 목록 테이블 */}
-      <Tabs value={selectedReadState} onValueChange={(value) => {
-        setSelectedReadState(value);
-        setCurrentPage(0);
-      }} className="w-full">
+      <Tabs value={selectedReadState} onValueChange={(value) => 
+        handleFilterChange(setSelectedReadState, value)
+      } className="w-full">
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="all">모든 상태 ({filteredReadState?.totalCount || 0})</TabsTrigger>
           <TabsTrigger value="READ">읽은 책 ({filteredReadState?.readState.READ || 0})</TabsTrigger>
