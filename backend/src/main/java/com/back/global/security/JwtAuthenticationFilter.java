@@ -89,6 +89,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 path.equals("/user/reissue") ||
                 path.equals("/user/login") ||
                 path.startsWith("/swagger-ui") || path.startsWith("/v3")
-                || path.startsWith("/api/categories");
+                || path.startsWith("/categories");
     }
 }

@@ -14,9 +14,9 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -28,37 +28,35 @@ public class BookController {
     private final BookService bookService;
     private final Rq rq;
 
-    //전체 책 조회(DB내부만) - 로그인 선택사항
+    // 검색어 검증
+    private String validateAndTrimQuery(String query, String errorCode, String errorMessage) {
+        if (query == null || query.trim().isEmpty()) {
+            throw new ServiceException(errorCode, errorMessage);
+        }
+        return query.trim();
+    }
+
+    // ISBN 검증 및 정리
+    private String validateAndCleanIsbn(String isbn) {
+        if (isbn == null || isbn.trim().isEmpty()) {
+            throw new ServiceException("400-7", "ISBN을 입력해주세요.");
+        }
+
+        String cleanIsbn = isbn.trim().replaceAll("-", "");
+        if (!cleanIsbn.matches("\\d{13}")) {
+            throw new ServiceException("400-8", "올바른 ISBN-13 형식이 아닙니다. (13자리 숫자)");
+        }
+
+        return cleanIsbn;
+    }
+
     @GetMapping
     @Operation(summary = "전체 책 조회")
     public RsData<PageResponseDto<BookSearchDto>> getAllBooks(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "9") int size,
-            @RequestParam(defaultValue = "id") String sortBy,
-            @RequestParam(defaultValue = "desc") String sortDir,
+            @PageableDefault(size = 9, sort = "id", direction = Sort.Direction.DESC)
+            Pageable pageable,
             HttpServletRequest request) {
 
-        if (page < 0) {
-            throw new ServiceException("400-1", "페이지 번호는 0 이상이어야 합니다.");
-        }
-
-        if (size <= 0) {
-            throw new ServiceException("400-2", "페이지 크기는 1 이상이어야 합니다.");
-        }
-
-        Sort.Direction direction;
-        if (sortDir.equalsIgnoreCase("desc")) {
-            direction = Sort.Direction.DESC;
-        } else if (sortDir.equalsIgnoreCase("asc")) {
-            direction = Sort.Direction.ASC;
-        } else {
-            throw new ServiceException("400-3", "정렬 방향은 'asc' 또는 'desc'만 허용됩니다.");
-        }
-
-        // Pageable 객체 생성
-        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
-
-        // JWT 토큰에서 사용자 정보 추출 (토큰이 없거나 유효하지 않으면 null)
         Member member = rq.getActor();
 
         if (member != null) {
@@ -77,40 +75,14 @@ public class BookController {
     @Operation(summary = "책 검색")
     public RsData<PageResponseDto<BookSearchDto>> searchBooks(
             @RequestParam String query,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "9") int size,
-            @RequestParam(defaultValue = "id") String sortBy,
-            @RequestParam(defaultValue = "desc") String sortDir,
+            @PageableDefault(size = 9, sort = "id", direction = Sort.Direction.DESC)
+            Pageable pageable,
             HttpServletRequest request) {
 
-        if (query == null || query.trim().isEmpty()) {
-            throw new ServiceException("400-6", "검색어를 입력해주세요.");
-        }
-
-        if (page < 0) {
-            throw new ServiceException("400-1", "페이지 번호는 0 이상이어야 합니다.");
-        }
-
-        if (size <= 0) {
-            throw new ServiceException("400-2", "페이지 크기는 1 이상이어야 합니다.");
-        }
-
-        Sort.Direction direction;
-        if (sortDir.equalsIgnoreCase("desc")) {
-            direction = Sort.Direction.DESC;
-        } else if (sortDir.equalsIgnoreCase("asc")) {
-            direction = Sort.Direction.ASC;
-        } else {
-            throw new ServiceException("400-3", "정렬 방향은 'asc' 또는 'desc'만 허용됩니다.");
-        }
-
-        // Pageable 객체 생성
-        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
-
-        // JWT 토큰에서 사용자 정보 추출 (토큰이 없거나 유효하지 않으면 null)
+        String validQuery = validateAndTrimQuery(query, "400-6", "검색어를 입력해주세요.");
         Member member = rq.getActor();
 
-        Page<BookSearchDto> books = bookService.searchBooks(query.trim(), pageable, member);
+        Page<BookSearchDto> books = bookService.searchBooks(validQuery, pageable, member);
         PageResponseDto<BookSearchDto> pageResponse = new PageResponseDto<>(books);
 
         if (books.isEmpty()) {
@@ -123,18 +95,7 @@ public class BookController {
     @GetMapping("/isbn/{isbn}")
     @Operation(summary = "ISBN으로 책 검색")
     public RsData<BookSearchDto> getBookByIsbn(@PathVariable String isbn, HttpServletRequest request) {
-
-        if (isbn == null || isbn.trim().isEmpty()) {
-            throw new ServiceException("400-7", "ISBN을 입력해주세요.");
-        }
-
-        // ISBN 형식 검증 (13자리 숫자)
-        String cleanIsbn = isbn.trim().replaceAll("-", "");
-        if (!cleanIsbn.matches("\\d{13}")) {
-            throw new ServiceException("400-8", "올바른 ISBN-13 형식이 아닙니다. (13자리 숫자)");
-        }
-
-        // JWT 토큰에서 사용자 정보 추출 (토큰이 없거나 유효하지 않으면 null)
+        String cleanIsbn = validateAndCleanIsbn(isbn);
         Member member = rq.getActor();
 
         BookSearchDto book = bookService.getBookByIsbn(cleanIsbn, member);
@@ -150,34 +111,10 @@ public class BookController {
     @Operation(summary = "id로 책 검색 (상세 정보 포함))")
     public RsData<BookDetailDto> getBookById(
             @PathVariable int id,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "id") String sortBy,
-            @RequestParam(defaultValue = "desc") String sortDir) {
+            @PageableDefault(size = 10, sort = "id", direction = Sort.Direction.DESC)
+            Pageable pageable) {
 
-        if (page < 0) {
-            throw new ServiceException("400-1", "페이지 번호는 0 이상이어야 합니다.");
-        }
-
-        if (size <= 0) {
-            throw new ServiceException("400-2", "페이지 크기는 1 이상이어야 합니다.");
-        }
-
-        Sort.Direction direction;
-        if (sortDir.equalsIgnoreCase("desc")) {
-            direction = Sort.Direction.DESC;
-        } else if (sortDir.equalsIgnoreCase("asc")) {
-            direction = Sort.Direction.ASC;
-        } else {
-            throw new ServiceException("400-3", "정렬 방향은 'asc' 또는 'desc'만 허용됩니다.");
-        }
-
-        // Pageable 객체 생성
-        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
-
-        // JWT 토큰에서 사용자 정보 추출 (토큰이 없거나 유효하지 않으면 null)
         Member member = rq.getActor();
-
         BookDetailDto bookDetail = bookService.getBookDetailById(id, pageable, member);
 
         if (bookDetail == null) {
@@ -191,53 +128,27 @@ public class BookController {
     @Operation(summary = "카테고리별 책 조회")
     public RsData<PageResponseDto<BookSearchDto>> getBooksByCategory(
             @RequestParam String categoryName,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "9") int size,
-            @RequestParam(defaultValue = "id") String sortBy,
-            @RequestParam(defaultValue = "desc") String sortDir,
+            @PageableDefault(size = 9, sort = "id", direction = Sort.Direction.DESC)
+            Pageable pageable,
             HttpServletRequest request) {
 
-        if (categoryName == null || categoryName.trim().isEmpty()) {
-            throw new ServiceException("400-9", "카테고리 이름을 입력해주세요.");
-        }
-
-        if (page < 0) {
-            throw new ServiceException("400-1", "페이지 번호는 0 이상이어야 합니다.");
-        }
-
-        if (size <= 0) {
-            throw new ServiceException("400-2", "페이지 크기는 1 이상이어야 합니다.");
-        }
-
-        Sort.Direction direction;
-        if (sortDir.equalsIgnoreCase("desc")) {
-            direction = Sort.Direction.DESC;
-        } else if (sortDir.equalsIgnoreCase("asc")) {
-            direction = Sort.Direction.ASC;
-        } else {
-            throw new ServiceException("400-3", "정렬 방향은 'asc' 또는 'desc'만 허용됩니다.");
-        }
-
-        // Pageable 객체 생성
-        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
-
-        // JWT 토큰에서 사용자 정보 추출 (토큰이 없거나 유효하지 않으면 null)
+        String validCategoryName = validateAndTrimQuery(categoryName, "400-9", "카테고리 이름을 입력해주세요.");
         Member member = rq.getActor();
 
         if (member != null) {
-            log.debug("로그인된 사용자로 카테고리별 책 조회: {} - {}", member.getEmail(), categoryName);
+            log.debug("로그인된 사용자로 카테고리별 책 조회: {} - {}", member.getEmail(), validCategoryName);
         } else {
-            log.debug("비로그인 사용자로 카테고리별 책 조회: {}", categoryName);
+            log.debug("비로그인 사용자로 카테고리별 책 조회: {}", validCategoryName);
         }
 
-        Page<BookSearchDto> books = bookService.getBooksByCategory(categoryName.trim(), pageable, member);
+        Page<BookSearchDto> books = bookService.getBooksByCategory(validCategoryName, pageable, member);
         PageResponseDto<BookSearchDto> pageResponse = new PageResponseDto<>(books);
 
         if (books.isEmpty()) {
             return new RsData<>("200-5", "해당 카테고리에 책이 없습니다.", pageResponse);
         }
 
-        return new RsData<>("200-6", categoryName + " 카테고리의 " + books.getTotalElements() + "개의 책을 찾았습니다.", pageResponse);
+        return new RsData<>("200-6", validCategoryName + " 카테고리의 " + books.getTotalElements() + "개의 책을 찾았습니다.", pageResponse);
     }
 
     @GetMapping("/search/category")
@@ -245,59 +156,29 @@ public class BookController {
     public RsData<PageResponseDto<BookSearchDto>> searchBooksByCategory(
             @RequestParam String query,
             @RequestParam String categoryName,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "9") int size,
-            @RequestParam(defaultValue = "id") String sortBy,
-            @RequestParam(defaultValue = "desc") String sortDir) {
+            @PageableDefault(size = 9, sort = "id", direction = Sort.Direction.DESC)
+            Pageable pageable) {
 
-        if (query == null || query.trim().isEmpty()) {
-            throw new ServiceException("400-6", "검색어를 입력해주세요.");
-        }
-
-        if (categoryName == null || categoryName.trim().isEmpty()) {
-            throw new ServiceException("400-9", "카테고리 이름을 입력해주세요.");
-        }
-
-        if (page < 0) {
-            throw new ServiceException("400-1", "페이지 번호는 0 이상이어야 합니다.");
-        }
-
-        if (size <= 0) {
-            throw new ServiceException("400-2", "페이지 크기는 1 이상이어야 합니다.");
-        }
-
-        Sort.Direction direction;
-        if (sortDir.equalsIgnoreCase("desc")) {
-            direction = Sort.Direction.DESC;
-        } else if (sortDir.equalsIgnoreCase("asc")) {
-            direction = Sort.Direction.ASC;
-        } else {
-            throw new ServiceException("400-3", "정렬 방향은 'asc' 또는 'desc'만 허용됩니다.");
-        }
-
-        // Pageable 객체 생성
-        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
-
-        // JWT 토큰에서 사용자 정보 추출 (토큰이 없거나 유효하지 않으면 null)
+        String validQuery = validateAndTrimQuery(query, "400-6", "검색어를 입력해주세요.");
+        String validCategoryName = validateAndTrimQuery(categoryName, "400-9", "카테고리 이름을 입력해주세요.");
         Member member = rq.getActor();
 
         if (member != null) {
             log.debug("로그인된 사용자로 검색어+카테고리 책 조회: {} - query: {}, category: {}",
-                    member.getEmail(), query, categoryName);
+                    member.getEmail(), validQuery, validCategoryName);
         } else {
-            log.debug("비로그인 사용자로 검색어+카테고리 책 조회: query: {}, category: {}", query, categoryName);
+            log.debug("비로그인 사용자로 검색어+카테고리 책 조회: query: {}, category: {}", validQuery, validCategoryName);
         }
 
-        Page<BookSearchDto> books = bookService.searchBooksByCategory(
-                query.trim(), categoryName.trim(), pageable, member);
+        Page<BookSearchDto> books = bookService.searchBooksByCategory(validQuery, validCategoryName, pageable, member);
         PageResponseDto<BookSearchDto> pageResponse = new PageResponseDto<>(books);
 
         if (books.isEmpty()) {
-            return new RsData<>("200-7", "'" + categoryName + "' 카테고리에서 '" + query + "'에 대한 검색 결과가 없습니다.", pageResponse);
+            return new RsData<>("200-7", "'" + validCategoryName + "' 카테고리에서 '" + validQuery + "'에 대한 검색 결과가 없습니다.", pageResponse);
         }
 
         return new RsData<>("200-8",
-                "'" + categoryName + "' 카테고리에서 '" + query + "'로 " + books.getTotalElements() + "개의 책을 찾았습니다.",
+                "'" + validCategoryName + "' 카테고리에서 '" + validQuery + "'로 " + books.getTotalElements() + "개의 책을 찾았습니다.",
                 pageResponse);
     }
 }

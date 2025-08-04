@@ -5,5 +5,5 @@ export type Category = {
 };
 
 export const getCategories = async () => {
-    return apiFetch('/api/categories');
+    return apiFetch('/categories');
 };

@@ -239,6 +239,7 @@ export default function BooksPage() {
   const addToMyBooks = async (bookId: number, status: string) => {
     if (!isLoggedIn) {
       toast.info("로그인을 해 주세요");
+      router.push("/login");
       return;
     }
     
