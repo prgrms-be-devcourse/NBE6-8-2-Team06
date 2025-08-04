@@ -2,11 +2,14 @@ package com.back.domain.review.reviewRecommend.service;
 
 import com.back.domain.member.member.entity.Member;
 import com.back.domain.review.review.entity.Review;
+import com.back.domain.review.review.repository.ReviewRepository;
 import com.back.domain.review.review.service.ReviewService;
 import com.back.domain.review.reviewRecommend.entity.ReviewRecommend;
 import com.back.domain.review.reviewRecommend.repository.ReviewRecommendRepository;
 import com.back.global.exception.ServiceException;
+import jakarta.persistence.OptimisticLockException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,27 +18,46 @@ import java.util.NoSuchElementException;
 @Service
 @RequiredArgsConstructor
 public class ReviewRecommendService {
-    private final ReviewService reviewService;
+    private final ReviewRepository reviewRepository;
     private final ReviewRecommendRepository reviewRecommendRepository;
 
     @Transactional
-    public void recommendReview(int reviewId, Member member, boolean isRecommend) {
-        Review review = reviewService.findById(reviewId).orElseThrow(()->new NoSuchElementException("Review not found"));
+    public void recommendReviewInternal(int reviewId, Member member, boolean isRecommend) {
+        Review review = reviewRepository.findById(reviewId).orElseThrow(()->new NoSuchElementException("Review not found"));
         ReviewRecommend reviewRecommend = new ReviewRecommend(review, member, isRecommend);
         if (reviewRecommendRepository.findByReviewAndMember(review, member).isPresent()) {
             throw new ServiceException("400-1", "Review recommendation already exists");
         }
         reviewRecommendRepository.save(reviewRecommend);
         if (isRecommend) {
-            review.setLikeCount(review.getLikeCount() + 1);
+            review.incLike();
         } else {
-            review.setDislikeCount(review.getDislikeCount() + 1);
+            review.incDislike();
+        }
+        reviewRepository.save(review);
+    }
+
+    public void recommendReview(int reviewId, Member member, boolean isRecommend) {
+        int maxRetries = 30;
+        for (int attempt = 1; attempt <= maxRetries; attempt++) {
+            try{
+                recommendReviewInternal(reviewId, member, isRecommend);
+                return;
+            }catch (OptimisticLockException | ObjectOptimisticLockingFailureException e){
+                if (attempt == maxRetries) {
+                    throw new ServiceException("400-3", "Review recommendation failed to be saved");
+                }
+                try{
+                    Thread.sleep(100);
+
+                }catch (InterruptedException ie){}
+            }
         }
     }
 
     @Transactional
     public void modifyRecommendReview(int reviewId, Member member, boolean isRecommend) {
-        Review review = reviewService.findById(reviewId).orElseThrow(()->new NoSuchElementException("Review not found"));
+        Review review = reviewRepository.findById(reviewId).orElseThrow(()->new NoSuchElementException("Review not found"));
         ReviewRecommend reviewRecommend = reviewRecommendRepository.findByReviewAndMember(review, member)
                 .orElseThrow(() -> new NoSuchElementException("Review recommendation not found"));
         if (reviewRecommend.isRecommended() == isRecommend) {
@@ -43,29 +65,25 @@ public class ReviewRecommendService {
         }
         reviewRecommend.setRecommended(isRecommend);
         reviewRecommendRepository.save(reviewRecommend);
-        int likeCount = review.getLikeCount();
-        int dislikeCount = review.getDislikeCount();
         if (isRecommend) {
-            likeCount++;
-            dislikeCount--;
+            review.incLike();
+            review.decDislike();
         }else{
-            likeCount--;
-            dislikeCount++;
+            review.decLike();
+            review.incDislike();
         }
-        review.setLikeCount(likeCount);
-        review.setDislikeCount(dislikeCount);
     }
 
     @Transactional
     public void cancelRecommendReview(int reviewId, Member member) {
-        Review review = reviewService.findById(reviewId).orElseThrow(()->new NoSuchElementException("Review not found"));
+        Review review = reviewRepository.findById(reviewId).orElseThrow(()->new NoSuchElementException("Review not found"));
         ReviewRecommend reviewRecommend = reviewRecommendRepository.findByReviewAndMember(review, member)
                 .orElseThrow(() -> new NoSuchElementException("Review recommendation not found"));
         reviewRecommendRepository.delete(reviewRecommend);
         if (reviewRecommend.isRecommended()) {
-            review.setLikeCount(review.getLikeCount() - 1);
+            review.decLike();
         }else{
-            review.setDislikeCount(review.getDislikeCount() - 1);
+            review.decDislike();
         }
     }
 
