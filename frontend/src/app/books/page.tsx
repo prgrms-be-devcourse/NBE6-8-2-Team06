@@ -36,7 +36,7 @@ import {
   BooksResponse,
 } from "@/types/book";
 import { useAuth } from "@/app/_hooks/auth-context";
-import { toast } from "@/lib/toast";
+import { toast } from "sonner";
 import { createBookmark } from "@/types/bookmarkAPI.js";
 import { getCategories, Category } from "@/types/category";
 
@@ -238,8 +238,12 @@ export default function BooksPage() {
 
   const addToMyBooks = async (bookId: number, status: string) => {
     if (!isLoggedIn) {
-      toast.info("로그인을 해 주세요");
-      router.push("/login");
+      toast.error("로그인을 해주세요.", {
+        action: {
+          label:"이동",
+          onClick: ()=>{router.push("/login")}
+        }
+      })
       return;
     }
     
