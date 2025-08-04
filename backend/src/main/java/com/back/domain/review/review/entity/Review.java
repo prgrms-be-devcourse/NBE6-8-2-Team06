@@ -31,8 +31,8 @@ public class Review extends BaseEntity {
     @Setter
     private int dislikeCount;
 
-    @Version
-    private Long version;
+//    @Version
+//    private Long version;
 
     public Review(String content, int rate, Member member, Book book) {
         this.content = content;

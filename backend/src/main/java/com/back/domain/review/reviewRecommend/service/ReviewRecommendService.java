@@ -37,22 +37,20 @@ public class ReviewRecommendService {
         reviewRepository.save(review);
     }
 
+    @Transactional
     public void recommendReview(int reviewId, Member member, boolean isRecommend) {
-        int maxRetries = 30;
-        for (int attempt = 1; attempt <= maxRetries; attempt++) {
-            try{
-                recommendReviewInternal(reviewId, member, isRecommend);
-                return;
-            }catch (OptimisticLockException | ObjectOptimisticLockingFailureException e){
-                if (attempt == maxRetries) {
-                    throw new ServiceException("400-3", "Review recommendation failed to be saved");
-                }
-                try{
-                    Thread.sleep(100);
-
-                }catch (InterruptedException ie){}
-            }
+        Review review = reviewRepository.findById(reviewId).orElseThrow(()->new NoSuchElementException("Review not found"));
+        ReviewRecommend reviewRecommend = new ReviewRecommend(review, member, isRecommend);
+        if (reviewRecommendRepository.findByReviewAndMember(review, member).isPresent()) {
+            throw new ServiceException("400-1", "Review recommendation already exists");
         }
+        reviewRecommendRepository.save(reviewRecommend);
+        if (isRecommend) {
+            review.incLike();
+        } else {
+            review.incDislike();
+        }
+        reviewRepository.save(review);
     }
 
     @Transactional

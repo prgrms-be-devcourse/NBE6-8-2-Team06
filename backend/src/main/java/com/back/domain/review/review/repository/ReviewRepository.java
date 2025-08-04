@@ -17,6 +17,7 @@ import java.util.Optional;
 public interface ReviewRepository extends JpaRepository<Review, Integer> {
     Optional<Review> findFirstByOrderByIdDesc();
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
     Optional<Review> findById(int id);
 
     Optional<Review> findByBookAndMember(Book book, Member member);
