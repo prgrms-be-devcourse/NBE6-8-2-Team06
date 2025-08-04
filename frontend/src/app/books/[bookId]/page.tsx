@@ -12,6 +12,8 @@ import { use, useEffect, useState } from "react";
 import { BookDetailDto, fetchBookDetail, ReviewResponseDto, addToMyBooks, ReadState } from "@/types/book";
 import { useReview, useReviewRecommend } from "@/app/_hooks/useReview";
 import { useTheme } from "next-themes";
+import { useAuth } from "@/app/_hooks/auth-context";
+import { toast } from "@/lib/toast";
 
 export default function page({params}:{params:Promise<{bookId:string}>}){
     const {bookId:bookIdStr} = use(params);
@@ -27,6 +29,7 @@ export default function page({params}:{params:Promise<{bookId:string}>}){
     const [tabState, setTabState] = useState("description");
     const [reviewPage, setReviewPage] = useState(0);
     const {theme} = useTheme();
+    const { isLoggedIn } = useAuth();
     
     const loadBookDetail = async () => {
       try {
@@ -59,6 +62,12 @@ export default function page({params}:{params:Promise<{bookId:string}>}){
     };
     
     const onAddToMyBooks = async (bookId: number) => {
+      if (!isLoggedIn) {
+        toast.info("로그인을 해 주세요");
+        router.push("/login");
+        return;
+      }
+      
       try {
         await addToMyBooks(bookId);
         setBookDetail(prev => prev ? { ...prev, readState: ReadState.WISH } : null);
