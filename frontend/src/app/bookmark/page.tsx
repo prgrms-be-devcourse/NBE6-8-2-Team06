@@ -259,16 +259,16 @@ interface BookmarkEditFormProps {
 function BookmarkEditForm({ bookmark, onSave, onCancel }: BookmarkEditFormProps) {
   const [formData, setFormData] = useState({
     readState: bookmark.readState,
-    startReadDate: bookmark.startReadDate?.substring(0, 10) || '',
-    endReadDate: bookmark.endReadDate?.substring(0, 10) || '',
+    startReadDate: bookmark.startReadDate?.substring(0, 10) || new Date().toISOString().split("T")[0],
+    endReadDate: bookmark.endReadDate?.substring(0, 10) || new Date().toISOString().split("T")[0],
     readPage: bookmark.readPage || 0,
   });
 
   useEffect(() => {
     setFormData({
       readState: bookmark.readState,
-      startReadDate: bookmark.startReadDate?.substring(0, 10) || '',
-      endReadDate: bookmark.endReadDate?.substring(0, 10) || '',
+      startReadDate: bookmark.startReadDate?.substring(0, 10) || new Date().toISOString().split("T")[0],
+      endReadDate: bookmark.endReadDate?.substring(0, 10) || new Date().toISOString().split("T")[0],
       readPage: bookmark.readPage || 0,
     });
   }, [bookmark]);
