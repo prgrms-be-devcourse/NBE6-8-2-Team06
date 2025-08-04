@@ -29,7 +29,7 @@ export async function apiFetch<T>(
     !url.includes("/user/login") &&
     !url.includes("/user/signup") &&
     !url.includes("/user/reissue") &&
-    !url.includes("/api/categories")
+    !url.includes("/categories")
   ) {
     const reissueRes = await fetch(`${baseUrl}/user/reissue`, {
       method: "POST",
