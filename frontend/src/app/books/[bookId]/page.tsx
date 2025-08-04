@@ -45,8 +45,8 @@ export default function page({params}:{params:Promise<{bookId:string}>}){
 
     const loadReviews = async (page: number = 0) => {
       try {
-        const detail = await fetchBookDetail(bookId, page);
-        setBookDetail(prev => prev ? {...prev, reviews: detail.reviews} : detail);
+        const detail = await reviewApi.getReviews(page);
+        setBookDetail({...bookDetail!, reviews: detail});
         setReviewPage(page);
       } catch (err) {
         console.error('리뷰 로드 실패:', err);

@@ -69,8 +69,8 @@ export const useReview = (initBookId:number) =>{
     return data;
   }
 
-  const getReviews = async () => {
-    const res = await apiFetch<ApiResponse<PageResponseDto<ReviewResponseDto>>>(`/reviews/${bookId}/list`,{
+  const getReviews = async (page:number) => {
+    const res = await apiFetch<ApiResponse<PageResponseDto<ReviewResponseDto>>>(`/reviews/${bookId}/list?page=${page}`,{
       method:"GET"
     })
     const data:PageResponseDto<ReviewResponseDto> = res.data;
