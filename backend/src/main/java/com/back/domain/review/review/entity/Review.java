@@ -31,10 +31,29 @@ public class Review extends BaseEntity {
     @Setter
     private int dislikeCount;
 
+//    @Version
+//    private Long version;
+
     public Review(String content, int rate, Member member, Book book) {
         this.content = content;
         this.rate = rate;
         this.member = member;
         this.book = book;
+    }
+
+    public void incLike(){
+        this.likeCount++;
+    }
+
+    public void decLike(){
+        this.likeCount--;
+    }
+
+    public void incDislike(){
+        this.dislikeCount++;
+    }
+
+    public void decDislike(){
+        this.dislikeCount--;
     }
 }

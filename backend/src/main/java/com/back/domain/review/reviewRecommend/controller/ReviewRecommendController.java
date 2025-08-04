@@ -21,34 +21,31 @@ public class ReviewRecommendController {
 
     @PostMapping("/{review_id}/{is_recommend}")
     public RsData<Void> recommendReview(@PathVariable("review_id") int reviewId, @PathVariable("is_recommend") boolean isRecommend) {
-        Review review = reviewService.findById(reviewId).orElseThrow(()->new NoSuchElementException("Review not found"));
         Member member = rq.getActor();
         if (member == null) {
             return new RsData<>("401-1", "Unauthorized access");
         }
-        reviewRecommendService.recommendReview(review, member, isRecommend);
+        reviewRecommendService.recommendReview(reviewId, member, isRecommend);
         return new RsData<>("201-1", "Review recommended successfully");
     }
 
     @PutMapping("/{review_id}/{is_recommend}")
     public RsData<Void> modifyRecommendReview(@PathVariable("review_id") int reviewId, @PathVariable("is_recommend") boolean isRecommend) {
-        Review review = reviewService.findById(reviewId).orElseThrow(() -> new NoSuchElementException("Review not found"));
         Member member = rq.getActor();
         if (member == null) {
             return new RsData<>("401-1", "Unauthorized access");
         }
-        reviewRecommendService.modifyRecommendReview(review, member, isRecommend);
+        reviewRecommendService.modifyRecommendReview(reviewId, member, isRecommend);
         return new RsData<>("200-1", "Review recommendation modified successfully");
     }
 
     @DeleteMapping("/{review_id}")
     public RsData<Void> cancelRecommendReview(@PathVariable("review_id") int reviewId) {
-        Review review = reviewService.findById(reviewId).orElseThrow(() -> new NoSuchElementException("Review not found"));
         Member member = rq.getActor();
         if (member == null) {
             return new RsData<>("401-1", "Unauthorized access");
         }
-        reviewRecommendService.cancelRecommendReview(review, member);
+        reviewRecommendService.cancelRecommendReview(reviewId, member);
         return new RsData<>("200-1", "Review recommendation cancelled successfully");
     }
 }

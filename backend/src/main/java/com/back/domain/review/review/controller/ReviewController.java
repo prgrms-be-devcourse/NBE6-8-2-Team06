@@ -19,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.NoSuchElementException;
@@ -47,25 +48,13 @@ public class ReviewController {
     @GetMapping("/{book_id}/list")
     public RsData<PageResponseDto<ReviewResponseDto>> getReviews(
             @PathVariable("book_id") int bookId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "id") String sortBy,
-            @RequestParam(defaultValue = "desc") String sortDir
+            @PageableDefault(size=10, sort="id", direction=Sort.Direction.DESC) Pageable pageable
             ) {
         Book book = bookRepository.findById(bookId).orElseThrow(() -> new NoSuchElementException("Book not found"));
         Member member = rq.getActor();
         if (member == null) {
             return new RsData<>("401-1", "Unauthorized access");
         }
-        Sort.Direction direction;
-        if (sortDir.equalsIgnoreCase("desc")) {
-            direction = Sort.Direction.DESC;
-        } else if (sortDir.equalsIgnoreCase("asc")) {
-            direction = Sort.Direction.ASC;
-        } else {
-            throw new ServiceException("400-3", "정렬 방향은 'asc' 또는 'desc'만 허용됩니다.");
-        }
-        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
         PageResponseDto<ReviewResponseDto> reviews = reviewService.getPageReviewResponseDto(book, pageable, member);
         return new RsData<>("200-1", "Reviews fetched successfully", reviews);
     }

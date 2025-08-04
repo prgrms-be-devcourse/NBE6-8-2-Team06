@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { getBookmark } from "@/types/bookmarkAPI";
 import { BookmarkDetail } from "@/types/bookmarkData";
-import { ArrowLeft, Save, Star, UndoIcon, X } from "lucide-react";
+import { ArrowLeft, Save, Star, Trash2, UndoIcon, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { use, useCallback, useEffect, useState } from "react";
 
@@ -84,6 +84,11 @@ export default withLogin(function page({params}:{params:Promise<{id:string}>}){
     }
     onNavigate(`/bookmark/${bookmarkId}`);
   };
+
+  const handleDelete = () =>{
+    reviewApi.deleteReview();
+    onNavigate(`/bookmark/${bookmarkId}`);
+  }
 
   const handleCancel = () => {
     onNavigate(`/bookmark/${bookmarkId}`);
@@ -218,6 +223,10 @@ export default withLogin(function page({params}:{params:Promise<{id:string}>}){
                   <Save className="h-4 w-4 mr-2" />
                   저장하기
                 </Button>
+                {review && <Button variant="destructive" onClick={handleDelete}>
+                  <Trash2></Trash2>
+                  삭제
+                </Button>}
                 <Button 
                   variant="outline"
                   onClick={handleCancel}
