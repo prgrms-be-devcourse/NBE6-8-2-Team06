@@ -1,9 +1,11 @@
 package com.back.domain.bookmarks.repository;
 
 import com.back.domain.bookmarks.constant.ReadState;
+import com.back.domain.bookmarks.dto.ReadStateCount;
 import com.back.domain.bookmarks.entity.Bookmark;
 import com.back.domain.member.member.entity.Member;
 import com.querydsl.core.BooleanBuilder;
+import com.querydsl.core.Tuple;
 import com.querydsl.core.types.Order;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.core.types.dsl.PathBuilder;
@@ -15,6 +17,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import static com.back.domain.book.author.entity.QAuthor.author;
 import static com.back.domain.book.book.entity.QBook.book;
@@ -27,24 +31,7 @@ public class BookmarkRepositoryCustomImpl implements BookmarkRepositoryCustom {
 
     @Override
     public Page<Bookmark> search(Member member, String category, String readState, String keyword, Pageable pageable) {
-        BooleanBuilder builder = new BooleanBuilder();
-
-        builder.and(bookmark.member.eq(member));
-
-        if(category != null && !category.isBlank()){
-            builder.and(bookmark.book.category.name.eq(category));
-        }
-
-        if(readState != null && !readState.isBlank()){
-            builder.and(bookmark.readState.eq(ReadState.valueOf(readState.toUpperCase())));
-        }
-
-        if(keyword != null && !keyword.isBlank()){
-            builder.and(
-                    book.title.containsIgnoreCase(keyword)
-                            .or(author.name.containsIgnoreCase(keyword))
-            );
-        }
+        BooleanBuilder builder = conditions(member, category, readState, keyword);
 
         List<Bookmark> bookmarks = queryFactory
                 .select(bookmark).distinct()
@@ -80,5 +67,54 @@ public class BookmarkRepositoryCustomImpl implements BookmarkRepositoryCustom {
             return new OrderSpecifier(direction, pathBuilder.get(property));
         })
                 .toArray(OrderSpecifier[]::new);
+    }
+
+    @Override
+    public ReadStateCount countReadState(Member member, String category, String readState, String keyword) {
+        BooleanBuilder builder = conditions(member, category, readState, keyword);
+
+        List<Tuple> counts = queryFactory
+                .select(bookmark.readState, bookmark.count())
+                .from(bookmark)
+                .join(bookmark.book, book)
+                .leftJoin(book.authors, wrote)
+                .leftJoin(wrote.author, author)
+                .where(builder)
+                .groupBy(bookmark.readState)
+                .fetch();
+
+        Map<ReadState, Long> countMap = counts.stream().collect(Collectors.toMap(
+                tuple -> tuple.get(bookmark.readState),
+                tuple -> tuple.get(bookmark.count())
+        ));
+
+        ReadStateCount readStateCount = new ReadStateCount(
+                countMap.getOrDefault(ReadState.READ, 0L),
+                countMap.getOrDefault(ReadState.READING, 0L),
+                countMap.getOrDefault(ReadState.WISH, 0L)
+        );
+        return readStateCount;
+    }
+
+    private BooleanBuilder conditions(Member member, String category, String readState, String keyword) {
+        BooleanBuilder builder = new BooleanBuilder();
+        builder.and(bookmark.member.eq(member));
+
+        if(category != null && !category.isBlank()){
+            builder.and(bookmark.book.category.name.eq(category));
+        }
+
+        if(readState != null && !readState.isBlank()){
+            builder.and(bookmark.readState.eq(ReadState.valueOf(readState.toUpperCase())));
+        }
+
+        if(keyword != null && !keyword.isBlank()){
+            builder.and(
+                    book.title.containsIgnoreCase(keyword)
+                            .or(author.name.containsIgnoreCase(keyword))
+            );
+        }
+
+        return builder;
     }
 }

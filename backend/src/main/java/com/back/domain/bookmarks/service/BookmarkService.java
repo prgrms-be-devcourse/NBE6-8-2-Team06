@@ -10,10 +10,8 @@ import com.back.domain.review.review.entity.Review;
 import com.back.domain.review.review.repository.ReviewRepository;
 import com.back.domain.review.review.service.ReviewService;
 import com.back.global.exception.ServiceException;
-import jakarta.persistence.criteria.Join;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import com.back.domain.book.book.entity.Book;
@@ -94,16 +92,20 @@ public class BookmarkService {
         return bookmarkRepository.findByIdAndMember(bookmarkId, member).orElseThrow(() -> new ServiceException("403-1", "해당 북마크에 대한 권한이 없습니다."));
     }
 
-    public BookmarkReadStatesDto getReadStatesCount(Member member) {
-        List<Bookmark> bookmarks = bookmarkRepository.findByMember(member);
-        Map<ReadState, Long> countByReadState = bookmarks.stream().collect(Collectors.groupingBy(Bookmark::getReadState, Collectors.counting()));
-        ReadStateCount readStateCount = new ReadStateCount(countByReadState.getOrDefault(ReadState.READ, 0L),
-                countByReadState.getOrDefault(ReadState.READING, 0L),
-                countByReadState.getOrDefault(ReadState.WISH, 0L));
-        double avgRate = reviewRepository.findAverageRatingByMember(member).orElse(0.0);
+    public BookmarkReadStatesDto getReadStatesCount(Member member, String category, String readState, String keyword) {
+        ReadStateCount readStateCount = bookmarkRepository.countReadState(member, category, readState, keyword);
+        long totalCount = readStateCount.READ()+readStateCount.READING()+readStateCount.WISH();
+        double avgRate = 0.0;
+        if(category == null && readState == null && keyword == null){
+            avgRate = getAvgRate(member);
+        }
         return new BookmarkReadStatesDto(
-                bookmarks.size(), avgRate, readStateCount
+               totalCount , avgRate, readStateCount
         );
+    }
+
+    private double getAvgRate(Member member) {
+        return reviewRepository.findAverageRatingByMember(member).orElse(0.0);
     }
 
     private Review getReview(Bookmark bookmark) {
@@ -147,5 +149,9 @@ public class BookmarkService {
             return new BookmarkDto(bookmark, review);
         }).toList();
 
+    }
+
+    public Bookmark getLatestBookmark(Member member) {
+        return bookmarkRepository.getBookmarkByMemberOrderByIdDesc(member).orElseThrow(() -> new NoSuchElementException("조회가능한 북마크가 없습니다."));
     }
 }

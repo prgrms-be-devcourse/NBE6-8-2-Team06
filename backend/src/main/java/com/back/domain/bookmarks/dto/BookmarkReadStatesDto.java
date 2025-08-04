@@ -1,7 +1,7 @@
 package com.back.domain.bookmarks.dto;
 
 public record BookmarkReadStatesDto(
-        int totalCount,
+        long totalCount,
         double avgRate,
         ReadStateCount readState
 ) {

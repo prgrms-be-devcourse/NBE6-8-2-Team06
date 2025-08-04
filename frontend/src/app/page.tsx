@@ -32,7 +32,11 @@ export default function HomePage() {
     setError('');
     try{
       const [stateResponse, recentBooksResponse] = await Promise.all([
-        getBookmarkReadStates(),
+        getBookmarkReadStates({
+          category: null,
+          readState: null,
+          keyword: null,
+        }),
         getBookmarks({
           page: 0,
           size: 3,

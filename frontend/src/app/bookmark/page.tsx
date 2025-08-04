@@ -33,6 +33,7 @@ export default function Page() {
   const [searchKeyword, setSearchKeyword] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedReadState, setSelectedReadState] = useState('all');
+  const [filteredReadState, setFilteredReadState] = useState<BookmarkReadStates>();
   const [categories, setCategories] = useState<Category[]>([]);
 
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -90,7 +91,11 @@ export default function Page() {
 
     try {
       const [statsResponse, categoriesResponse] = await Promise.all([
-        getBookmarkReadStates(),
+        getBookmarkReadStates({
+        category: null,
+        readState: null,
+        keyword: null,
+        }),
         getCategories(),
       ]);
 
@@ -104,6 +109,32 @@ export default function Page() {
     }
   }, [isLoggedIn]);
 
+  const fetchFilteredReadState = useCallback(async () => {
+    if (!isLoggedIn) return;
+    try {
+      const response = await getBookmarkReadStates({
+        category: selectedCategory,
+        readState: selectedReadState,
+        keyword: debouncedSearchKeyword,
+      });
+      setFilteredReadState(response.data);
+    } catch (error) {
+      console.error('❌ 에러 데이터:', (error as any).data);
+      setError(error instanceof Error ? error.message : '초기 데이터 로딩에 실패했습니다.');
+      setFilteredReadState({
+        totalCount: 0,
+        avgRate: 0,
+        readState: {
+          WISH: 0,
+          READING: 0,
+          READ: 0,
+        },
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [isLoggedIn, selectedCategory, selectedReadState, debouncedSearchKeyword]);
+
   // 카테고리 또는 검색어가 변경되면 페이지를 처음으로 되돌림
   useEffect(() => {
     setCurrentPage(0);
@@ -112,6 +143,7 @@ export default function Page() {
   // 책 목록 불러오기
   useEffect(() => {
     fetchBookmarks();
+    fetchFilteredReadState();
   }, [fetchBookmarks]);
 
   // 초기 데이터 로딩
@@ -191,15 +223,15 @@ export default function Page() {
       />
 
       {/* 책 목록 테이블 */}
-      <Tabs defaultValue={selectedReadState} onValueChange={(value) => {
+      <Tabs value={selectedReadState} onValueChange={(value) => {
         setSelectedReadState(value);
         setCurrentPage(0);
       }} className="w-full">
         <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="all">모든 상태 ({bookmarkReadStates?.totalCount})</TabsTrigger>
-          <TabsTrigger value="READ">읽은 책 ({bookmarkReadStates?.readState.READ || 0})</TabsTrigger>
-          <TabsTrigger value="READING">읽고 있는 책 ({bookmarkReadStates?.readState.READING || 0})</TabsTrigger>
-          <TabsTrigger value="WISH">읽고 싶은 책 ({bookmarkReadStates?.readState.WISH || 0})</TabsTrigger>
+          <TabsTrigger value="all">모든 상태 ({filteredReadState?.totalCount})</TabsTrigger>
+          <TabsTrigger value="READ">읽은 책 ({filteredReadState?.readState.READ || 0})</TabsTrigger>
+          <TabsTrigger value="READING">읽고 있는 책 ({filteredReadState?.readState.READING || 0})</TabsTrigger>
+          <TabsTrigger value="WISH">읽고 싶은 책 ({filteredReadState?.readState.WISH || 0})</TabsTrigger>
         </TabsList>
         <div className="mt-6">
           {isLoading ? (

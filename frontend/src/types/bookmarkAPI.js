@@ -36,6 +36,10 @@ export const deleteBookmark = async (id) => {
     });
 };
 
-export const getBookmarkReadStates = async () => {
-    return apiFetch('/bookmarks/read-states');
+export const getBookmarkReadStates = async ({ category, readState, keyword }) => {
+    const params = new URLSearchParams();
+    if(category && category !== 'all') params.append('category', category);
+    if(readState && readState !== 'all') params.append('readState', readState);
+    if(keyword) params.append('keyword', keyword);
+    return apiFetch(`/bookmarks/read-states?${params.toString()}`).then(res => res.data);
 };
