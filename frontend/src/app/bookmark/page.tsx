@@ -99,6 +99,7 @@ export default function Page() {
         getCategories(),
       ]);
 
+      console.log("readState API :", statsResponse.data);
       setBookmarkReadStates(statsResponse.data);
       setCategories(categoriesResponse.data);
     } catch (error) {
@@ -117,6 +118,7 @@ export default function Page() {
         readState: selectedReadState,
         keyword: debouncedSearchKeyword,
       });
+      console.log("readState API :", response.data);
       setFilteredReadState(response.data);
     } catch (error) {
       console.error('❌ 에러 데이터:', (error as any).data);
@@ -138,12 +140,12 @@ export default function Page() {
   // 카테고리 또는 검색어가 변경되면 페이지를 처음으로 되돌림
   useEffect(() => {
     setCurrentPage(0);
-  }, [selectedCategory, selectedReadState, debouncedSearchKeyword]);
+    fetchFilteredReadState();
+  }, [selectedCategory, debouncedSearchKeyword, selectedReadState]);
 
   // 책 목록 불러오기
   useEffect(() => {
     fetchBookmarks();
-    fetchFilteredReadState();
   }, [fetchBookmarks]);
 
   // 초기 데이터 로딩
@@ -192,6 +194,12 @@ export default function Page() {
     }
   };
 
+  const handlePageChange = (page: number) => {
+    if(page >= 0 && page < (bookmarks?.totalPages || 0)) {
+      setCurrentPage(page);
+    }
+  }
+
   if (isAuthLoading) {
     return <div className="flex justify-center items-center h-screen">로딩 중...</div>;
   };
@@ -228,7 +236,7 @@ export default function Page() {
         setCurrentPage(0);
       }} className="w-full">
         <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="all">모든 상태 ({filteredReadState?.totalCount})</TabsTrigger>
+          <TabsTrigger value="all">모든 상태 ({filteredReadState?.totalCount || 0})</TabsTrigger>
           <TabsTrigger value="READ">읽은 책 ({filteredReadState?.readState.READ || 0})</TabsTrigger>
           <TabsTrigger value="READING">읽고 있는 책 ({filteredReadState?.readState.READING || 0})</TabsTrigger>
           <TabsTrigger value="WISH">읽고 싶은 책 ({filteredReadState?.readState.WISH || 0})</TabsTrigger>
@@ -261,8 +269,7 @@ export default function Page() {
       </Tabs>
       {/* 페이지  */}
       <PaginationControls currentPage={currentPage} totalPages={bookmarks?.totalPages || 0}
-        onPrevious={() => setCurrentPage(p => Math.max(p - 1, 0))}
-        onNext={() => setCurrentPage(p => p + 1)}
+        onChangePage={handlePageChange}
       />
 
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>

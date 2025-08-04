@@ -39,4 +39,15 @@ public class GlobalExceptionHandler {
                 HttpStatus.CONFLICT
         );
     }
+
+    @ExceptionHandler(NullPointerException.class)
+    public ResponseEntity<RsData<Void>> handle(NullPointerException ex) {
+        return new ResponseEntity<>(
+                new RsData<>(
+                        "404-1",
+                        "NullPointerException"
+                ),
+                NOT_FOUND
+        );
+    }
 }

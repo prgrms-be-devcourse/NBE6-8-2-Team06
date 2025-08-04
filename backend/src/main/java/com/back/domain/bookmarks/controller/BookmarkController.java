@@ -130,5 +130,4 @@ public class BookmarkController {
         BookmarkReadStatesDto bookmarkReadStatesDto = bookmarkService.getReadStatesCount(member, category, read_state, keyword);
         return  new RsData<>("200-1", "조회 성공", bookmarkReadStatesDto);
     }
-
 }

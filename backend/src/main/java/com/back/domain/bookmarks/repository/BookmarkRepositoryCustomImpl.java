@@ -74,7 +74,7 @@ public class BookmarkRepositoryCustomImpl implements BookmarkRepositoryCustom {
         BooleanBuilder builder = conditions(member, category, readState, keyword);
 
         List<Tuple> counts = queryFactory
-                .select(bookmark.readState, bookmark.count())
+                .select(bookmark.readState, bookmark.countDistinct())
                 .from(bookmark)
                 .join(bookmark.book, book)
                 .leftJoin(book.authors, wrote)
@@ -84,8 +84,8 @@ public class BookmarkRepositoryCustomImpl implements BookmarkRepositoryCustom {
                 .fetch();
 
         Map<ReadState, Long> countMap = counts.stream().collect(Collectors.toMap(
-                tuple -> tuple.get(bookmark.readState),
-                tuple -> tuple.get(bookmark.count())
+                tuple -> tuple.get(0, ReadState.class),
+                tuple -> tuple.get(1, Long.class)
         ));
 
         ReadStateCount readStateCount = new ReadStateCount(

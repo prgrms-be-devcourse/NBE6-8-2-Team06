@@ -22,45 +22,47 @@ export default function HomePage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if(!isLoggedIn || isAuthLoading){
-      setIsLoading(false);
-      return ;
-    }
+    if (isLoggedIn && !isAuthLoading) {
 
-  const fetchLoggedInData = async () => {
-    setIsLoading(true);
-    setError('');
-    try{
-      const [stateResponse, recentBooksResponse] = await Promise.all([
-        getBookmarkReadStates({
-          category: null,
-          readState: null,
-          keyword: null,
-        }),
-        getBookmarks({
-          page: 0,
-          size: 3,
-          sort: "modifyDate,desc",
-          category: null,
-          readState: null,
-          keyword: null,
-        })
-      ]);
-      setStats(stateResponse.data);
-      setRecentBooks(recentBooksResponse.data.data);
-    } catch (error){
-      console.error('❌ 에러 데이터:', (error as any).data);
-      setError(error instanceof Error ? error.message : '내 책 정보를 가져올 수 없습니다.');
-    }finally {
+      const fetchLoggedInData = async () => {
+        setIsLoading(true);
+        setError('');
+        try {
+          const [stateResponse, recentBooksResponse] = await Promise.all([
+            getBookmarkReadStates({
+              category: null,
+              readState: null,
+              keyword: null,
+            }),
+            getBookmarks({
+              page: 0,
+              size: 3,
+              sort: "modifyDate,desc",
+              category: null,
+              readState: null,
+              keyword: null,
+            })
+          ]);
+          console.log("readState API : ", stateResponse.data);
+          console.log("bookmarks API : ", recentBooksResponse.data.data);
+          setStats(stateResponse.data);
+          setRecentBooks(recentBooksResponse.data.data);
+        } catch (error) {
+          console.error('❌ 에러 데이터:', (error as any).data);
+          setError(error instanceof Error ? error.message : '내 책 정보를 가져올 수 없습니다.');
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      fetchLoggedInData();
+    } else if (!isAuthLoading && !isLoggedIn) {
       setIsLoading(false);
     }
-  };
-  fetchLoggedInData();
-}, [isLoggedIn, isAuthLoading]);
+  }, [isLoggedIn, isAuthLoading]);
 
-if(isAuthLoading || isLoading){
-  return <div className="text-center py-20">데이터를 불러오는 중입니다...</div>
-}
+  if (isAuthLoading || isLoading) {
+    return <div className="text-center py-20">데이터를 불러오는 중입니다...</div>
+  }
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* 헤로 섹션 */}
@@ -69,7 +71,7 @@ if(isAuthLoading || isLoading){
         <p className="text-xl text-muted-foreground mb-8">
           다양한 책을 탐색하고, 읽은 책들을 기록하며, 리뷰를 남겨보세요
         </p>
-        
+
         {isLoggedIn ? (
           <div className="flex justify-center space-x-4">
             <Link href="/bookmark" passHref>
@@ -114,7 +116,7 @@ if(isAuthLoading || isLoading){
                 <TrendingUp className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl">{stats?.readState.READ || 0}</div>
+                <div className="text-2xl">{stats?.readState?.READ || 0}</div>
               </CardContent>
             </Card>
 
@@ -124,7 +126,7 @@ if(isAuthLoading || isLoading){
                 <Plus className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl">{stats?.readState.WISH || 0}</div>
+                <div className="text-2xl">{stats?.readState?.WISH || 0}</div>
               </CardContent>
             </Card>
 
@@ -134,7 +136,7 @@ if(isAuthLoading || isLoading){
                 <Star className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl">{stats?.avgRate.toFixed(1) || 0}</div>
+                <div className="text-2xl">{(stats?.avgRate ?? 0).toFixed(1)}</div>
               </CardContent>
             </Card>
           </div>
@@ -171,7 +173,7 @@ if(isAuthLoading || isLoading){
                   <CardContent className="mt-auto">
                     <div className="flex items-center">
                       <Badge className={`mt-2 ${getReadStateColor(bookmark.readState)}`}>
-                            {getReadState(bookmark.readState)}
+                        {getReadState(bookmark.readState)}
                       </Badge>
                       {bookmark.review?.rate > 0 && (
                         <div className="flex items-center ml-auto">
