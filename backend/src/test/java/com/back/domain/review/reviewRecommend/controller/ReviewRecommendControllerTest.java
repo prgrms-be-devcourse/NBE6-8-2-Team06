@@ -59,6 +59,9 @@ public class ReviewRecommendControllerTest {
     @Autowired
     private ReviewRecommendRepository reviewRecommendRepository;
 
+    @Autowired
+    private ReviewRepository reviewRepository;
+
     List<String> makeAccessTokens(int count){
         return memberRepository.findAll().stream()
                 .limit(count)
@@ -381,14 +384,14 @@ public class ReviewRecommendControllerTest {
     private EntityManager em;
 
     @Test
-    @DisplayName("리뷰 동시성 체크 - 성공")
+    @DisplayName("리뷰 동시성 체크 생성 - 성공")
     void t13() throws Exception{
         int memberCount = 100;
         List<String> accessTokens = makeAccessTokens(memberCount);
         Book book = bookRepository.findAll().get(0);
         createReview(book.getId(), "이 책 정말 좋았어요!", 5, accessTokens.get(0));
         Review review = reviewService.findLatest().orElseThrow(()-> new RuntimeException("리뷰가 없습니다."));
-        int threadCount = 10;
+        int threadCount = 20;
         ExecutorService executor = Executors.newFixedThreadPool(threadCount);
         CountDownLatch latch = new CountDownLatch(memberCount);
         for (int i = 0; i< memberCount; i++){
@@ -419,6 +422,128 @@ public class ReviewRecommendControllerTest {
         assertThat(review.getLikeCount()).isEqualTo(memberCount);
     }
 
-    @Autowired
-    private ReviewRepository reviewRepository;
+    @Test
+    @DisplayName("리뷰 동시성 체크 수정 - 성공")
+    void t14() throws Exception{
+        int memberCount = 100;
+        List<String> accessTokens = makeAccessTokens(memberCount);
+        Book book = bookRepository.findAll().get(0);
+        createReview(book.getId(), "이 책 정말 좋았어요!", 5, accessTokens.get(0));
+        Review review = reviewService.findLatest().orElseThrow(()-> new RuntimeException("리뷰가 없습니다."));
+        int threadCount = 20;
+        ExecutorService executor = Executors.newFixedThreadPool(threadCount);
+        CountDownLatch latch = new CountDownLatch(memberCount);
+        for (int i = 0; i< memberCount; i++){
+            Review finalReview = review;
+            String accessToken = accessTokens.get(i);
+            executor.submit(() -> {
+                try{
+                    ResultActions result = createRecommendReview(finalReview.getId(), true, accessToken);
+                    result
+                            .andExpect(handler().handlerType(ReviewRecommendController.class))
+                            .andExpect(handler().methodName("recommendReview"))
+                            .andExpect(status().isCreated())
+                            .andExpect(jsonPath("$.resultCode").value("201-1"))
+                            .andExpect(jsonPath("$.msg").value("Review recommended successfully"))
+                    ;
+
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                } finally {
+                    latch.countDown();
+                }
+            });
+        }
+        latch.await();
+        em.clear();
+        ExecutorService executor2 = Executors.newFixedThreadPool(threadCount);
+        CountDownLatch latch2 = new CountDownLatch(memberCount);
+        for (int i = 0; i< memberCount; i++){
+            Review finalReview = review;
+            String accessToken = accessTokens.get(i);
+            executor2.submit(() -> {
+                try{
+                    ResultActions result2 = updateRecommendReview(finalReview.getId(), false, accessToken);
+                    result2
+                            .andExpect(handler().handlerType(ReviewRecommendController.class))
+                            .andExpect(handler().methodName("modifyRecommendReview"))
+                            .andExpect(status().isOk())
+                            .andExpect(jsonPath("$.resultCode").value("200-1"))
+                    ;
+                }catch (Exception e) {
+                    throw new RuntimeException(e);
+                }finally {
+                    latch2.countDown();
+                }
+            });
+        }
+        latch2.await();
+        em.clear();
+        long count = reviewRecommendRepository.count();
+        assertThat(count).isEqualTo(memberCount);
+        review = reviewRepository.findById(review.getId()).get();
+        assertThat(review.getDislikeCount()).isEqualTo(memberCount);
+    }
+
+    @Test
+    @DisplayName("리뷰 동시성 체크 삭제 - 성공")
+    void t15() throws Exception{
+        int memberCount = 100;
+        List<String> accessTokens = makeAccessTokens(memberCount);
+        Book book = bookRepository.findAll().get(0);
+        createReview(book.getId(), "이 책 정말 좋았어요!", 5, accessTokens.get(0));
+        Review review = reviewService.findLatest().orElseThrow(()-> new RuntimeException("리뷰가 없습니다."));
+        int threadCount = 20;
+        ExecutorService executor = Executors.newFixedThreadPool(threadCount);
+        CountDownLatch latch = new CountDownLatch(memberCount);
+        for (int i = 0; i< memberCount; i++){
+            Review finalReview = review;
+            String accessToken = accessTokens.get(i);
+            executor.submit(() -> {
+                try{
+                    ResultActions result = createRecommendReview(finalReview.getId(), true, accessToken);
+                    result
+                            .andExpect(handler().handlerType(ReviewRecommendController.class))
+                            .andExpect(handler().methodName("recommendReview"))
+                            .andExpect(status().isCreated())
+                            .andExpect(jsonPath("$.resultCode").value("201-1"))
+                            .andExpect(jsonPath("$.msg").value("Review recommended successfully"))
+                    ;
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                } finally {
+                    latch.countDown();
+                }
+            });
+        }
+        latch.await();
+        em.clear();
+        ExecutorService executor2 = Executors.newFixedThreadPool(threadCount);
+        CountDownLatch latch2 = new CountDownLatch(memberCount);
+        for(int i = 0; i< memberCount; i++){
+            Review finalReview = review;
+            String accessToken = accessTokens.get(i);
+            executor2.submit(() -> {
+                try{
+                    ResultActions result2 = deleteRecommendReview(finalReview.getId(), accessToken);
+                    result2
+                            .andExpect(handler().handlerType(ReviewRecommendController.class))
+                            .andExpect(handler().methodName("modifyRecommendReview"))
+                            .andExpect(status().isOk())
+                            .andExpect(jsonPath("$.resultCode").value("200-1"))
+                    ;
+                }catch (Exception e) {
+                    throw new RuntimeException(e);
+                }finally {
+                    latch2.countDown();
+                }
+            });
+        }
+        latch2.await();
+        em.clear();
+        long count = reviewRecommendRepository.count();
+        assertThat(count).isEqualTo(0);
+        review = reviewRepository.findById(review.getId()).get();
+        assertThat(review.getLikeCount()).isEqualTo(0);
+    }
 }

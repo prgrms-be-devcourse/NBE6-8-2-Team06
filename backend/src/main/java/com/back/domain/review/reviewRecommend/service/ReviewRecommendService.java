@@ -22,22 +22,6 @@ public class ReviewRecommendService {
     private final ReviewRecommendRepository reviewRecommendRepository;
 
     @Transactional
-    public void recommendReviewInternal(int reviewId, Member member, boolean isRecommend) {
-        Review review = reviewRepository.findById(reviewId).orElseThrow(()->new NoSuchElementException("Review not found"));
-        ReviewRecommend reviewRecommend = new ReviewRecommend(review, member, isRecommend);
-        if (reviewRecommendRepository.findByReviewAndMember(review, member).isPresent()) {
-            throw new ServiceException("400-1", "Review recommendation already exists");
-        }
-        reviewRecommendRepository.save(reviewRecommend);
-        if (isRecommend) {
-            review.incLike();
-        } else {
-            review.incDislike();
-        }
-        reviewRepository.save(review);
-    }
-
-    @Transactional
     public void recommendReview(int reviewId, Member member, boolean isRecommend) {
         Review review = reviewRepository.findById(reviewId).orElseThrow(()->new NoSuchElementException("Review not found"));
         ReviewRecommend reviewRecommend = new ReviewRecommend(review, member, isRecommend);
