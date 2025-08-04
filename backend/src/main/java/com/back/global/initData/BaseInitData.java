@@ -42,6 +42,7 @@ public class BaseInitData {
     private final BookmarkService bookmarkService;
     private final BookmarkRepository bookmarkRepository;
     private final PasswordEncoder passwordEncoder;
+    private final ReviewRepository reviewRepository;
     @Autowired
     private MemberRepository memberRepository;
 
@@ -49,8 +50,8 @@ public class BaseInitData {
     @Bean
     ApplicationRunner baseInitDataApplicationRunner(){
         return args->{
-//            self.initReviewData(); // 리뷰 테스트 시 주석 해제
             self.initBookData(); // 책 데이터 초기화
+//            self.initReviewData(); // 리뷰 테스트 시 주석 해제
             self.initNoteData(); // Note 관련 데이터
 //            self.initBookmarkData(); // Bookmark 데이터 초기화
         };
@@ -58,11 +59,18 @@ public class BaseInitData {
 
     @Transactional
     public void initReviewData() {
-        if (bookRepository.count() > 0) {
+        int memberCount = 100;
+        if (memberRepository.count() > memberCount) {
             return; // 이미 데이터가 존재하면 초기화하지 않음
         }
-        for (int i = 1; i <= 10; i++) {
+        for (int i = 1; i <= memberCount; i++) {
             memberService.join("testUser" + i, "email" + i + "@a.a", passwordEncoder.encode("password" + i));
+        }
+        Book book = bookRepository.findAll().get(0); // 첫 번째 책을 가져옴
+        for (int i = 1; i <= memberCount; i++) {
+            Member member = memberRepository.findByEmail("email" + i + "@a.a").orElseThrow(() -> new NoSuchElementException("멤버를 찾을 수 없습니다: "));
+            Review review = new Review("리뷰 ㅋㅋ " + i, 5, member, book);
+            reviewRepository.save(review);
         }
 //        Category category = categoryRepository.save(new Category("Test Category"));
 //        bookRepository.save(new Book("Text Book", "Publisher", category));
@@ -189,7 +197,4 @@ public class BaseInitData {
         //bookmarkService.modifyBookmark(member, bookmark1.getId(), "READ", LocalDateTime.of(2025,07,22,12,20), LocalDateTime.now(),book1.getTotalPage());
         //bookmarkService.modifyBookmark(member, bookmark2.getId(), "READING", LocalDateTime.now(), null, 101);
     }
-
-    @Autowired
-    private ReviewRepository reviewRepository;
 }

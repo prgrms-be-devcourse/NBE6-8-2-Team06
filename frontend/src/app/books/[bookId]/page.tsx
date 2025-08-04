@@ -13,7 +13,7 @@ import { BookDetailDto, fetchBookDetail, ReviewResponseDto, addToMyBooks, ReadSt
 import { useReview, useReviewRecommend } from "@/app/_hooks/useReview";
 import { useTheme } from "next-themes";
 import { useAuth } from "@/app/_hooks/auth-context";
-import { toast } from "@/lib/toast";
+import { toast } from "sonner";
 
 export default function page({params}:{params:Promise<{bookId:string}>}){
     const {bookId:bookIdStr} = use(params);
@@ -45,8 +45,8 @@ export default function page({params}:{params:Promise<{bookId:string}>}){
 
     const loadReviews = async (page: number = 0) => {
       try {
-        const detail = await fetchBookDetail(bookId, page);
-        setBookDetail(prev => prev ? {...prev, reviews: detail.reviews} : detail);
+        const detail = await reviewApi.getReviews(page);
+        setBookDetail({...bookDetail!, reviews: detail});
         setReviewPage(page);
       } catch (err) {
         console.error('리뷰 로드 실패:', err);
@@ -63,8 +63,12 @@ export default function page({params}:{params:Promise<{bookId:string}>}){
     
     const onAddToMyBooks = async (bookId: number) => {
       if (!isLoggedIn) {
-        toast.info("로그인을 해 주세요");
-        router.push("/login");
+        toast.error("로그인을 해 주세요.", {
+          action:{
+            label:"이동",
+            onClick:()=>{onNavigate("/login")}
+          }
+        });
         return;
       }
       
@@ -131,6 +135,15 @@ export default function page({params}:{params:Promise<{bookId:string}>}){
   };
 
   const handleRecommend = async(review:ReviewResponseDto, recommend:boolean)=>{
+    if (!isLoggedIn){
+      toast.error("로그인을 해주세요.", {
+        action: {
+          label:"이동",
+          onClick: ()=>{onNavigate("/login")}
+        }
+      })
+      return;
+    }
     // 업데이트가 늦어질 경우 대비해서 프론트에서 먼저 적용
     const reviews = bookDetail.reviews.data.map((r)=>{
       if (r.id === review.id){
@@ -172,7 +185,7 @@ export default function page({params}:{params:Promise<{bookId:string}>}){
     }else{
       await reviewRecommendApi.modifyReviewRecomend(review.id, recommend);
     }
-    await loadReviews(0);
+    await loadReviews(reviewPage);
   }
 
   return (
