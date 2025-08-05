@@ -25,9 +25,7 @@ import com.back.global.exception.ServiceException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -52,40 +50,43 @@ public class BookService {
     private final ReviewRecommendService reviewRecommendService;
 
     /**
-     * 새로운 페이징 지원 검색 메서드
+     * 페이징 지원 검색 메서드 - DB에서 직접 정렬 처리
      */
     @Transactional
     public Page<BookSearchDto> searchBooks(String query, Pageable pageable, Member member) {
-        // 1. DB에서 유효한 책들만 먼저 확인
-        List<Book> validBooksFromDb = bookRepository.findValidBooksByTitleOrAuthorContaining(query);
+        // 1. DB에서 페이징과 정렬이 적용된 검색 시도
+        Page<Book> dbResults = bookRepository.findValidBooksByTitleOrAuthorContainingWithPaging(query, pageable);
 
-        if (validBooksFromDb.isEmpty()) {
-            log.info("DB에 유효한 책이 없어서 알라딘 API에서 검색: {}", query);
-
-            // 2. API에서 검색하여 DB에 저장 (충분한 양)
-            List<AladinBookDto> apiBooks = aladinApiClient.searchBooks(query, 100); // 더 많이 가져오기
-
-            // 3. API 결과를 엔티티로 변환하고 저장
-            List<Book> savedBooks = apiBooks.stream()
-                    .map(this::convertAndSaveBook)
-                    .filter(book -> book != null)
-                    .collect(Collectors.toList());
-
-            // 4. 상세 정보 보완
-            enrichMissingDetails(savedBooks);
-
-            // ★ 핵심: DB에 저장 완료 후 DB에서 다시 검색해서 반환 ★
-            log.info("API 검색 및 저장 완료. DB에서 다시 검색하여 페이징 처리");
-            validBooksFromDb = bookRepository.findValidBooksByTitleOrAuthorContaining(query);
+        if (!dbResults.isEmpty()) {
+            log.info("DB에서 찾은 유효한 책: {} 권 (전체: {})",
+                    dbResults.getNumberOfElements(), dbResults.getTotalElements());
+            return dbResults.map(book -> convertToDto(book, member));
         }
 
-        if (validBooksFromDb.isEmpty()) {
+        log.info("DB에 유효한 책이 없어서 알라딘 API에서 검색: {}", query);
+
+        // 2. API에서 검색하여 DB에 저장 (충분한 양)
+        List<AladinBookDto> apiBooks = aladinApiClient.searchBooks(query, 100);
+
+        // 3. API 결과를 엔티티로 변환하고 저장
+        List<Book> savedBooks = apiBooks.stream()
+                .map(this::convertAndSaveBook)
+                .filter(book -> book != null)
+                .collect(Collectors.toList());
+
+        // 4. 상세 정보 보완
+        enrichMissingDetails(savedBooks);
+
+        // 5. DB에서 다시 페이징과 정렬이 적용된 검색
+        log.info("API 검색 및 저장 완료. DB에서 다시 검색하여 페이징 처리");
+        Page<Book> finalResults = bookRepository.findValidBooksByTitleOrAuthorContainingWithPaging(query, pageable);
+
+        if (finalResults.isEmpty()) {
             log.warn("API 검색 후에도 유효한 책이 없음: {}", query);
             return Page.empty(pageable);
         }
 
-        log.info("DB에서 찾은 유효한 책: {} 권", validBooksFromDb.size());
-        return createPageFromList(validBooksFromDb, pageable, member);
+        return finalResults.map(book -> convertToDto(book, member));
     }
 
     /**
@@ -125,70 +126,6 @@ public class BookService {
         return searchBooks(query, limit, null);
     }
 
-    /**
-     * List를 Page로 변환하는 헬퍼 메서드
-     */
-    private Page<BookSearchDto> createPageFromList(List<Book> books, Pageable pageable, Member member) {
-        // 정렬 처리
-        List<Book> sortedBooks = sortBooks(books, pageable.getSort());
-
-        // 페이징 처리
-        int start = (int) pageable.getOffset();
-        int end = Math.min(start + pageable.getPageSize(), sortedBooks.size());
-
-        List<Book> pagedBooks = start >= sortedBooks.size() ?
-                List.of() : sortedBooks.subList(start, end);
-
-        // DTO 변환
-        List<BookSearchDto> bookDtos = convertToDto(pagedBooks, member);
-
-        // Page 객체 생성
-        return new PageImpl<>(bookDtos, pageable, sortedBooks.size());
-    }
-
-    /**
-     * 책 목록 정렬 처리
-     */
-    private List<Book> sortBooks(List<Book> books, Sort sort) {
-        if (sort.isUnsorted()) {
-            return books;
-        }
-
-        return books.stream()
-                .sorted((book1, book2) -> {
-                    for (Sort.Order order : sort) {
-                        int comparison = compareBooks(book1, book2, order.getProperty());
-                        if (comparison != 0) {
-                            return order.isAscending() ? comparison : -comparison;
-                        }
-                    }
-                    return 0;
-                })
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * 책 비교 메서드
-     */
-    private int compareBooks(Book book1, Book book2, String property) {
-        switch (property.toLowerCase()) {
-            case "id":
-                return Integer.compare(book1.getId(), book2.getId());
-            case "title":
-                return book1.getTitle().compareToIgnoreCase(book2.getTitle());
-            case "publisher":
-                return book1.getPublisher().compareToIgnoreCase(book2.getPublisher());
-            case "publisheddate":
-                if (book1.getPublishedDate() == null && book2.getPublishedDate() == null) return 0;
-                if (book1.getPublishedDate() == null) return -1;
-                if (book2.getPublishedDate() == null) return 1;
-                return book1.getPublishedDate().compareTo(book2.getPublishedDate());
-            case "avgrate":
-                return Float.compare(book1.getAvgRate(), book2.getAvgRate());
-            default:
-                return Integer.compare(book1.getId(), book2.getId());
-        }
-    }
 
     /**
      * ISBN으로 책 조회 - DB에 없으면 API에서 가져와서 저장 (Member 정보 포함)
@@ -255,7 +192,7 @@ public class BookService {
     }
 
     /**
-     * 전체 책 조회 (페이징, Member 정보 포함) - 유효한 책들만
+     * 전체 책 조회 (페이징, Member 정보 포함) - DB에서 직접 정렬 처리
      */
     public Page<BookSearchDto> getAllBooks(Pageable pageable, Member member) {
         log.info("전체 유효한 책 조회: page={}, size={}, sort={}, member={}",
@@ -263,8 +200,9 @@ public class BookService {
                 member != null ? member.getId() : "null");
 
         try {
-            // 페이지 수가 0보다 큰 유효한 책들만 조회
+            // DB에서 페이징과 정렬이 적용된 조회 (페이지 수가 0보다 큰 유효한 책들만)
             Page<Book> validBookPage = bookRepository.findAllValidBooks(pageable);
+
             return validBookPage.map(book -> {
                 BookSearchDto dto = convertToDto(book, member);
                 log.debug("Book {} converted with readState: {}", book.getId(), dto.getReadState());
@@ -374,7 +312,7 @@ public class BookService {
     }
 
     /**
-     * 검색어와 카테고리로 책 검색 (페이징, Member 정보 포함) - DB에서만 조회, 유효한 책들만
+     * 검색어와 카테고리로 책 검색 (페이징, Member 정보 포함) - DB에서 직접 정렬 처리
      */
     public Page<BookSearchDto> searchBooksByCategory(String query, String categoryName, Pageable pageable, Member member) {
         log.info("검색어+카테고리로 유효한 책 조회: query={}, category={}, page={}, size={}, sort={}, member={}",
@@ -389,7 +327,7 @@ public class BookService {
                 return Page.empty(pageable);
             }
 
-            // 검색어와 카테고리로 페이지 수가 0보다 큰 유효한 책들만 조회
+            // DB에서 페이징과 정렬이 적용된 조회 (검색어와 카테고리, 페이지 수가 0보다 큰 유효한 책들만)
             Page<Book> validBookPage = bookRepository.findValidBooksByQueryAndCategory(query, categoryName, pageable);
 
             log.info("검색 결과: {}개 책 발견 (전체 {}개)", validBookPage.getNumberOfElements(), validBookPage.getTotalElements());
@@ -606,7 +544,7 @@ public class BookService {
     }
 
     /**
-     * 카테고리별 책 조회 (페이징, Member 정보 포함) - 유효한 책들만
+     * 카테고리별 책 조회 (페이징, Member 정보 포함) - DB에서 직접 정렬 처리
      */
     public Page<BookSearchDto> getBooksByCategory(String categoryName, Pageable pageable, Member member) {
         log.info("카테고리별 유효한 책 조회: category={}, page={}, size={}, sort={}, member={}",
@@ -621,8 +559,9 @@ public class BookService {
                 return Page.empty(pageable);
             }
 
-            // 페이지 수가 0보다 큰 유효한 책들만 조회
+            // DB에서 페이징과 정렬이 적용된 조회 (페이지 수가 0보다 큰 유효한 책들만)
             Page<Book> validBookPage = bookRepository.findValidBooksByCategory(categoryName, pageable);
+
             return validBookPage.map(book -> {
                 BookSearchDto dto = convertToDto(book, member);
                 log.debug("Book {} converted with readState: {}", book.getId(), dto.getReadState());
@@ -633,6 +572,7 @@ public class BookService {
             throw new ServiceException("500-3", "카테고리별 책 조회 중 오류가 발생했습니다.");
         }
     }
+
 
     /**
      * 책의 평균 평점 계산

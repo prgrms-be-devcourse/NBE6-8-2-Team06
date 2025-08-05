@@ -13,6 +13,8 @@ public interface BookRepositoryCustom {
 
     List<Book> findValidBooksByTitleOrAuthorContaining(String query);
 
+    Page<Book> findValidBooksByTitleOrAuthorContainingWithPaging(String query, Pageable pageable);
+
     Page<Book> findAllValidBooks(Pageable pageable);
 
     Optional<Book> findValidBookByIsbn13(String isbn13);
