@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useSafeFetch } from "./useSafeFetch";
 
-const NEXT_PUBLIC_API_BASE_URL = "http://localhost:8080";
+const NEXT_PUBLIC_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080";
 
 // 요청 DTO
 export interface NoteRequest {
