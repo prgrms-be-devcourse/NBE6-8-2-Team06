@@ -9,33 +9,37 @@ export const getBookmarks = async ({ page, size, sort, category, readState, keyw
     if(category && category !== 'all') params.append('category', category);
     if(readState && readState !== 'all') params.append('readState', readState);
     if(keyword) params.append('keyword', keyword);
-    return apiFetch(`/api/bookmarks?${params.toString()}`);
+    return apiFetch(`/bookmarks?${params.toString()}`);
 };
 
 export const getBookmark = async (id) => {
-    return apiFetch(`/api/bookmarks/${id}`);
+    return apiFetch(`/bookmarks/${id}`);
 };
 
 export const createBookmark = async (data) => {
-    return apiFetch('/api/bookmarks', {
+    return apiFetch('/bookmarks', {
         method: 'POST',
         body: JSON.stringify(data),
     });
 };
 
 export const updateBookmark = async (id, data) => {
-    return apiFetch(`/api/bookmarks/${id}`, {
+    return apiFetch(`/bookmarks/${id}`, {
         method: 'PUT',
         body: JSON.stringify(data),
     });
 };
 
 export const deleteBookmark = async (id) => {
-    return apiFetch(`/api/bookmarks/${id}`, {
+    return apiFetch(`/bookmarks/${id}`, {
         method: 'DELETE',
     });
 };
 
-export const getBookmarkReadStates = async () => {
-    return apiFetch('/api/bookmarks/read-states');
+export const getBookmarkReadStates = async ({ category, readState, keyword }) => {
+    const params = new URLSearchParams();
+    if(category && category !== 'all') params.append('category', category);
+    if(readState && readState !== 'all') params.append('readState', readState);
+    if(keyword) params.append('keyword', keyword);
+    return apiFetch(`/bookmarks/read-states?${params.toString()}`);
 };

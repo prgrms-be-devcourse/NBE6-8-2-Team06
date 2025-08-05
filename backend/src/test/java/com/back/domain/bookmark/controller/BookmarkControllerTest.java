@@ -27,7 +27,6 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Optional;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -48,7 +47,7 @@ public class BookmarkControllerTest {
     private MemberService memberService;
     @Autowired
     private PasswordEncoder passwordEncoder;
-
+    int id =0;
     @BeforeEach
     void setup() {
 
@@ -58,6 +57,8 @@ public class BookmarkControllerTest {
         }
 
         bookmarkService.save(1, member);
+        id = bookmarkService.getLatestBookmark(member).getId();
+        System.out.println("id : "+id);
     }
 
     @Test
@@ -65,9 +66,9 @@ public class BookmarkControllerTest {
     void t1() throws Exception {
         Member member = memberService.findByEmail("email@test.com").get();
         String accessToken = memberService.geneAccessToken(member);
-        Book book = bookRepository.findById(1).get();
+        Book book = bookRepository.findById(3).get();
         ResultActions resultActions = mvc.perform(
-                post("/api/bookmarks")
+                post("/bookmarks")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                         {
@@ -88,12 +89,11 @@ public class BookmarkControllerTest {
     @Test
     @DisplayName("북마크 단건 조회")
     void t2() throws Exception {
-        int id = 3;
         Member member = memberService.findByEmail("email@test.com").get();
         String accessToken = memberService.geneAccessToken(member);
         ResultActions resultActions = mvc
                 .perform(
-                        get("/api/bookmarks/"+id)
+                        get("/bookmarks/"+id)
                                 .cookie(new Cookie("accessToken", accessToken))
                 )
                 .andDo(print());
@@ -133,7 +133,7 @@ public class BookmarkControllerTest {
         String accessToken = memberService.geneAccessToken(member);
         ResultActions resultActions = mvc
                 .perform(
-                        get("/api/bookmarks/"+id)
+                        get("/bookmarks/"+id)
                                 .cookie(new Cookie("accessToken", accessToken))
                 )
                 .andDo(print());
@@ -153,7 +153,7 @@ public class BookmarkControllerTest {
         String accessToken = memberService.geneAccessToken(member);
         ResultActions resultActions = mvc
                 .perform(
-                        get("/api/bookmarks/list")
+                        get("/bookmarks/list")
                                 .cookie(new Cookie("accessToken", accessToken))
                 )
                 .andDo(print());
@@ -195,7 +195,7 @@ public class BookmarkControllerTest {
         String accessToken = memberService.geneAccessToken(member);
         ResultActions resultActions = mvc
                 .perform(
-                        get("/api/bookmarks")
+                        get("/bookmarks")
                                 .cookie(new Cookie("accessToken", accessToken))
                 )
                 .andDo(print());
@@ -238,11 +238,10 @@ public class BookmarkControllerTest {
     @Test
     @DisplayName("북마크 수정")
     void t6() throws Exception {
-        int id=3;
         Member member = memberService.findByEmail("email@test.com").get();
         String accessToken = memberService.geneAccessToken(member);
         ResultActions resultActions = mvc.perform(
-                put("/api/bookmarks/"+id)
+                put("/bookmarks/"+id)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                         {
@@ -261,7 +260,7 @@ public class BookmarkControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.resultCode").value("200-1"))
                 .andExpect(jsonPath("$.msg").value("%d번 북마크가 수정되었습니다.".formatted(id)))
-                .andExpect(jsonPath("$.data.bookId").value(bookmark.getId()))
+                .andExpect(jsonPath("$.data.bookId").value(bookmark.getBook().getId()))
                 .andExpect(jsonPath("$.data.readState").value(bookmark.getReadState().toString()))
                 .andExpect(jsonPath("$.data.readPage").value(bookmark.getReadPage()))
                 .andExpect(jsonPath("$.data.readingRate").value(bookmark.calculateReadingRate()))
@@ -283,12 +282,11 @@ public class BookmarkControllerTest {
     @Test
     @DisplayName("북마크 삭제")
     void t7() throws Exception {
-        int id = 3;
         Member member = memberService.findByEmail("email@test.com").get();
         String accessToken = memberService.geneAccessToken(member);
         ResultActions resultActions = mvc
                 .perform(
-                        delete("/api/bookmarks/"+id)
+                        delete("/bookmarks/"+id)
                                 .cookie(new Cookie("accessToken", accessToken))
                 )
                 .andDo(print());
@@ -308,12 +306,12 @@ public class BookmarkControllerTest {
         String accessToken = memberService.geneAccessToken(member);
         ResultActions resultActions = mvc
                 .perform(
-                        get("/api/bookmarks/read-states")
+                        get("/bookmarks/read-states")
                                 .cookie(new Cookie("accessToken", accessToken))
                 )
                 .andDo(print());
 
-        BookmarkReadStatesDto bookmarkReadStatesDto = bookmarkService.getReadStatesCount(member);
+        BookmarkReadStatesDto bookmarkReadStatesDto = bookmarkService.getReadStatesCount(member, null, null, null);
 
         resultActions
                 .andExpect(handler().handlerType(BookmarkController.class))

@@ -17,6 +17,7 @@ import { BookmarkCard } from './_components/bookmarkCard';
 import { BookmarkStats } from './_components/bookmarkStats';
 import { BookmarkFilters } from './_components/bookmarkFilters';
 import { PaginationControls } from './_components/paginationControls';
+import { useDebounce } from '../_hooks/useDebounce';
 
 
 export default function Page() {
@@ -32,10 +33,13 @@ export default function Page() {
   const [searchKeyword, setSearchKeyword] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedReadState, setSelectedReadState] = useState('all');
+  const [filteredReadState, setFilteredReadState] = useState<BookmarkReadStates>();
   const [categories, setCategories] = useState<Category[]>([]);
 
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editBookmark, setEditBookmark] = useState<Bookmark | null>(null);
+
+  const debouncedSearchKeyword = useDebounce(searchKeyword, 500);
 
   const onNavigate = (path: string) => {
     router.push(path);
@@ -47,17 +51,19 @@ export default function Page() {
     }
   }, [isAuthLoading, isLoggedIn, onNavigate]);
 
-  const fetchBookmarks = useCallback(async (searchKeyword: string) => {
+  const fetchBookmarks = useCallback(async () => {
+    if (!isLoggedIn) return;
+
     setIsLoading(true);
     setError('');
     try {
       const response = await getBookmarks({
         page: currentPage,
-        size: 10,
+        size: 9,
         sort: "createDate,desc",
         category: selectedCategory,
         readState: selectedReadState,
-        keyword: searchKeyword,
+        keyword: debouncedSearchKeyword,
       });
       setBookmarks(response.data);
     } catch (error) {
@@ -77,49 +83,75 @@ export default function Page() {
     } finally {
       setIsLoading(false);
     }
-  }, [currentPage, selectedCategory, selectedReadState]);
+  }, [isLoggedIn, currentPage, selectedCategory, selectedReadState, debouncedSearchKeyword]);
 
-  const fetchBookmarkReadStates = useCallback(async () => {
-    setIsLoading(true);
-    setError('');
+
+  const fetchInitialData = useCallback(async () => {
+    if (!isLoggedIn) return;
+
     try {
-      const response = await getBookmarkReadStates();
-      setBookmarkReadStates(response.data);
+      const [statsResponse, categoriesResponse] = await Promise.all([
+        getBookmarkReadStates({
+        category: null,
+        readState: null,
+        keyword: null,
+        }),
+        getCategories(),
+      ]);
+
+      console.log("readState API :", statsResponse.data);
+      setBookmarkReadStates(statsResponse.data);
+      setCategories(categoriesResponse.data);
     } catch (error) {
       console.error('❌ 에러 데이터:', (error as any).data);
-      setError(error instanceof Error ? error.message : '북마크 읽기 상태 데이터를 가져올 수 없습니다.');
+      setError(error instanceof Error ? error.message : '초기 데이터 로딩에 실패했습니다.');
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [isLoggedIn]);
 
-  const fetchCategories = useCallback(async () => {
+  const fetchFilteredReadState = useCallback(async () => {
+    if (!isLoggedIn) return;
     try {
-      const response = await getCategories();
-      setCategories(response.data);
+      const response = await getBookmarkReadStates({
+        category: selectedCategory,
+        readState: selectedReadState,
+        keyword: debouncedSearchKeyword,
+      });
+      console.log("readState API :", response.data);
+      setFilteredReadState(response.data);
     } catch (error) {
       console.error('❌ 에러 데이터:', (error as any).data);
-      setError(error instanceof Error ? error.message : '카테고리 목록을 가져오는 데 실패했습니다.');
-      setCategories([]);
+      setError(error instanceof Error ? error.message : '초기 데이터 로딩에 실패했습니다.');
+      setFilteredReadState({
+        totalCount: 0,
+        avgRate: 0,
+        readState: {
+          WISH: 0,
+          READING: 0,
+          READ: 0,
+        },
+      });
+    } finally {
+      setIsLoading(false);
     }
-  }, []);
+  }, [isLoggedIn, selectedCategory, selectedReadState, debouncedSearchKeyword]);
 
+  // 카테고리 또는 검색어가 변경되면 페이지를 처음으로 되돌림
   useEffect(() => {
-    const timer = setTimeout(() => {
-      fetchBookmarks(searchKeyword);
-    }, 500);
-    return () => {
-      clearTimeout(timer);
-    };
-  }, [searchKeyword, fetchBookmarks]);
+    setCurrentPage(0);
+    fetchFilteredReadState();
+  }, [selectedCategory, debouncedSearchKeyword, selectedReadState]);
 
+  // 책 목록 불러오기
   useEffect(() => {
-    fetchCategories();
-    if (!isAuthLoading && isLoggedIn) {
-      fetchBookmarkReadStates();
-    }
-  }, [isAuthLoading, isLoggedIn, fetchBookmarkReadStates]);
+    fetchBookmarks();
+  }, [fetchBookmarks]);
 
+  // 초기 데이터 로딩
+  useEffect(() => {
+    fetchInitialData();
+  }, [fetchInitialData]);
 
   const filteredBookmarks = useMemo(() => {
     if (!bookmarks?.data) return [];
@@ -141,8 +173,8 @@ export default function Page() {
       await updateBookmark(editBookmark.id, updateData);
       setIsEditDialogOpen(false);
       setEditBookmark(null);
-      await fetchBookmarkReadStates();
-      await fetchBookmarks(searchKeyword);
+      await fetchInitialData();
+      await fetchBookmarks();
     } catch (error) {
       console.error('❌ 에러 데이터:', (error as any).data);
       setError(error instanceof Error ? error.message : '북마크 업데이트가 실패했습니다.');
@@ -153,14 +185,20 @@ export default function Page() {
     if (window.confirm("이 북마크를 삭제하시겠습니까?")) {
       try {
         await deleteBookmark(bookmarkId);
-        await fetchBookmarkReadStates();
-        await fetchBookmarks(searchKeyword);
+        await fetchInitialData();
+        await fetchBookmarks();
       } catch (error) {
         console.error('❌ 에러 데이터:', (error as any).data);
         setError(error instanceof Error ? error.message : '북마크 삭제에 실패했습니다.');
       }
     }
   };
+
+  const handlePageChange = (page: number) => {
+    if(page >= 0 && page < (bookmarks?.totalPages || 0)) {
+      setCurrentPage(page);
+    }
+  }
 
   if (isAuthLoading) {
     return <div className="flex justify-center items-center h-screen">로딩 중...</div>;
@@ -186,18 +224,22 @@ export default function Page() {
       <BookmarkStats stats={bookmarkReadStates} />
       {/* 책 목록 검색 필터 */}
       <BookmarkFilters searchKeyword={searchKeyword} onSearchKeywordChange={setSearchKeyword}
-      selectedCategory={selectedCategory} onCategoryChange={setSelectedCategory}
-      categories={categories} selectedReadState={selectedReadState}
-      onReadStateChange={setSelectedReadState} readStates={['READ', 'READING', 'WISH']}
+        selectedCategory={selectedCategory} onCategoryChange={setSelectedCategory}
+        categories={categories} selectedReadState={selectedReadState}
+        onReadStateChange={setSelectedReadState} readStates={['READ', 'READING', 'WISH']}
+        setCurrentPage={setCurrentPage}
       />
 
       {/* 책 목록 테이블 */}
-      <Tabs defaultValue={selectedReadState} onValueChange={setSelectedReadState} className="w-full">
+      <Tabs value={selectedReadState} onValueChange={(value) => {
+        setSelectedReadState(value);
+        setCurrentPage(0);
+      }} className="w-full">
         <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="all">모든 상태 ({bookmarkReadStates?.totalCount})</TabsTrigger>
-          <TabsTrigger value="READ">읽은 책 ({bookmarkReadStates?.readState.READ || 0})</TabsTrigger>
-          <TabsTrigger value="READING">읽고 있는 책 ({bookmarkReadStates?.readState.READING || 0})</TabsTrigger>
-          <TabsTrigger value="WISH">읽고 싶은 책 ({bookmarkReadStates?.readState.WISH || 0})</TabsTrigger>
+          <TabsTrigger value="all">모든 상태 ({filteredReadState?.totalCount || 0})</TabsTrigger>
+          <TabsTrigger value="READ">읽은 책 ({filteredReadState?.readState.READ || 0})</TabsTrigger>
+          <TabsTrigger value="READING">읽고 있는 책 ({filteredReadState?.readState.READING || 0})</TabsTrigger>
+          <TabsTrigger value="WISH">읽고 싶은 책 ({filteredReadState?.readState.WISH || 0})</TabsTrigger>
         </TabsList>
         <div className="mt-6">
           {isLoading ? (
@@ -227,10 +269,9 @@ export default function Page() {
       </Tabs>
       {/* 페이지  */}
       <PaginationControls currentPage={currentPage} totalPages={bookmarks?.totalPages || 0}
-      isLast={bookmarks?.isLast || true} onPrevious={() => setCurrentPage(p => Math.max(p -1, 0))}
-      onNext={() => setCurrentPage(p => p+1)}
+        onChangePage={handlePageChange}
       />
-      
+
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
@@ -312,6 +353,16 @@ function BookmarkEditForm({ bookmark, onSave, onCancel }: BookmarkEditFormProps)
     }
   };
 
+  const isFormValid = useMemo(() => {
+    if (formData.readState === 'READING') {
+      return !!formData.startReadDate && !!formData.readPage;
+    }
+    if (formData.readState === 'READ') {
+      return !!formData.startReadDate && !!formData.endReadDate && formData.endReadDate >= formData.startReadDate;
+    }
+    return true;
+  }, [formData]);
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
@@ -375,7 +426,7 @@ function BookmarkEditForm({ bookmark, onSave, onCancel }: BookmarkEditFormProps)
         <Button type="button" variant="outline" onClick={onCancel}>
           취소
         </Button>
-        <Button type="submit">
+        <Button type="submit" disabled={!isFormValid}>
           저장
         </Button>
       </div>

@@ -4,7 +4,6 @@ import com.back.domain.book.book.entity.Book;
 import com.back.domain.bookmarks.constant.ReadState;
 import com.back.domain.member.member.entity.Member;
 import com.back.domain.note.entity.Note;
-import com.back.global.exception.ServiceException;
 import com.back.global.jpa.entity.BaseEntity;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -78,6 +77,6 @@ public class Bookmark extends BaseEntity {
     public long calculateReadingDuration(){
         if(readState == ReadState.WISH) return 0;
         LocalDateTime effectiveEnd = (endReadDate == null) ? LocalDateTime.now() : endReadDate;
-        return ChronoUnit.DAYS.between(startReadDate, effectiveEnd);
+        return ChronoUnit.DAYS.between(startReadDate, effectiveEnd)+1;
     }
 }

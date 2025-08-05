@@ -4,27 +4,45 @@ import { Button } from '@/components/ui/button';
 interface PaginationControlsProps {
     currentPage: number;
     totalPages: number;
-    isLast: boolean;
-    onPrevious: () => void;
-    onNext: () => void;
+    onChangePage: (page: number) => void;
 }
-export function PaginationControls({ currentPage, totalPages, isLast, onPrevious, onNext }: PaginationControlsProps) {
+export function PaginationControls({ currentPage, totalPages, onChangePage }: PaginationControlsProps) {
     if (totalPages <= 1) return null;
     return (
         <div className="flex justify-center items-center mt-8 space-x-4">
             <Button
-                onClick={onPrevious}
                 disabled={currentPage === 0}
                 variant="outline"
+                onClick={() => onChangePage(currentPage - 1)}
             >
                 이전
             </Button>
-            <span className="test-sm">
-                {currentPage + 1} / {totalPages}
-            </span>
+            <div className="flex space-x-1">
+                {Array.from({length: Math.min(totalPages, 5)}, (_, index) => {
+                    let pageNum;
+                    if(totalPages <= 5){
+                        pageNum=index;
+                    }else if(currentPage <= 2) {
+                        pageNum = index;
+                    }else if(currentPage >= totalPages - 3) {
+                        pageNum = totalPages - 5 +index;
+                    }else{
+                        pageNum = currentPage - 2 + index;
+                    }
+                    return (
+                        <Button
+                        key={pageNum}
+                        variant={currentPage === pageNum ? "default":"outline"}
+                        size="sm"
+                        onClick={() => onChangePage(pageNum)}>
+                            {pageNum + 1}
+                        </Button>
+                    );
+                })}
+            </div>
             <Button
-                onClick={onNext}
-                disabled={isLast}
+                onClick={() => onChangePage(currentPage + 1)}
+                disabled={currentPage +1 >= totalPages}
                 variant="outline"
             >
                 다음

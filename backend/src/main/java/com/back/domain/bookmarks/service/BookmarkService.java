@@ -10,10 +10,8 @@ import com.back.domain.review.review.entity.Review;
 import com.back.domain.review.review.repository.ReviewRepository;
 import com.back.domain.review.review.service.ReviewService;
 import com.back.global.exception.ServiceException;
-import jakarta.persistence.criteria.Join;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import com.back.domain.book.book.entity.Book;
@@ -53,37 +51,6 @@ public class BookmarkService {
         List<BookmarkDto> dtoList = convertToBookmarkDtoList(bookmarks.getContent(), member);
         return new PageImpl<>(dtoList, pageable, bookmarks.getTotalElements());
     }
-    //Specification
-    public Page<BookmarkDto> toPageSpec(Member member, int pageNumber, int pageSize, String category, String state, String keyword){
-        Pageable pageable = PageRequest.of(pageNumber, pageSize);
-        Specification<Bookmark> spec = (root, query, criteriaBuilder) -> {
-            query.distinct(true);
-            return criteriaBuilder.equal(root.get("member"), member);
-        };
-
-        if(category != null){
-            spec = spec.and((root, query, builder) -> {
-                Join<Bookmark, Book> bookJoin = root.join("book");
-                return builder.equal(bookJoin.get("category").get("name"), category);
-            });
-        }
-        if(state != null){
-            ReadState readState = ReadState.valueOf(state.toUpperCase());
-            spec = spec.and((root, query, builder) -> builder.equal(root.get("state"), readState));
-        }
-        if(keyword != null){
-            spec = spec.and((root, query, builder) -> {
-                Join<Bookmark, Book> bookJoin = root.join("book");
-                return builder.or(
-                        builder.like(bookJoin.get("title"), "%"+keyword+"%"),
-                        builder.like(bookJoin.get("authors").get("author").get("name"), "%"+keyword+"%")
-                );
-            });
-        }
-        Page<Bookmark> bookmarks = bookmarkRepository.findAll(spec, pageable);
-        List<BookmarkDto> dtoList = convertToBookmarkDtoList(bookmarks.getContent(), member);
-        return new PageImpl<>(dtoList, pageable, bookmarks.getTotalElements());
-    }
 
     public BookmarkDetailDto getBookmarkById(Member member, int bookmarkId) {
         Bookmark bookmark = bookmarkRepository.findByIdAndMember(bookmarkId, member).orElseThrow(() -> new NoSuchElementException("%d번 데이터가 없습니다.".formatted(bookmarkId)));
@@ -110,6 +77,7 @@ public class BookmarkService {
             ReadState readState = ReadState.valueOf(state.toUpperCase());
             bookmark.updateReadState(readState);
         }
+        bookmarkRepository.flush();
         return new BookmarkModifyResponseDto(bookmark);
     }
 
@@ -125,16 +93,21 @@ public class BookmarkService {
         return bookmarkRepository.findByIdAndMember(bookmarkId, member).orElseThrow(() -> new ServiceException("403-1", "해당 북마크에 대한 권한이 없습니다."));
     }
 
-    public BookmarkReadStatesDto getReadStatesCount(Member member) {
-        List<Bookmark> bookmarks = bookmarkRepository.findByMember(member);
-        Map<ReadState, Long> countByReadState = bookmarks.stream().collect(Collectors.groupingBy(Bookmark::getReadState, Collectors.counting()));
-        ReadStateCount readStateCount = new ReadStateCount(countByReadState.getOrDefault(ReadState.READ, 0L),
-                countByReadState.getOrDefault(ReadState.READING, 0L),
-                countByReadState.getOrDefault(ReadState.WISH, 0L));
-        double avgRate = reviewRepository.findAverageRatingByMember(member).orElse(0.0);
+    public BookmarkReadStatesDto getReadStatesCount(Member member, String category, String readState, String keyword) {
+        ReadStateCount readStateCount = bookmarkRepository.countReadState(member, category, readState, keyword);
+        long totalCount = readStateCount.READ()+readStateCount.READING()+readStateCount.WISH();
+        double avgRate = 0.0;
+        if(category == null && readState == null && keyword == null){
+            avgRate = getAvgRate(member);
+        }
+        System.out.println("totalCount:"+totalCount+",avgRate:"+avgRate+",read:"+readStateCount.READ()+",reading:"+readStateCount.READING()+",wish:"+readStateCount.WISH());
         return new BookmarkReadStatesDto(
-                bookmarks.size(), avgRate, readStateCount
+               totalCount , avgRate, readStateCount
         );
+    }
+
+    private double getAvgRate(Member member) {
+        return reviewRepository.findAverageRatingByMember(member).orElse(0.0);
     }
 
     private Review getReview(Bookmark bookmark) {
@@ -178,5 +151,9 @@ public class BookmarkService {
             return new BookmarkDto(bookmark, review);
         }).toList();
 
+    }
+
+    public Bookmark getLatestBookmark(Member member) {
+        return bookmarkRepository.getBookmarkByMemberOrderByIdDesc(member).orElseThrow(() -> new NoSuchElementException("조회가능한 북마크가 없습니다."));
     }
 }
