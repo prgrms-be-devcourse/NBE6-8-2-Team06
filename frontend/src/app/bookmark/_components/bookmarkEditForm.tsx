@@ -12,6 +12,7 @@ interface BookmarkEditFormProps {
 }
 
 export function BookmarkEditForm({ bookmark, onSave, onCancel }: BookmarkEditFormProps) {
+    const today = new Date().toISOString().split("T")[0];
     const [formData, setFormData] = useState({
         readState: bookmark.readState,
         startReadDate: bookmark.startReadDate?.substring(0, 10) || new Date().toISOString().split("T")[0],
@@ -117,6 +118,7 @@ export function BookmarkEditForm({ bookmark, onSave, onCancel }: BookmarkEditFor
                                 value={formData.endReadDate || ''}
                                 onChange={(e) => handleValueChange('endReadDate', e.target.value)}
                                 min={formData.startReadDate || undefined}
+                                max={today}
                             />
                         </div>
                     </>
@@ -131,7 +133,8 @@ export function BookmarkEditForm({ bookmark, onSave, onCancel }: BookmarkEditFor
                         type="date"
                         value={formData.startReadDate || ''}
                         onChange={(e) => handleValueChange('startReadDate', e.target.value)}
-                        max={formData.endReadDate || undefined}
+                        min={bookmark.book.publishDate?.substring(0,10) || undefined}
+                        max={formData.endReadDate || today}
                     />
                 </div>
             )}
