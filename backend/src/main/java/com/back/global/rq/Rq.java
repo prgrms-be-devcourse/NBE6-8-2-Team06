@@ -29,12 +29,15 @@ public class Rq {
 
     public void setCookie(String name, String value) {
         if (value == null) value = "";
+
+        String domain = req.getServerName().contains("localhost") ? "localhost" : "bookers.p-e.kr";
+
         Cookie cookie = new Cookie(name, value);
         cookie.setPath("/");
         cookie.setHttpOnly(true);
         cookie.setSecure(true);
         cookie.setAttribute("SameSite", "None");
-        cookie.setDomain("localhost");
+        cookie.setDomain(domain);
 
         if(value.isEmpty()){
             cookie.setMaxAge(0); // 즉시 만료
