@@ -191,6 +191,17 @@ export default function BooksPage() {
     }
   }, [sortBy]);
 
+  // 로그인 상태 변경 시 책 목록 새로고침
+  useEffect(() => {
+    if (isSearching && searchTerm.trim()) {
+      if (searchType === "title") {
+        loadBooks(currentPage, searchTerm, searchType, selectedCategory);
+      }
+    } else {
+      loadBooks(currentPage, undefined, undefined, selectedCategory);
+    }
+  }, [isLoggedIn]);
+
 
   // Helper function to get display text for read state
   const getReadStateText = (readState: ReadState) => {
