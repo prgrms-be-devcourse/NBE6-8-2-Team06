@@ -46,7 +46,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(Arrays.asList("http://localhost:3000", "https://www.bookers.p-e.kr")); // 프론트 도메인
+        config.setAllowedOrigins(Arrays.asList("http://localhost:3000", "https://www.bookers.p-e.kr", "https://bookers.p-e.kr")); // 프론트 도메인
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
