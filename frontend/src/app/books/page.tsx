@@ -80,10 +80,31 @@ export default function BooksPage() {
     }
   };
 
+  const getSortParams = (sortBy: string) => {
+    const params = (() => {
+      switch (sortBy) {
+        case "title":
+          return { sort: "title", direction: "asc" };
+        case "author":
+          return { sort: "author", direction: "asc" };
+        case "rating":
+          return { sort: "avgRate", direction: "desc" };
+        case "published":
+          return { sort: "publishedDate", direction: "desc" };
+        default:
+          return { sort: "title", direction: "asc" };
+      }
+    })();
+    console.log(`🔄 정렬 파라미터: sortBy=${sortBy} → sort=${params.sort}, direction=${params.direction}`);
+    return params;
+  };
+
   const loadBooks = async (page: number = 0, query?: string, type?: "title" | "isbn" | "category", category?: string) => {
     try {
       setLoading(true);
       console.log(`🚀 books 페이지에서 API 호출 시작 - 페이지: ${page}, 검색어: ${query}, 타입: ${type}, 카테고리: ${category}`);
+      
+      const { sort, direction } = getSortParams(sortBy);
       
       let response: BooksResponse;
       if (query && query.trim()) {
@@ -92,15 +113,15 @@ export default function BooksPage() {
         } else {
           // 카테고리가 선택되어 있고 "all"이 아닌 경우 카테고리별 검색
           if (category && category !== "all") {
-            response = await searchBooksByCategory(query, category, page);
+            response = await searchBooksByCategory(query, category, page, 9, sort, direction);
           } else {
-            response = await searchBooks(query, page);
+            response = await searchBooks(query, page, 9, sort, direction);
           }
         }
       } else if (category && category !== "all") {
-        response = await fetchBooksByCategory(category, page);
+        response = await fetchBooksByCategory(category, page, 9, sort, direction);
       } else {
-        response = await fetchBooks(page);
+        response = await fetchBooks(page, 9, sort, direction);
       }
       
       console.log("📚 받아온 응답:", response);
@@ -160,6 +181,16 @@ export default function BooksPage() {
     loadCategories();
   }, []);
 
+  useEffect(() => {
+    if (isSearching && searchTerm.trim()) {
+      if (searchType === "title") {
+        loadBooks(0, searchTerm, searchType, selectedCategory);
+      }
+    } else {
+      loadBooks(0, undefined, undefined, selectedCategory);
+    }
+  }, [sortBy]);
+
 
   // Helper function to get display text for read state
   const getReadStateText = (readState: ReadState) => {
@@ -175,23 +206,7 @@ export default function BooksPage() {
     }
   };
 
-  const filteredBooks = books.sort((a, b) => {
-    switch (sortBy) {
-      case "title":
-        return a.title.localeCompare(b.title);
-      case "author":
-        return a.authors[0]?.localeCompare(b.authors[0] || "") || 0;
-      case "rating":
-        return b.avgRate - a.avgRate;
-      case "published":
-        return (
-          new Date(b.publishedDate).getTime() -
-          new Date(a.publishedDate).getTime()
-        );
-      default:
-        return 0;
-    }
-  });
+  const filteredBooks = books;
 
   if (loading) {
     return (

@@ -22,6 +22,8 @@ public class QMember extends EntityPathBase<Member> {
 
     public final com.back.global.jpa.entity.QBaseEntity _super = new com.back.global.jpa.entity.QBaseEntity(this);
 
+    public final ListPath<com.back.domain.bookmarks.entity.Bookmark, com.back.domain.bookmarks.entity.QBookmark> bookmarks = this.<com.back.domain.bookmarks.entity.Bookmark, com.back.domain.bookmarks.entity.QBookmark>createList("bookmarks", com.back.domain.bookmarks.entity.Bookmark.class, com.back.domain.bookmarks.entity.QBookmark.class, PathInits.DIRECT2);
+
     //inherited
     public final DateTimePath<java.time.LocalDateTime> createDate = _super.createDate;
 
@@ -34,6 +36,8 @@ public class QMember extends EntityPathBase<Member> {
     public final DateTimePath<java.time.LocalDateTime> modifyDate = _super.modifyDate;
 
     public final StringPath name = createString("name");
+
+    public final ListPath<com.back.domain.note.entity.Note, com.back.domain.note.entity.QNote> notes = this.<com.back.domain.note.entity.Note, com.back.domain.note.entity.QNote>createList("notes", com.back.domain.note.entity.Note.class, com.back.domain.note.entity.QNote.class, PathInits.DIRECT2);
 
     public final StringPath password = createString("password");
 
