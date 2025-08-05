@@ -1,5 +1,7 @@
 package com.back.domain.member.member.entity;
 
+import com.back.domain.bookmarks.entity.Bookmark;
+import com.back.domain.note.entity.Note;
 import com.back.domain.review.review.entity.Review;
 import com.back.global.jpa.entity.BaseEntity;
 import jakarta.persistence.CascadeType;
@@ -25,6 +27,12 @@ public class Member extends BaseEntity {
 
     @OneToMany(mappedBy = "member", cascade = CascadeType.ALL, orphanRemoval = true)
     List<Review> reviews;
+
+    @OneToMany(mappedBy = "member", cascade = CascadeType.ALL, orphanRemoval = true)
+    List<Bookmark> bookmarks;
+
+    @OneToMany(mappedBy = "member", cascade = CascadeType.ALL, orphanRemoval = true)
+    List<Note> notes;
 
     public Member(String name, String email, String password) {
         this.name = name;
