@@ -268,8 +268,8 @@ export async function addToMyBooks(bookId: number): Promise<void> {
   const { apiFetch } = await import('@/lib/apiFetch');
   
   try {
-    console.log(`📚 내 목록에 추가 API 호출 시작: /api/bookmarks`);
-    await apiFetch('/api/bookmarks', {
+    console.log(`📚 내 목록에 추가 API 호출 시작: /bookmarks`);
+    await apiFetch('/bookmarks', {
       method: 'POST',
       body: JSON.stringify({ 
         bookId: bookId,
