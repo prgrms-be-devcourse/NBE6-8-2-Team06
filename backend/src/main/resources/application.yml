@@ -3,8 +3,8 @@ spring:
     name: back
 #  profiles:
 #    active: dev
-  profiles: # 나중에 dev랑 따로 분리해놓을것
-    active: prod
+#  profiles: # 나중에 dev랑 따로 분리해놓을것
+#    active: prod
   output:
     ansi:
       enabled: always
