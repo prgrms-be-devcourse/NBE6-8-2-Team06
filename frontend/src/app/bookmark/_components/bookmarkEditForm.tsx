@@ -15,16 +15,16 @@ export function BookmarkEditForm({ bookmark, onSave, onCancel }: BookmarkEditFor
     const today = new Date().toISOString().split("T")[0];
     const [formData, setFormData] = useState({
         readState: bookmark.readState,
-        startReadDate: bookmark.startReadDate?.substring(0, 10) || new Date().toISOString().split("T")[0],
-        endReadDate: bookmark.endReadDate?.substring(0, 10) || new Date().toISOString().split("T")[0],
+        startReadDate: bookmark.startReadDate?.substring(0, 10) || today,
+        endReadDate: bookmark.endReadDate?.substring(0, 10) || today,
         readPage: bookmark.readPage || 0,
     });
 
     useEffect(() => {
         setFormData({
             readState: bookmark.readState,
-            startReadDate: bookmark.startReadDate?.substring(0, 10) || new Date().toISOString().split("T")[0],
-            endReadDate: bookmark.endReadDate?.substring(0, 10) || new Date().toISOString().split("T")[0],
+            startReadDate: bookmark.startReadDate?.substring(0, 10) || today,
+            endReadDate: bookmark.endReadDate?.substring(0, 10) || today,
             readPage: bookmark.readPage || 0,
         });
     }, [bookmark]);
