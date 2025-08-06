@@ -3,7 +3,7 @@ spring:
     port: 8080
     address: 0.0.0.0
   datasource: # username, password 나중에 환경변수로 따로 지정해둘것
-    url: jdbc:mysql://bookers-mysql.cdgoqkyamrn7.ap-northeast-2.rds.amazonaws.com?useSSL=false&serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+    url: jdbc:mysql://bookers-mysql.cdgoqkyamrn7.ap-northeast-2.rds.amazonaws.com:3306/bookers_mysql?useSSL=false&serverTimezone=Asia/Seoul&characterEncoding=UTF-8
     username: admin
     password: okzzangsh
     driver-class-name: com.mysql.cj.jdbc.Driver
