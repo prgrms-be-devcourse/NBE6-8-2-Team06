@@ -75,18 +75,18 @@ export default withLogin(function page({params}:{params:Promise<{id:string}>}){
     setHoveredRating(0);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     // 여기서 실제로는 API 호출을 통해 리뷰를 저장
     if (!review){
-      reviewApi.createReview({rating,  content});
+      await reviewApi.createReview({rating,  content});
     }else{
-      reviewApi.editReview({rating, content})
+      await reviewApi.editReview({rating, content})
     }
     onNavigate(`/bookmark/${bookmarkId}`);
   };
 
-  const handleDelete = () =>{
-    reviewApi.deleteReview();
+  const handleDelete = async () =>{
+    await reviewApi.deleteReview();
     onNavigate(`/bookmark/${bookmarkId}`);
   }
 
