@@ -31,10 +31,10 @@ export function BookmarkSummaryCard({ bookmark, onNavigate }: BookmarkSummaryCar
                         {getReadState(bookmark?.readState)}
                     </Badge>
 
-                    {bookmark.book.avgRate > 0 && (
+                    {bookmark.review?.rate > 0 && (
                         <div className="flex items-center justify-center space-x-1 mb-4">
                             {renderStars(bookmark?.book.avgRate)}
-                            <span className="text-lg ml-2">{bookmark.book.avgRate.toFixed(1)}</span>
+                            <span className="text-lg ml-2">{bookmark.review.rate.toFixed(1)}</span>
                         </div>
                     )}
                 </div>

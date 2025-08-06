@@ -35,7 +35,7 @@ public class ReviewService {
         if (reviewRepository.findByBookAndMember(book, member).isPresent()) {
             throw new ServiceException("400-1", "Review already exists");
         }
-        reviewRepository.save(review);
+        reviewRepository.saveAndFlush(review);
         bookService.updateBookAvgRate(book);
     }
 
@@ -52,7 +52,7 @@ public class ReviewService {
         Review review = reviewRepository.findByBookAndMember(book, member)
                 .orElseThrow(() -> new NoSuchElementException("review not found"));
         reviewDtoService.updateReviewFromRequest(review, reviewRequestDto);
-        reviewRepository.save(review);
+        reviewRepository.saveAndFlush(review);
         bookService.updateBookAvgRate(book);
     }
 
