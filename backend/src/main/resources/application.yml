@@ -1,10 +1,8 @@
 spring:
   application:
     name: back
-#  profiles:
-#    active: dev
-  profiles: # 나중에 dev랑 따로 분리해놓을것
-    active: prod
+  profiles:
+    default: dev
   output:
     ansi:
       enabled: always
