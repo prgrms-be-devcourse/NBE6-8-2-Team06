@@ -2,11 +2,17 @@ name: Frontend CI/CD
 
 on:
   push:
-    branches: [ main ]
-    paths: [ 'frontend/**' ]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/**'
+    branches:
+      - main
   pull_request:
-    branches: [ main ]
-    paths: [ 'frontend/**' ]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/**'
+    branches:
+      - main
 
 jobs:
   build-and-deploy:
