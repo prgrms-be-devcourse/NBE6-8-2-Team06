@@ -1,6 +1,6 @@
 FROM gradle:jdk-21-and-23-graal-jammy AS builder
 WORKDIR /app
-COPY build.gradle settings.gradle ./
+COPY build.gradle.kts settings.gradle.kts ./
 COPY gradle gradle
 COPY src src
 RUN gradle bootJar --no-daemon
