@@ -7,12 +7,6 @@ on:
       - '.github/workflows/**'
     branches:
       - main
-  pull_request:
-    paths:
-      - 'backend/**'
-      - '.github/workflows/**'
-    branches:
-      - main
 
 jobs:
   build-and-deploy:
