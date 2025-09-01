@@ -5,7 +5,7 @@ COPY gradle gradle
 COPY src src
 RUN gradle bootJar --no-daemon
 
-FROM openjdk:21-jre-slim AS runner
+FROM container-registry.oracle.com/graalvm/jdk:21 AS runner
 WORKDIR /app
 
 # 애플리케이션 사용자 생성
