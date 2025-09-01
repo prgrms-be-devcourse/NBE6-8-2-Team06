@@ -2,6 +2,10 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
+  
+  // Docker용 standalone 모드 활성화
+  output: 'standalone',
+
   typescript: {
     ignoreBuildErrors: true,  // TypeScript 에러 무시
   },
